@@ -34,7 +34,7 @@
     <properties>
         <java.version>1.7</java.version>
         <alien4cloud.version>1.0.0-SM18-SNAPSHOT</alien4cloud.version>
-        <spring.version>4.0.5.RELEASE</spring.version>
+        <spring.version>4.0.7.RELEASE</spring.version>
         <lombok.version>0.12.0</lombok.version>
         <!-- Tests -->
         <junit.version>4.11</junit.version>
@@ -54,28 +54,12 @@
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-actuator</artifactId>
-                </exclusion>
-                <exclusion>
                     <artifactId>log4j-over-slf4j</artifactId>
                     <groupId>org.slf4j</groupId>
                 </exclusion>
                 <exclusion>
                     <artifactId>logback-classic</artifactId>
                     <groupId>ch.qos.logback</groupId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-tomcat</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-websocket</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-web</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -165,6 +149,27 @@
 
 
     <profiles>
+        <profile>
+            <id>intellij</id>
+            <dependencies>
+                <dependency>
+                    <groupId>alien4cloud</groupId>
+                    <artifactId>alien4cloud-core</artifactId>
+                    <version>${alien4cloud.version}</version>
+                    <scope>compile</scope>
+                    <exclusions>
+                        <exclusion>
+                            <artifactId>log4j-over-slf4j</artifactId>
+                            <groupId>org.slf4j</groupId>
+                        </exclusion>
+                        <exclusion>
+                            <artifactId>logback-classic</artifactId>
+                            <groupId>ch.qos.logback</groupId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>no-test</id>
             <activation>
