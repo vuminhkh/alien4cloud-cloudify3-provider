@@ -35,6 +35,10 @@ public class TestRest {
 
     public static final String BLUEPRINT_FILE = "singlehost-blueprint.yaml";
 
+    public static final String EXECUTION_INSTALL_ID = "install";
+
+    public static final String EXECUTION_UNINSTALL_ID = "uninstall";
+
     public static final Map<String, Object> DEPLOYMENT_INPUTS = Maps.newHashMap();
 
     static {
@@ -107,23 +111,38 @@ public class TestRest {
     public void testExecution() throws InterruptedException {
         blueprintDAO.create(BLUEPRINT_ID, BLUEPRINTS_PATH + BLUEPRINT_ID + "/" + BLUEPRINT_FILE);
         Deployment deployment = deploymentDAO.create(DEPLOYMENT_ID, BLUEPRINT_ID, DEPLOYMENT_INPUTS);
+        log.info(deployment.toString());
+        // The creation of a deployment automatically trigger a initialization execution
+        waitForExecutionFinished(DEPLOYMENT_ID);
+        Execution startExecution = executionDAO.start(DEPLOYMENT_ID, EXECUTION_INSTALL_ID, null, false, false);
+        log.info(startExecution.toString());
+        Thread.sleep(1000L);
+        waitForExecutionFinished(DEPLOYMENT_ID);
+        Execution stopExecution = executionDAO.start(DEPLOYMENT_ID, EXECUTION_UNINSTALL_ID, null, false, false);
+        log.info(stopExecution.toString());
+        Thread.sleep(1000L);
+        waitForExecutionFinished(DEPLOYMENT_ID);
+        deploymentDAO.delete(DEPLOYMENT_ID);
+        Thread.sleep(1000L);
+        blueprintDAO.delete(BLUEPRINT_ID);
+    }
+
+    private void waitForExecutionFinished(String deploymentId) throws InterruptedException {
         while (true) {
-            boolean executionRunning = true;
+            boolean executionFinished = true;
             Execution[] executions = executionDAO.list(DEPLOYMENT_ID);
             for (Execution execution : executions) {
-                log.info("Execution {} of workflow {} is in status {}", execution.getId(), execution.getWorkflowId(), execution.getStatus());
-                executionRunning = executionRunning && !ExecutionStatus.isTerminated(execution.getStatus());
+                executionFinished = executionFinished && ExecutionStatus.isTerminated(execution.getStatus());
+                if (!ExecutionStatus.isTerminated(execution.getStatus())) {
+                    log.info("Running Execution {} for workflow {} is in status {}", execution.getId(), execution.getWorkflowId(), execution.getStatus());
+                }
             }
-            if (executionRunning) {
-                log.info("Sleep to wait for all execution finish");
+            if (!executionFinished) {
                 Thread.sleep(2000L);
             } else {
                 log.info("All execution has finished");
                 break;
             }
         }
-        deploymentDAO.delete(DEPLOYMENT_ID);
-        Thread.sleep(1000L);
-        blueprintDAO.delete(BLUEPRINT_ID);
     }
 }
