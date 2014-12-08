@@ -1,8 +1,5 @@
 package alien4cloud.paas.cloudify3.model;
 
-import java.util.Date;
-import java.util.Map;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,21 +11,27 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @EqualsAndHashCode
 @JsonIgnoreProperties(ignoreUnknown = true)
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class Execution extends AbstractCloudifyModel {
+public class EventContext extends AbstractCloudifyModel {
 
-    private String id;
+    private String taskId;
 
     private String blueprintId;
 
+    private String plugin;
+
+    private String taskTarget;
+
+    private String nodeName;
+
     private String workflowId;
+
+    private String nodeId;
+
+    private String taskName;
+
+    private String operation;
 
     private String deploymentId;
 
-    private String status;
-
-    private String error;
-
-    private Date createdAt;
-
-    private Map<String, Object> parameters;
+    private String executionId;
 }

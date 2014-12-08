@@ -1,17 +1,30 @@
 package alien4cloud.paas.cloudify3.model;
 
-/**
- * @author Minh Khang VU
- */
-public enum ExecutionStatus {
+public class ExecutionStatus {
 
-    terminated, failed, cancelled, pending, started, cancelling, force_cancelling;
+    private ExecutionStatus() {
 
-    public static boolean isTerminated(ExecutionStatus status) {
+    }
+
+    public static final String TERMINATED = "terminated";
+
+    public static final String FAILED = "failed";
+
+    public static final String CANCELLED = "cancelled";
+
+    public static final String PENDING = "pending";
+
+    public static final String STARTED = "started";
+
+    public static final String CANCELLING = "cancelling";
+
+    public static final String FORCE_CANCELLING = "force_cancelling";
+
+    public static boolean isTerminated(String status) {
         switch (status) {
-        case terminated:
-        case failed:
-        case cancelled:
+        case TERMINATED:
+        case FAILED:
+        case CANCELLED:
             return true;
         default:
             return false;

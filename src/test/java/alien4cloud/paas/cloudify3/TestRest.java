@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3;
 
+import java.util.Collection;
 import java.util.Map;
 
 import javax.annotation.Resource;
@@ -8,15 +9,18 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
+import alien4cloud.paas.cloudify3.dao.EventDAO;
 import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
+import alien4cloud.paas.cloudify3.model.Event;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
 
@@ -56,6 +60,9 @@ public class TestRest {
     @Resource
     private ExecutionDAO executionDAO;
 
+    @Resource
+    private EventDAO eventDAO;
+
     @Before
     public void before() throws InterruptedException {
         if (deploymentDAO.list().length > 0) {
@@ -68,7 +75,7 @@ public class TestRest {
         Thread.sleep(1000L);
     }
 
-    @org.junit.Test
+    @Test
     public void testBluePrint() throws InterruptedException {
         Blueprint[] blueprints = blueprintDAO.list();
         Assert.assertEquals(0, blueprints.length);
@@ -86,7 +93,7 @@ public class TestRest {
         Assert.assertEquals(0, blueprints.length);
     }
 
-    @org.junit.Test
+    @Test
     public void testDeployment() throws InterruptedException {
         blueprintDAO.create(BLUEPRINT_ID, BLUEPRINTS_PATH + BLUEPRINT_ID + "/" + BLUEPRINT_FILE);
         Deployment[] deployments = deploymentDAO.list();
@@ -107,19 +114,18 @@ public class TestRest {
         blueprintDAO.delete(BLUEPRINT_ID);
     }
 
-    @org.junit.Test
+    @Test
     public void testExecution() throws InterruptedException {
         blueprintDAO.create(BLUEPRINT_ID, BLUEPRINTS_PATH + BLUEPRINT_ID + "/" + BLUEPRINT_FILE);
-        Deployment deployment = deploymentDAO.create(DEPLOYMENT_ID, BLUEPRINT_ID, DEPLOYMENT_INPUTS);
-        log.info(deployment.toString());
+        deploymentDAO.create(DEPLOYMENT_ID, BLUEPRINT_ID, DEPLOYMENT_INPUTS);
         // The creation of a deployment automatically trigger a initialization execution
         waitForExecutionFinished(DEPLOYMENT_ID);
         Execution startExecution = executionDAO.start(DEPLOYMENT_ID, EXECUTION_INSTALL_ID, null, false, false);
-        log.info(startExecution.toString());
         Thread.sleep(1000L);
         waitForExecutionFinished(DEPLOYMENT_ID);
-        Execution stopExecution = executionDAO.start(DEPLOYMENT_ID, EXECUTION_UNINSTALL_ID, null, false, false);
-        log.info(stopExecution.toString());
+        Collection<Event> events = eventDAO.getBatch(startExecution.getId(), null, 0, Integer.MAX_VALUE);
+        Assert.assertEquals(39, events.size());
+        executionDAO.start(DEPLOYMENT_ID, EXECUTION_UNINSTALL_ID, null, false, false);
         Thread.sleep(1000L);
         waitForExecutionFinished(DEPLOYMENT_ID);
         deploymentDAO.delete(DEPLOYMENT_ID);
@@ -130,7 +136,7 @@ public class TestRest {
     private void waitForExecutionFinished(String deploymentId) throws InterruptedException {
         while (true) {
             boolean executionFinished = true;
-            Execution[] executions = executionDAO.list(DEPLOYMENT_ID);
+            Execution[] executions = executionDAO.list(deploymentId);
             for (Execution execution : executions) {
                 executionFinished = executionFinished && ExecutionStatus.isTerminated(execution.getStatus());
                 if (!ExecutionStatus.isTerminated(execution.getStatus())) {

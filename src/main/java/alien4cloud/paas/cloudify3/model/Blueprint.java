@@ -6,15 +6,15 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import alien4cloud.rest.utils.JsonUtil;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Getter
 @Setter
 @EqualsAndHashCode
+@JsonIgnoreProperties(ignoreUnknown = true)
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class Blueprint {
+public class Blueprint extends AbstractCloudifyModel {
 
     private String id;
 
@@ -23,12 +23,4 @@ public class Blueprint {
     private Date updatedAt;
 
     private Map<String, Object> plan;
-
-    public String toString() {
-        try {
-            return JsonUtil.toString(this);
-        } catch (JsonProcessingException e) {
-            return "Blueprint " + id + " cannot be serialized";
-        }
-    }
 }

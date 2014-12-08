@@ -1,7 +1,6 @@
 package alien4cloud.paas.cloudify3.model;
 
 import java.util.Date;
-import java.util.Map;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -14,11 +13,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @EqualsAndHashCode
 @JsonIgnoreProperties(ignoreUnknown = true)
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class Workflow extends AbstractCloudifyModel {
+public class Event extends AbstractCloudifyModel {
 
-    private Date createdAt;
+    private String eventType;
 
-    private String name;
+    private Date timestamp;
 
-    private Map<String, Object> parameters;
+    private EventContext context;
 }

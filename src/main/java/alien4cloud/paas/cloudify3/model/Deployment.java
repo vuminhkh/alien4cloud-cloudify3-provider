@@ -6,15 +6,15 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import alien4cloud.rest.utils.JsonUtil;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Getter
 @Setter
 @EqualsAndHashCode
+@JsonIgnoreProperties(ignoreUnknown = true)
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class Deployment {
+public class Deployment extends AbstractCloudifyModel {
 
     private String id;
 
@@ -35,12 +35,4 @@ public class Deployment {
     private Map<String, Object> groups;
 
     private Map<String, Object> policyTypes;
-
-    public String toString() {
-        try {
-            return JsonUtil.toString(this);
-        } catch (JsonProcessingException e) {
-            return "Deployment " + id + " cannot be serialized";
-        }
-    }
 }
