@@ -30,7 +30,7 @@ import com.google.common.collect.Maps;
 @Slf4j
 public class EventDAO extends AbstractDAO {
 
-    public static final String EVENTS_PATH = "events";
+    public static final String EVENTS_PATH = "/events";
 
     @Override
     protected String getPath() {

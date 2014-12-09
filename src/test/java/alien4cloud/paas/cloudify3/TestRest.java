@@ -5,8 +5,6 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,17 +12,22 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Maps;
+
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
 import alien4cloud.paas.cloudify3.dao.EventDAO;
 import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
+import alien4cloud.paas.cloudify3.dao.NodeDAO;
+import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Event;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
-
-import com.google.common.collect.Maps;
+import alien4cloud.paas.cloudify3.model.Node;
+import alien4cloud.paas.cloudify3.model.NodeInstance;
+import lombok.extern.slf4j.Slf4j;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
@@ -62,6 +65,12 @@ public class TestRest {
 
     @Resource
     private EventDAO eventDAO;
+
+    @Resource
+    private NodeDAO nodeDAO;
+
+    @Resource
+    NodeInstanceDAO nodeInstanceDAO;
 
     @Before
     public void before() throws InterruptedException {
@@ -125,6 +134,15 @@ public class TestRest {
         waitForExecutionFinished(DEPLOYMENT_ID);
         Collection<Event> events = eventDAO.getBatch(startExecution.getId(), null, 0, Integer.MAX_VALUE);
         Assert.assertEquals(39, events.size());
+        Node[] nodes = nodeDAO.list(DEPLOYMENT_ID, null);
+        Assert.assertEquals(4, nodes.length);
+        for (Node node : nodes) {
+            Assert.assertEquals(node, nodeDAO.list(DEPLOYMENT_ID, node.getId())[0]);
+        }
+        NodeInstance[] nodeInstances = nodeInstanceDAO.list(DEPLOYMENT_ID);
+        for (NodeInstance nodeInstance : nodeInstances) {
+            Assert.assertEquals(nodeInstance, nodeInstanceDAO.read(nodeInstance.getId()));
+        }
         executionDAO.start(DEPLOYMENT_ID, EXECUTION_UNINSTALL_ID, null, false, false);
         Thread.sleep(1000L);
         waitForExecutionFinished(DEPLOYMENT_ID);

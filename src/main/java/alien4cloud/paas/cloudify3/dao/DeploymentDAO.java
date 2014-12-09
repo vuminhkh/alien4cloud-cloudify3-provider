@@ -23,7 +23,7 @@ import com.google.common.collect.Maps;
 @Slf4j
 public class DeploymentDAO extends AbstractDAO {
 
-    public static final String DEPLOYMENTS_PATH = "deployments";
+    public static final String DEPLOYMENTS_PATH = "/deployments";
 
     @Override
     protected String getPath() {

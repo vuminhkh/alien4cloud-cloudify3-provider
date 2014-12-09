@@ -31,7 +31,7 @@ public abstract class AbstractDAO {
             StringBuilder urlBuilder = new StringBuilder(urlPrefix);
             urlBuilder.append("?");
             for (String parameterName : parameterNames) {
-                urlBuilder.append(parameterName).append("={").append(parameterName).append("},");
+                urlBuilder.append(parameterName).append("={").append(parameterName).append("}&");
             }
             urlBuilder.setLength(urlBuilder.length() - 1);
             return urlBuilder.toString();
