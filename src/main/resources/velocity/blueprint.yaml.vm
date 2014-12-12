@@ -1,0 +1,31 @@
+#*
+This template is used to generate cloudify 3 recipe from alien model
+- $mapping --> contains specific IaaS mapping loaded from src/test/resources/mapping/$provider.yaml
+- $cloud --> contains alien4cloud.paas.cloudify3.configuration.CloudConfiguration instance
+- $deployment --> contains Alien's deployment and types
+*#
+tosca_definitions_version: $mapping.dsl_version
+
+imports:
+#foreach($import in $mapping.imports)
+    - $import
+#end
+
+node_types:
+#foreach($templateEntry in $cloud.computeTemplates.entrySet())
+    $templateEntry.key:
+        derived_from: $mapping.compute_type
+        properties:
+            server:
+                default:
+                    image: $templateEntry.value.image
+                    flavor: $templateEntry.value.flavor
+#end
+
+node_templates:
+#foreach($compute in $deployment.computes)
+    $compute.paaSNodeTemplate.id:
+        type: $compute.computeTemplateId
+        instances:
+            deploy: 1
+#end

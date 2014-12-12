@@ -1,0 +1,21 @@
+
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+    - http://www.getcloudify.org/spec/cloudify/3.1rc1/types.yaml
+    - http://www.getcloudify.org/spec/openstack-plugin/1.1rc1/plugin.yaml
+
+node_types:
+    MEDIUM_LINUX:
+        derived_from: cloudify.openstack.nodes.Server
+        properties:
+            server:
+                default:
+                    image: cac5bf41-6249-4511-b0c9-a167b48b3f1d
+                    flavor: 2
+
+node_templates:
+    compute:
+        type: MEDIUM_LINUX
+        instances:
+            deploy: 1
