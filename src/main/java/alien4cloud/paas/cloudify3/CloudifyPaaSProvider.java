@@ -6,15 +6,19 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import lombok.extern.slf4j.Slf4j;
 import alien4cloud.model.application.DeploymentSetup;
 import alien4cloud.paas.AbstractPaaSProvider;
 import alien4cloud.paas.IConfigurablePaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
+import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.StatusService;
+import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.exception.PluginConfigurationException;
 import alien4cloud.paas.model.AbstractMonitorEvent;
@@ -24,7 +28,6 @@ import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.tosca.container.model.topology.Topology;
 import alien4cloud.tosca.model.PropertyDefinition;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * The cloudify 3 PaaS Provider implementation
@@ -46,6 +49,9 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
     @Resource
     private StatusService statusService;
 
+    @Resource
+    private ComputeTemplateMatcherService computeTemplateMatcherService;
+
     /**
      * **********************************************************
      * *****************Deployment*******************************
@@ -53,8 +59,11 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
      */
 
     @Override
-    protected void doDeploy(String deploymentName, String deploymentId, Topology topology, List<PaaSNodeTemplate> computes, Map<String, PaaSNodeTemplate> nodeTemplates, DeploymentSetup deploymentSetup) {
-        deploymentService.deploy(deploymentName, deploymentId, topology, computes, nodeTemplates, deploymentSetup);
+    protected void doDeploy(String deploymentName, String deploymentId, Topology topology, List<PaaSNodeTemplate> computes,
+            Map<String, PaaSNodeTemplate> nodes, DeploymentSetup deploymentSetup) {
+        List<MatchedPaaSComputeTemplate> matchedComputes = computeTemplateMatcherService.match(computes, deploymentSetup);
+        AlienDeployment deployment = new AlienDeployment(deploymentId, deploymentName, topology, matchedComputes, nodes);
+        deploymentService.deploy(deployment);
     }
 
     @Override

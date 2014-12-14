@@ -7,25 +7,22 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.concurrent.ListenableFuture;
+
+import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
+import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
+import alien4cloud.paas.cloudify3.util.VelocityUtil;
+import alien4cloud.utils.YamlParserUtil;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
-
-import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
-import alien4cloud.paas.cloudify3.model.Blueprint;
-import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
-import alien4cloud.paas.cloudify3.util.FutureUtil;
-import alien4cloud.paas.cloudify3.util.VelocityUtil;
-import alien4cloud.utils.YamlParserUtil;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Handle blueprint generation from alien model
@@ -38,9 +35,6 @@ public class BlueprintService {
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
-
-    @Resource
-    private BlueprintDAO blueprintDAO;
 
     @Resource
     private ClasspathResourceLoaderService resourceLoaderService;
@@ -71,18 +65,6 @@ public class BlueprintService {
         // Generate the blueprint
         VelocityUtil.generate(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
-    }
-
-    /**
-     * Upload the blueprint to cloudify manager
-     *
-     * @param blueprintName     the blueprint name
-     * @param blueprintFilePath the blueprint path
-     * @return the future created blueprint
-     */
-    public ListenableFuture<Blueprint> uploadBlueprint(String blueprintName, Path blueprintFilePath) {
-        // Create the blueprint on cloudify manager
-        return FutureUtil.unwrap(blueprintDAO.asyncCreate(blueprintName, blueprintFilePath.toString()));
     }
 
     @Required

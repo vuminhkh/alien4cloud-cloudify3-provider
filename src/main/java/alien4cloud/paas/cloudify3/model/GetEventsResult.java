@@ -1,6 +1,5 @@
 package alien4cloud.paas.cloudify3.model;
 
-import java.util.Collection;
 import java.util.List;
 
 import lombok.EqualsAndHashCode;
@@ -39,20 +38,20 @@ public class GetEventsResult extends AbstractCloudifyModel {
     }
 
     @JsonIgnore
-    public Collection<Event> getEvents() {
-        List<Event> events = Lists.newArrayList();
+    public Event[] getEvents() {
         if (hits == null) {
-            return events;
+            return new Event[0];
         }
         GetEventsHit[] internalHits = hits.getHits();
         if (internalHits == null || internalHits.length == 0) {
-            return events;
+            return new Event[0];
         }
+        List<Event> events = Lists.newArrayList();
         for (GetEventsHit internalHit : internalHits) {
             if (internalHit != null && internalHit.get__source() != null) {
                 events.add(internalHit.get__source());
             }
         }
-        return events;
+        return events.toArray(new Event[events.size()]);
     }
 }

@@ -19,9 +19,11 @@ public class AlienDeployment {
 
     private String deploymentId;
 
+    private String deploymentName;
+
     private Topology topology;
 
-    private List<PaaSComputeTemplate> computes;
+    private List<MatchedPaaSComputeTemplate> computes;
 
     private Map<String, PaaSNodeTemplate> nodes;
 }

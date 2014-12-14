@@ -9,15 +9,15 @@ import org.apache.http.HttpHeaders;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.concurrent.ListenableFuture;
 
 import alien4cloud.paas.cloudify3.model.Deployment;
+import alien4cloud.paas.cloudify3.util.FutureUtil;
 
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListenableFuture;
 
 @Component
 @Slf4j
@@ -30,44 +30,45 @@ public class DeploymentDAO extends AbstractDAO {
         return DEPLOYMENTS_PATH;
     }
 
-    public ListenableFuture<ResponseEntity<Deployment[]>> asyncList() {
+    public ListenableFuture<Deployment[]> asyncList() {
         log.info("List deployment");
-        return getRestTemplate().getForEntity(getBaseUrl(), Deployment[].class);
+        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl(), Deployment[].class));
     }
 
     @SneakyThrows
     public Deployment[] list() {
-        return asyncList().get().getBody();
+        return asyncList().get();
     }
 
-    public ListenableFuture<ResponseEntity<Deployment>> asyncCreate(String id, String blueprintId, Map<String, Object> inputs) {
+    public ListenableFuture<Deployment> asyncCreate(String id, String blueprintId, Map<String, Object> inputs) {
         log.info("Create deployment {} for blueprint {}", id, blueprintId);
         Map<String, Object> request = Maps.newHashMap();
         request.put("blueprint_id", blueprintId);
         request.put("inputs", inputs);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        return getRestTemplate().exchange(getSuffixedUrl("/{id}"), HttpMethod.PUT, new HttpEntity<>(request, headers), Deployment.class, id);
+        return FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getSuffixedUrl("/{id}"), HttpMethod.PUT, new HttpEntity<>(request, headers),
+                Deployment.class, id));
     }
 
     @SneakyThrows
     public Deployment create(String id, String blueprintId, Map<String, Object> inputs) {
-        return asyncCreate(id, blueprintId, inputs).get().getBody();
+        return asyncCreate(id, blueprintId, inputs).get();
     }
 
-    public ListenableFuture<ResponseEntity<Deployment>> asyncRead(String id) {
+    public ListenableFuture<Deployment> asyncRead(String id) {
         log.info("Read deployment {}", id);
-        return getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Deployment.class, id);
+        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Deployment.class, id));
     }
 
     @SneakyThrows
     public Deployment read(String id) {
-        return asyncRead(id).get().getBody();
+        return asyncRead(id).get();
     }
 
     public ListenableFuture<?> asyncDelete(String id) {
         log.info("Delete deployment {}", id);
-        return getRestTemplate().delete(getSuffixedUrl("/{id}"), id);
+        return FutureUtil.toGuavaFuture(getRestTemplate().delete(getSuffixedUrl("/{id}"), id));
     }
 
     @SneakyThrows

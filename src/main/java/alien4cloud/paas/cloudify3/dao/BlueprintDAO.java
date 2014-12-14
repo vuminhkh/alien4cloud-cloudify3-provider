@@ -12,14 +12,15 @@ import org.apache.http.HttpHeaders;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.concurrent.ListenableFuture;
 
 import alien4cloud.paas.cloudify3.model.Blueprint;
+import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.utils.FileUtil;
+
+import com.google.common.util.concurrent.ListenableFuture;
 
 @Component
 @Slf4j
@@ -32,18 +33,18 @@ public class BlueprintDAO extends AbstractDAO {
         return BLUEPRINT_PATH;
     }
 
-    public ListenableFuture<ResponseEntity<Blueprint[]>> asyncList() {
+    public ListenableFuture<Blueprint[]> asyncList() {
         log.info("List blueprint");
-        return getRestTemplate().getForEntity(getBaseUrl(), Blueprint[].class);
+        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl(), Blueprint[].class));
     }
 
     @SneakyThrows
     public Blueprint[] list() {
-        return asyncList().get().getBody();
+        return asyncList().get();
     }
 
     @SneakyThrows
-    public ListenableFuture<ResponseEntity<Blueprint>> asyncCreate(String id, String path) {
+    public ListenableFuture<Blueprint> asyncCreate(String id, String path) {
         log.info("Create blueprint {} with path {}", id, path);
         Path sourcePath = Paths.get(path);
         String sourceName = sourcePath.getFileName().toString();
@@ -56,8 +57,9 @@ public class BlueprintDAO extends AbstractDAO {
         try {
             MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
             headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
-            ListenableFuture<ResponseEntity<Blueprint>> response = getRestTemplate().exchange(getSuffixedUrl("/{id}", "application_file_name"), HttpMethod.PUT,
-                    new HttpEntity<>(Files.readAllBytes(destination.toPath()), headers), Blueprint.class, id, sourceName);
+            ListenableFuture<Blueprint> response = FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getSuffixedUrl("/{id}", "application_file_name"),
+                    HttpMethod.PUT,
+                    new HttpEntity<>(Files.readAllBytes(destination.toPath()), headers), Blueprint.class, id, sourceName));
             if (log.isDebugEnabled()) {
                 log.debug("Received response for upload {}", response);
             }
@@ -69,22 +71,22 @@ public class BlueprintDAO extends AbstractDAO {
 
     @SneakyThrows
     public Blueprint create(String id, String path) {
-        return asyncCreate(id, path).get().getBody();
+        return asyncCreate(id, path).get();
     }
 
-    public ListenableFuture<ResponseEntity<Blueprint>> asyncRead(String id) {
+    public ListenableFuture<Blueprint> asyncRead(String id) {
         log.info("Read blueprint {}", id);
-        return getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Blueprint.class, id);
+        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Blueprint.class, id));
     }
 
     @SneakyThrows
     public Blueprint read(String id) {
-        return asyncRead(id).get().getBody();
+        return asyncRead(id).get();
     }
 
     public ListenableFuture<?> asyncDelete(String id) {
         log.info("Delete blueprint {}", id);
-        return getRestTemplate().delete(getSuffixedUrl("/{id}"), id);
+        return FutureUtil.toGuavaFuture(getRestTemplate().delete(getSuffixedUrl("/{id}"), id));
     }
 
     @SneakyThrows

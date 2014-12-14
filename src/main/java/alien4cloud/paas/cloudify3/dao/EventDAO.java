@@ -1,6 +1,5 @@
 package alien4cloud.paas.cloudify3.dao;
 
-import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 
@@ -14,17 +13,17 @@ import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.concurrent.ListenableFuture;
 
 import alien4cloud.paas.cloudify3.model.Event;
 import alien4cloud.paas.cloudify3.model.GetEventsResult;
+import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.rest.utils.JsonUtil;
 
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ListenableFuture;
 
 @Component
 @Slf4j
@@ -59,7 +58,7 @@ public class EventDAO extends AbstractDAO {
     }
 
     @SneakyThrows
-    public ListenableFuture<ResponseEntity<GetEventsResult>> asyncGetBatch(String executionId, Date fromDate, int from, int batchSize) {
+    public ListenableFuture<GetEventsResult> asyncGetBatch(String executionId, Date fromDate, int from, int batchSize) {
         Map<String, Object> request = Maps.newHashMap();
         request.put("from", from);
         request.put("size", batchSize);
@@ -72,11 +71,12 @@ public class EventDAO extends AbstractDAO {
         request.put("query", query);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        return getRestTemplate().exchange(getBaseUrl(), HttpMethod.POST, new HttpEntity<>(request, headers), GetEventsResult.class);
+        return FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getBaseUrl(), HttpMethod.POST, new HttpEntity<>(request, headers),
+                GetEventsResult.class));
     }
 
     @SneakyThrows
-    public Collection<Event> getBatch(String executionId, Date fromDate, int from, int batchSize) {
-        return asyncGetBatch(executionId, fromDate, from, batchSize).get().getBody().getEvents();
+    public Event[] getBatch(String executionId, Date fromDate, int from, int batchSize) {
+        return asyncGetBatch(executionId, fromDate, from, batchSize).get().getEvents();
     }
 }

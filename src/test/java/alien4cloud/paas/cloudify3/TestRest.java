@@ -132,8 +132,8 @@ public class TestRest {
         Execution startExecution = executionDAO.start(DEPLOYMENT_ID, EXECUTION_INSTALL_ID, null, false, false);
         Thread.sleep(1000L);
         waitForExecutionFinished(DEPLOYMENT_ID);
-        Collection<Event> events = eventDAO.getBatch(startExecution.getId(), null, 0, Integer.MAX_VALUE);
-        Assert.assertEquals(39, events.size());
+        Event[] events = eventDAO.getBatch(startExecution.getId(), null, 0, Integer.MAX_VALUE);
+        Assert.assertEquals(39, events.length);
         Node[] nodes = nodeDAO.list(DEPLOYMENT_ID, null);
         Assert.assertEquals(4, nodes.length);
         for (Node node : nodes) {

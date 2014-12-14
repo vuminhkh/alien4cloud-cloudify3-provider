@@ -11,7 +11,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class PaaSComputeTemplate {
+public class MatchedPaaSComputeTemplate {
 
     private PaaSNodeTemplate paaSNodeTemplate;
 
