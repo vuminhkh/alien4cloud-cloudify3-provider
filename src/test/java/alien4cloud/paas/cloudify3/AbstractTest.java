@@ -59,7 +59,7 @@ public class AbstractTest {
     @Before
     public void before() throws Exception {
         CloudifyComputeTemplate mediumLinux = new CloudifyComputeTemplate();
-        mediumLinux.setImage("2b4475df-b6d6-49b7-a062-a3a20d45ab7c");
+        mediumLinux.setImage("727df994-2e1b-404e-9276-b248223a835d");
         mediumLinux.setFlavor("2");
         cloudConfigurationHolder.getConfiguration().getComputeTemplates().put("MEDIUM_LINUX", mediumLinux);
 

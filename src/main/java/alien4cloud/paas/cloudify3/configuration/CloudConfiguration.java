@@ -15,7 +15,7 @@ public class CloudConfiguration {
     /**
      * Cloudify 3 Rest API URL
      */
-    private String url = "http://129.185.67.84:8100";
+    private String url = "http://129.185.67.85:8100";
 
     /**
      * The mapping for compute template id --> template configuration (image + flavor)
