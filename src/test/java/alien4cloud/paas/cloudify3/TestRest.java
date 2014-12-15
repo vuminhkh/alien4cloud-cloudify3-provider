@@ -1,9 +1,10 @@
 package alien4cloud.paas.cloudify3;
 
-import java.util.Collection;
 import java.util.Map;
 
 import javax.annotation.Resource;
+
+import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -11,8 +12,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.google.common.collect.Maps;
 
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
@@ -27,7 +26,9 @@ import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
 import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
-import lombok.extern.slf4j.Slf4j;
+import alien4cloud.paas.cloudify3.model.Workflow;
+
+import com.google.common.collect.Maps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
@@ -41,10 +42,6 @@ public class TestRest {
     public static final String DEPLOYMENT_ID = "deploymentOfNodeCellar";
 
     public static final String BLUEPRINT_FILE = "singlehost-blueprint.yaml";
-
-    public static final String EXECUTION_INSTALL_ID = "install";
-
-    public static final String EXECUTION_UNINSTALL_ID = "uninstall";
 
     public static final Map<String, Object> DEPLOYMENT_INPUTS = Maps.newHashMap();
 
@@ -129,7 +126,7 @@ public class TestRest {
         deploymentDAO.create(DEPLOYMENT_ID, BLUEPRINT_ID, DEPLOYMENT_INPUTS);
         // The creation of a deployment automatically trigger a initialization execution
         waitForExecutionFinished(DEPLOYMENT_ID);
-        Execution startExecution = executionDAO.start(DEPLOYMENT_ID, EXECUTION_INSTALL_ID, null, false, false);
+        Execution startExecution = executionDAO.start(DEPLOYMENT_ID, Workflow.INSTALL, null, false, false);
         Thread.sleep(1000L);
         waitForExecutionFinished(DEPLOYMENT_ID);
         Event[] events = eventDAO.getBatch(startExecution.getId(), null, 0, Integer.MAX_VALUE);
@@ -143,7 +140,7 @@ public class TestRest {
         for (NodeInstance nodeInstance : nodeInstances) {
             Assert.assertEquals(nodeInstance, nodeInstanceDAO.read(nodeInstance.getId()));
         }
-        executionDAO.start(DEPLOYMENT_ID, EXECUTION_UNINSTALL_ID, null, false, false);
+        executionDAO.start(DEPLOYMENT_ID, Workflow.UNINSTALL, null, false, false);
         Thread.sleep(1000L);
         waitForExecutionFinished(DEPLOYMENT_ID);
         deploymentDAO.delete(DEPLOYMENT_ID);

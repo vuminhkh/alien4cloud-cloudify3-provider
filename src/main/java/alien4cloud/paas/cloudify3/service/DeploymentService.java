@@ -18,6 +18,7 @@ import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
+import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
 
 import com.google.common.base.Function;
@@ -66,7 +67,7 @@ public class DeploymentService {
         AsyncFunction<Deployment, Execution> startExecutionFunction = new AsyncFunction<Deployment, Execution>() {
             @Override
             public ListenableFuture<Execution> apply(Deployment input) throws Exception {
-                return waitForExecutionFinish(executionDAO.asyncStart(input.getId(), "install", null, false, false));
+                return waitForExecutionFinish(executionDAO.asyncStart(input.getId(), Workflow.INSTALL, null, false, false));
             }
         };
         return Futures.transform(createdDeployment, startExecutionFunction);
@@ -74,7 +75,8 @@ public class DeploymentService {
 
     public ListenableFuture<?> undeploy(final String deploymentId) {
         log.info("Undeploying app {} with id {}", deploymentId);
-        ListenableFuture<Execution> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentId, "uninstall", null, false, false));
+        ListenableFuture<Execution> startUninstall = waitForExecutionFinish(executionDAO
+                .asyncStart(deploymentId, Workflow.UNINSTALL, null, false, false));
         AsyncFunction deleteDeploymentFunction = new AsyncFunction() {
             @Override
             public ListenableFuture apply(Object input) throws Exception {

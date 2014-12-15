@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -41,7 +42,13 @@ public class BlueprintService {
 
     private Path recipeDirectoryPath;
 
-    private ObjectMapper yamlObjectMapper = YamlParserUtil.createYamlObjectMapper();
+    private Map<String, Object> mapping;
+
+    public BlueprintService() throws IOException {
+        ObjectMapper yamlObjectMapper = YamlParserUtil.createYamlObjectMapper();
+        JavaType mapStringObjectType = yamlObjectMapper.getTypeFactory().constructParametricType(HashMap.class, String.class, Object.class);
+        mapping = yamlObjectMapper.readValue(new ClassPathResource("mapping/openstack.yaml").getInputStream(), mapStringObjectType);
+    }
 
     /**
      * Generate blueprint from an alien deployment request
@@ -58,8 +65,6 @@ public class BlueprintService {
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
-        JavaType mapStringObjectType = yamlObjectMapper.getTypeFactory().constructParametricType(HashMap.class, String.class, Object.class);
-        Map<String, Object> mapping = yamlObjectMapper.readValue(new ClassPathResource("mapping/openstack.yaml").getInputStream(), mapStringObjectType);
         context.put("mapping", mapping);
         context.put("deployment", alienDeployment);
         // Generate the blueprint

@@ -30,4 +30,12 @@ public class ExecutionStatus {
             return false;
         }
     }
+
+    public static boolean isTerminatedSuccessfully(String status) {
+        return TERMINATED.equals(status);
+    }
+
+    public static boolean isTerminatedWithFailure(String status) {
+        return FAILED.equals(status);
+    }
 }
