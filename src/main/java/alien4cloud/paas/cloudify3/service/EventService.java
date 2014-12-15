@@ -15,6 +15,7 @@ import alien4cloud.paas.model.AbstractMonitorEvent;
 public class EventService {
 
     public AbstractMonitorEvent[] getEventsSince(Date lastTimestamp, int batchSize) {
+
         return new AbstractMonitorEvent[0];
     }
 

@@ -2,10 +2,10 @@ package alien4cloud.paas.cloudify3.configuration;
 
 import java.util.Map;
 
-import com.google.common.collect.Maps;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import com.google.common.collect.Maps;
 
 @Getter
 @Setter

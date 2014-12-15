@@ -75,8 +75,7 @@ public class DeploymentService {
 
     public ListenableFuture<?> undeploy(final String deploymentId) {
         log.info("Undeploying app {} with id {}", deploymentId);
-        ListenableFuture<Execution> startUninstall = waitForExecutionFinish(executionDAO
-                .asyncStart(deploymentId, Workflow.UNINSTALL, null, false, false));
+        ListenableFuture<Execution> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentId, Workflow.UNINSTALL, null, false, false));
         AsyncFunction deleteDeploymentFunction = new AsyncFunction() {
             @Override
             public ListenableFuture apply(Object input) throws Exception {
@@ -116,8 +115,7 @@ public class DeploymentService {
         return Futures.transform(futureExecution, waitFunc);
     }
 
-    private ListenableFuture<Execution[]> waitForDeploymentExecutionsFinish(final Deployment deployment,
-            final ListenableFuture<Execution[]> futureExecutions) {
+    private ListenableFuture<Execution[]> waitForDeploymentExecutionsFinish(final Deployment deployment, final ListenableFuture<Execution[]> futureExecutions) {
         AsyncFunction<Execution[], Execution[]> waitFunc = new AsyncFunction<Execution[], Execution[]>() {
             @Override
             public ListenableFuture<Execution[]> apply(final Execution[] executions) throws Exception {

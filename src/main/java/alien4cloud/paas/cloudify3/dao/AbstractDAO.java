@@ -2,10 +2,11 @@ package alien4cloud.paas.cloudify3.dao;
 
 import javax.annotation.Resource;
 
+import lombok.Getter;
+
 import org.springframework.web.client.AsyncRestTemplate;
 
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import lombok.Getter;
 
 public abstract class AbstractDAO {
 
@@ -20,7 +21,7 @@ public abstract class AbstractDAO {
     /**
      * Get the url appended with the given suffix
      *
-     * @param suffix         path of the action
+     * @param suffix path of the action
      * @param parameterNames all parameters' name
      * @return the url suffixed
      */

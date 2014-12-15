@@ -6,6 +6,9 @@ import java.util.UUID;
 
 import javax.annotation.Resource;
 
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Component;
 
 import alien4cloud.application.ApplicationService;
@@ -13,8 +16,6 @@ import alien4cloud.dao.ElasticSearchDAO;
 import alien4cloud.model.application.Application;
 import alien4cloud.tosca.container.model.topology.Topology;
 import alien4cloud.utils.YamlParserUtil;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j

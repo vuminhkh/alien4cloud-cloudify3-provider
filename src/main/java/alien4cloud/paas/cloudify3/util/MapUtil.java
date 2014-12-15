@@ -15,7 +15,11 @@ public class MapUtil {
         Map<String, String> stringStringMap = Maps.newHashMap();
         for (Map.Entry<String, Object> stringObjectEntry : stringObjectMap.entrySet()) {
             try {
-                stringStringMap.put(stringObjectEntry.getKey(), JsonUtil.toString(stringObjectEntry.getValue()));
+                if (stringObjectEntry.getValue() != null) {
+                    stringStringMap.put(stringObjectEntry.getKey(), JsonUtil.toString(stringObjectEntry.getValue()));
+                } else {
+                    stringStringMap.put(stringObjectEntry.getKey(), null);
+                }
             } catch (JsonProcessingException e) {
                 log.error("Unable to serialize", e);
             }

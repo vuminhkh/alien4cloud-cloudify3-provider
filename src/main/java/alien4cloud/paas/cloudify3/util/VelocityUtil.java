@@ -9,13 +9,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 
 import alien4cloud.utils.FileUtil;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 
 /**
  * A velocity Util class
@@ -38,8 +39,8 @@ public class VelocityUtil {
      * Generate from the given velocity template to the given output path
      *
      * @param velocityTemplateResource template file
-     * @param outputFilePath           generated file destination
-     * @param properties               properties to inject in the template
+     * @param outputFilePath generated file destination
+     * @param properties properties to inject in the template
      * @throws java.io.IOException when the resource was not found
      */
     public static void generate(Path velocityTemplateResource, Path outputFilePath, Map<String, ? extends Object> properties) throws IOException {

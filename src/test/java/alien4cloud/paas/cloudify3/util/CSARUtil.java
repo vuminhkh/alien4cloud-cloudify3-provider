@@ -6,12 +6,13 @@ import java.nio.file.Paths;
 
 import javax.annotation.Resource;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Component;
 
 import alien4cloud.git.RepositoryManager;
 import alien4cloud.tosca.ArchiveUploadService;
 import alien4cloud.utils.FileUtil;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
@@ -35,7 +36,8 @@ public class CSARUtil {
     }
 
     public void uploadNormativeTypes() throws Exception {
-        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, "https://github.com/alien4cloud/tosca-normative-types.git", "1.0.0.wd03", TOSCA_NORMATIVE_TYPES_1_0_0_WD03_NAME);
+        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, "https://github.com/alien4cloud/tosca-normative-types.git", "1.0.0.wd03",
+                TOSCA_NORMATIVE_TYPES_1_0_0_WD03_NAME);
         uploadCSAR(TOSCA_NORMATIVE_TYPES);
     }
 }

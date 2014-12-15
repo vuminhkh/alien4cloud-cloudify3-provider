@@ -3,7 +3,6 @@ package alien4cloud.paas.cloudify3.service;
 import java.util.List;
 import java.util.Map;
 
-import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
@@ -12,6 +11,7 @@ import alien4cloud.model.application.DeploymentSetup;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.ComputeTemplate;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 
 import com.google.common.collect.Lists;

@@ -54,8 +54,7 @@ public class StatusService {
                 log.debug("Deployment {} has execution {} crerated at {} for workflow {} in status {}", deploymentId, execution.getCreatedAt(),
                         execution.getId(), execution.getStatus());
             }
-            if (lastExecution == null
-                    && (Workflow.INSTALL.equals(execution.getWorkflowId()) || Workflow.UNINSTALL.equals(execution.getWorkflowId()))) {
+            if (lastExecution == null && (Workflow.INSTALL.equals(execution.getWorkflowId()) || Workflow.UNINSTALL.equals(execution.getWorkflowId()))) {
                 lastExecution = execution;
             } else if (DateUtil.compare(execution.getCreatedAt(), lastExecution.getCreatedAt()) > 0) {
                 lastExecution = execution;
