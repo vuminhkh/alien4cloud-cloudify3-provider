@@ -34,7 +34,7 @@
                     <property name="propertyNamingStrategy" value="CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES"/>
                     <property name="dateFormat">
                         <bean class="java.text.SimpleDateFormat">
-                            <constructor-arg value="yyyy-MM-dd HH:mm:ss.S"/>
+                            <constructor-arg value="yyyy-MM-dd HH:mm:ss"/>
                         </bean>
                     </property>
                 </bean>

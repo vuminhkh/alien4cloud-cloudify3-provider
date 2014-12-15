@@ -18,10 +18,14 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.CloudifyComputeTemplate;
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
+import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
+import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
+import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
+import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
@@ -48,6 +52,12 @@ public class AbstractTest {
     @Resource
     private ComputeTemplateMatcherService computeTemplateMatcherService;
 
+    @Resource
+    private ExecutionDAO executionDAO;
+
+    @Resource
+    private StatusService statusService;
+
     private ComputeTemplate computeTemplate = new ComputeTemplate("image", "flavor");
 
     @BeforeClass
@@ -73,6 +83,10 @@ public class AbstractTest {
         Deployment[] deployments = deploymentDAO.list();
         if (deployments.length > 0) {
             for (Deployment deployment : deployments) {
+                DeploymentStatus deploymentStatus = statusService.getStatus(deployment.getId());
+                if (deploymentStatus == DeploymentStatus.DEPLOYED || deploymentStatus == DeploymentStatus.FAILURE) {
+                    executionDAO.start(deployment.getId(), Workflow.UNINSTALL, null, false, true);
+                }
                 deploymentDAO.delete(deployment.getId());
             }
         }

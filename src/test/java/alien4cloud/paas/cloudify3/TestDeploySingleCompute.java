@@ -35,5 +35,8 @@ public class TestDeploySingleCompute extends AbstractTest {
         AlienDeployment deployment = deploymentUtil.buildAlienDeployment("testDeploySingleCompute", "testDeploySingleCompute", topology,
                 generateDeploymentSetup(topology.getNodeTemplates().keySet()));
         deploymentService.deploy(deployment).get();
+        log.info("Finished deploying {}", deployment.getDeploymentId());
+        deploymentService.undeploy(deployment.getDeploymentId()).get();
+        log.info("Finished un-deploying {}", deployment.getDeploymentId());
     }
 }

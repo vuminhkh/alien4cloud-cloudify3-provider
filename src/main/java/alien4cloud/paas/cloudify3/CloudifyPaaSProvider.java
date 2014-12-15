@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import alien4cloud.model.application.DeploymentSetup;
 import alien4cloud.paas.AbstractPaaSProvider;
 import alien4cloud.paas.IConfigurablePaaSProvider;
+import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
@@ -94,8 +95,8 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
      */
 
     @Override
-    public AbstractMonitorEvent[] getEventsSince(Date lastTimestamp, int batchSize) {
-        return eventService.getEventsSince(lastTimestamp, batchSize);
+    public void getEventsSince(Date lastTimestamp, int batchSize, IPaaSCallback<AbstractMonitorEvent[]> eventsCallback) {
+        eventService.getEventsSince(lastTimestamp, batchSize);
     }
 
     /**
