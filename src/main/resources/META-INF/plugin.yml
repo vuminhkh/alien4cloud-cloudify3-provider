@@ -1,0 +1,12 @@
+id: alien-cloudify-3-paas-provider
+name: Cloudify 3 PaaS provider
+version: ${project.version}
+description: >
+  Plugin that contains the PaaS Provider for cloudify v3.
+configuration_class: alien4cloud.paas.cloudify3.PluginContextConfiguration
+component_descriptors:
+  - bean_name: cloudify-paas-provider
+    name: Cloudify 3 PaaS Provider
+    description: >
+      A PaaS provider that deploys applications on cloudify 3.x
+      Make sure that you configure the url of the cloudify Rest API and the list of images and flavors.

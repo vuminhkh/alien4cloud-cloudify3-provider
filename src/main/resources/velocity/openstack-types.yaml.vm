@@ -1,0 +1,9 @@
+#foreach($templateEntry in $cloud.computeTemplates.entrySet())
+    alien4cloud.paas.cloudify3.computes.$templateEntry.key:
+        derived_from: $mapping.compute_type
+        properties:
+            server:
+                default:
+                    image: $templateEntry.value.image
+                    flavor: $templateEntry.value.flavor
+#end

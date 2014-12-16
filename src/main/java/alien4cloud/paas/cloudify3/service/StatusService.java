@@ -43,7 +43,12 @@ public class StatusService {
     private NodeInstanceDAO nodeInstanceDAO;
 
     public DeploymentStatus getStatus(String deploymentId) {
-        List<Execution> executions = Lists.newArrayList(executionDAO.list(deploymentId));
+        List<Execution> executions;
+        try {
+            executions = Lists.newArrayList(executionDAO.list(deploymentId));
+        } catch (Exception exception) {
+            return DeploymentStatus.UNDEPLOYED;
+        }
         if (executions.size() == 0) {
             return DeploymentStatus.UNDEPLOYED;
         }

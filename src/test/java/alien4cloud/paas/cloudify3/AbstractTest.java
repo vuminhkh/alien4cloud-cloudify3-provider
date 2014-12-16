@@ -15,7 +15,8 @@ import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.ComputeTemplate;
 import alien4cloud.model.cloud.MatchedComputeTemplate;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.configuration.CloudifyComputeTemplate;
+import alien4cloud.paas.cloudify3.configuration.Flavor;
+import alien4cloud.paas.cloudify3.configuration.Image;
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
@@ -29,6 +30,7 @@ import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class AbstractTest {
 
@@ -55,7 +57,7 @@ public class AbstractTest {
     @Resource
     private StatusService statusService;
 
-    private ComputeTemplate computeTemplate = new ComputeTemplate("image", "flavor");
+    private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
     @BeforeClass
     public static void cleanup() throws IOException {
@@ -65,13 +67,12 @@ public class AbstractTest {
 
     @Before
     public void before() throws Exception {
-        CloudifyComputeTemplate mediumLinux = new CloudifyComputeTemplate();
-        mediumLinux.setImage("727df994-2e1b-404e-9276-b248223a835d");
-        mediumLinux.setFlavor("2");
-        cloudConfigurationHolder.getConfiguration().getComputeTemplates().put("MEDIUM_LINUX", mediumLinux);
+        cloudConfigurationHolder.getConfiguration().setUrl("http://129.185.67.92:8100");
+        cloudConfigurationHolder.getConfiguration().setImages(Sets.newHashSet(new Image("727df994-2e1b-404e-9276-b248223a835d", "Ubuntu Precise")));
+        cloudConfigurationHolder.getConfiguration().setFlavors(Sets.newHashSet(new Flavor("2", "Medium")));
 
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
-        matcherConfig.setMatchedComputeTemplates(Lists.newArrayList(new MatchedComputeTemplate(computeTemplate, "MEDIUM_LINUX")));
+        matcherConfig.setMatchedComputeTemplates(Lists.newArrayList(new MatchedComputeTemplate(computeTemplate, "Medium_Ubuntu_Precise")));
         computeTemplateMatcherService.configure(matcherConfig);
 
         csarUtil.uploadNormativeTypes();

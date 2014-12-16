@@ -31,7 +31,9 @@ public class DeploymentDAO extends AbstractDAO {
     }
 
     public ListenableFuture<Deployment[]> asyncList() {
-        log.info("List deployment");
+        if (log.isDebugEnabled()) {
+            log.debug("List deployment");
+        }
         return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl(), Deployment[].class));
     }
 
@@ -41,7 +43,9 @@ public class DeploymentDAO extends AbstractDAO {
     }
 
     public ListenableFuture<Deployment> asyncCreate(String id, String blueprintId, Map<String, Object> inputs) {
-        log.info("Create deployment {} for blueprint {}", id, blueprintId);
+        if (log.isDebugEnabled()) {
+            log.debug("Create deployment {} for blueprint {}", id, blueprintId);
+        }
         Map<String, Object> request = Maps.newHashMap();
         request.put("blueprint_id", blueprintId);
         request.put("inputs", inputs);
@@ -57,7 +61,9 @@ public class DeploymentDAO extends AbstractDAO {
     }
 
     public ListenableFuture<Deployment> asyncRead(String id) {
-        log.info("Read deployment {}", id);
+        if (log.isDebugEnabled()) {
+            log.debug("Read deployment {}", id);
+        }
         return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Deployment.class, id));
     }
 
@@ -67,7 +73,9 @@ public class DeploymentDAO extends AbstractDAO {
     }
 
     public ListenableFuture<?> asyncDelete(String id) {
-        log.info("Delete deployment {}", id);
+        if (log.isDebugEnabled()) {
+            log.debug("Delete deployment {}", id);
+        }
         return FutureUtil.toGuavaFuture(getRestTemplate().delete(getSuffixedUrl("/{id}"), id));
     }
 

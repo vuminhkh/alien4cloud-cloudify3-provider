@@ -31,7 +31,9 @@ public class ExecutionDAO extends AbstractDAO {
     }
 
     public ListenableFuture<Execution[]> asyncList(String deploymentId) {
-        log.info("List execution");
+        if (log.isDebugEnabled()) {
+            log.debug("List execution");
+        }
         if (deploymentId != null && deploymentId.length() > 0) {
             return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl("deployment_id"), Execution[].class, deploymentId));
         } else {
@@ -46,7 +48,9 @@ public class ExecutionDAO extends AbstractDAO {
 
     public ListenableFuture<Execution> asyncStart(String deploymentId, String workflowId, Map<String, Object> parameters, boolean allowCustomParameters,
             boolean force) {
-        log.info("Start execution of workflow {} for deployment {}", workflowId, deploymentId);
+        if (log.isDebugEnabled()) {
+            log.debug("Start execution of workflow {} for deployment {}", workflowId, deploymentId);
+        }
         Map<String, Object> request = Maps.newHashMap();
         request.put("deployment_id", deploymentId);
         request.put("workflow_id", workflowId);

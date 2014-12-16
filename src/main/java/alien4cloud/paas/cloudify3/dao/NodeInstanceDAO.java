@@ -22,7 +22,9 @@ public class NodeInstanceDAO extends AbstractDAO {
     }
 
     public ListenableFuture<NodeInstance[]> asyncList(String deploymentId) {
-        log.info("List node instances for deployment {}", deploymentId);
+        if (log.isDebugEnabled()) {
+            log.debug("List node instances for deployment {}", deploymentId);
+        }
         return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl("deployment_id"), NodeInstance[].class, deploymentId));
     }
 
@@ -32,7 +34,9 @@ public class NodeInstanceDAO extends AbstractDAO {
     }
 
     public ListenableFuture<NodeInstance> asyncRead(String id) {
-        log.info("Read node instance {}", id);
+        if (log.isDebugEnabled()) {
+            log.debug("Read node instance {}", id);
+        }
         return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), NodeInstance.class, id));
     }
 

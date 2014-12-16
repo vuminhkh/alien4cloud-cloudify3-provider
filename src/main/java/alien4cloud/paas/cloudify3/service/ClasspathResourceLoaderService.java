@@ -15,7 +15,7 @@ import javax.annotation.Resource;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("cloudify-classpath-resources-loader-service")
 public class ClasspathResourceLoaderService {
 
     @Resource
@@ -33,7 +33,7 @@ public class ClasspathResourceLoaderService {
                 path = fs.getPath(array[1]);
 
                 // Hack to avoid classloader issues
-                Path createTempFile = Files.createTempFile("velocity", ".vm");
+                Path createTempFile = Files.createTempFile("cloudify3", ".tmp");
                 createTempFile.toFile().deleteOnExit();
                 Files.copy(path, createTempFile, StandardCopyOption.REPLACE_EXISTING);
 
@@ -47,6 +47,10 @@ public class ClasspathResourceLoaderService {
             path = Paths.get(uri);
         }
         return path;
+    }
+
+    public ClassLoader getApplicationContextClassLoader() {
+        return this.applicationContext.getClassLoader();
     }
 
 }

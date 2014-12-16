@@ -6,16 +6,16 @@ imports:
     - http://www.getcloudify.org/spec/openstack-plugin/1.1rc1/plugin.yaml
 
 node_types:
-    MEDIUM_LINUX:
+    alien4cloud.paas.cloudify3.computes.Medium_Ubuntu_Precise:
         derived_from: cloudify.openstack.nodes.Server
         properties:
             server:
                 default:
-                    image: cac5bf41-6249-4511-b0c9-a167b48b3f1d
+                    image: 727df994-2e1b-404e-9276-b248223a835d
                     flavor: 2
 
 node_templates:
     compute:
-        type: MEDIUM_LINUX
+        type: alien4cloud.paas.cloudify3.computes.Medium_Ubuntu_Precise
         instances:
             deploy: 1

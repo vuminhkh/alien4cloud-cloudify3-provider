@@ -22,7 +22,7 @@ import com.google.common.collect.Maps;
  *
  * @author Minh Khang VU
  */
-@Component
+@Component("cloudify-compute-template-matcher-service")
 @Slf4j
 public class ComputeTemplateMatcherService {
 

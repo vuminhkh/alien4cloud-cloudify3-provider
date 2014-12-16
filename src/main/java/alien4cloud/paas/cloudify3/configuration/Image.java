@@ -1,18 +1,22 @@
 package alien4cloud.paas.cloudify3.configuration;
 
+import javax.validation.constraints.NotNull;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@SuppressWarnings("PMD.UnusedPrivateField")
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class CloudifyComputeTemplate {
+@SuppressWarnings("PMD.UnusedPrivateField")
+public class Image {
 
-    private String image;
+    @NotNull
+    private String id;
 
-    private String flavor;
+    @NotNull
+    private String name;
 }

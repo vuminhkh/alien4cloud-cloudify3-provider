@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @SuppressWarnings("PMD.UnusedPrivateField")
-@Component
+@Component("cloudify-configuration-holder")
 public class CloudConfigurationHolder {
 
     private CloudConfiguration configuration = new CloudConfiguration();

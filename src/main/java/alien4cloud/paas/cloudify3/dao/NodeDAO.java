@@ -22,7 +22,9 @@ public class NodeDAO extends AbstractDAO {
     }
 
     public ListenableFuture<Node[]> asyncList(String deploymentId, String nodeId) {
-        log.info("List nodes for deployment {}", deploymentId);
+        if (log.isDebugEnabled()) {
+            log.debug("List nodes for deployment {}", deploymentId);
+        }
         if (deploymentId == null || deploymentId.isEmpty()) {
             throw new IllegalArgumentException("Deployment id must not be null or empty");
         }

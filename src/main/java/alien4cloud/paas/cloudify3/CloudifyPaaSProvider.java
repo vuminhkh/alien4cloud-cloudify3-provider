@@ -7,12 +7,19 @@ import java.util.Map;
 import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
+
 import alien4cloud.model.application.DeploymentSetup;
+import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.paas.AbstractPaaSProvider;
 import alien4cloud.paas.IConfigurablePaaSProvider;
+import alien4cloud.paas.IManualResourceMatcherPaaSProvider;
 import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
+import alien4cloud.paas.cloudify3.dao.VersionDAO;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
@@ -30,28 +37,36 @@ import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.tosca.container.model.topology.Topology;
 import alien4cloud.tosca.model.PropertyDefinition;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 /**
  * The cloudify 3 PaaS Provider implementation
  *
  * @author Minh Khang VU
  */
 @Slf4j
-public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration> {
+@Component("cloudify-paas-provider-bean")
+public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration>, IManualResourceMatcherPaaSProvider {
 
-    @Resource
+    @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
 
-    @Resource
+    @Resource(name = "cloudify-configuration-holder")
     private CloudConfigurationHolder cloudConfigurationHolder;
 
-    @Resource
+    @Resource(name = "cloudify-event-service")
     private EventService eventService;
 
-    @Resource
+    @Resource(name = "cloudify-status-service")
     private StatusService statusService;
 
-    @Resource
+    @Resource(name = "cloudify-compute-template-matcher-service")
     private ComputeTemplateMatcherService computeTemplateMatcherService;
+
+    @Resource
+    private VersionDAO versionDAO;
 
     /**
      * ********************************************************************************************************************
@@ -85,7 +100,20 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
 
     @Override
     public void setConfiguration(CloudConfiguration newConfiguration) throws PluginConfigurationException {
+        if (newConfiguration == null) {
+            throw new PluginConfigurationException("Configuration is null");
+        }
+        if (newConfiguration.getUrl() == null) {
+            throw new PluginConfigurationException("Url is null");
+        }
+        CloudConfiguration oldConfiguration = cloudConfigurationHolder.getConfiguration();
         cloudConfigurationHolder.setConfiguration(newConfiguration);
+        try {
+            versionDAO.read();
+        } catch (RestClientException e) {
+            cloudConfigurationHolder.setConfiguration(oldConfiguration);
+            throw new PluginConfigurationException("Url is not correct");
+        }
     }
 
     /**
@@ -95,8 +123,19 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
      */
 
     @Override
-    public void getEventsSince(Date lastTimestamp, int batchSize, IPaaSCallback<AbstractMonitorEvent[]> eventsCallback) {
-        eventService.getEventsSince(lastTimestamp, batchSize);
+    public void getEventsSince(Date lastTimestamp, int batchSize, final IPaaSCallback<AbstractMonitorEvent[]> eventsCallback) {
+        ListenableFuture<AbstractMonitorEvent[]> events = eventService.getEventsSince(lastTimestamp, batchSize);
+        Futures.addCallback(events, new FutureCallback<AbstractMonitorEvent[]>() {
+            @Override
+            public void onSuccess(AbstractMonitorEvent[] result) {
+                eventsCallback.onData(result);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                eventsCallback.onFailure(t);
+            }
+        });
     }
 
     /**
@@ -118,6 +157,17 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
     @Override
     public Map<String, Map<String, InstanceInformation>> getInstancesInformation(String deploymentId, Topology topology) {
         return statusService.getInstancesInformation(deploymentId, topology);
+    }
+
+    /**
+     * ********************************************************************************************************************
+     * *****************************************************Matcher********************************************************
+     * ********************************************************************************************************************
+     */
+
+    @Override
+    public void updateMatcherConfig(CloudResourceMatcherConfig cloudResourceMatcherConfig) {
+        computeTemplateMatcherService.configure(cloudResourceMatcherConfig);
     }
 
     /**

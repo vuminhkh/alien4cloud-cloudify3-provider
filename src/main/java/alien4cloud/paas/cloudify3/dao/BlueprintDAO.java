@@ -34,7 +34,9 @@ public class BlueprintDAO extends AbstractDAO {
     }
 
     public ListenableFuture<Blueprint[]> asyncList() {
-        log.info("List blueprint");
+        if (log.isDebugEnabled()) {
+            log.debug("List blueprint");
+        }
         return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl(), Blueprint[].class));
     }
 
@@ -45,7 +47,9 @@ public class BlueprintDAO extends AbstractDAO {
 
     @SneakyThrows
     public ListenableFuture<Blueprint> asyncCreate(String id, String path) {
-        log.info("Create blueprint {} with path {}", id, path);
+        if (log.isDebugEnabled()) {
+            log.debug("Create blueprint {} with path {}", id, path);
+        }
         Path sourcePath = Paths.get(path);
         String sourceName = sourcePath.getFileName().toString();
         File destination = File.createTempFile(id, ".tar.gz");
@@ -71,7 +75,9 @@ public class BlueprintDAO extends AbstractDAO {
     }
 
     public ListenableFuture<Blueprint> asyncRead(String id) {
-        log.info("Read blueprint {}", id);
+        if (log.isDebugEnabled()) {
+            log.debug("Read blueprint {}", id);
+        }
         return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Blueprint.class, id));
     }
 
@@ -81,7 +87,9 @@ public class BlueprintDAO extends AbstractDAO {
     }
 
     public ListenableFuture<?> asyncDelete(String id) {
-        log.info("Delete blueprint {}", id);
+        if (log.isDebugEnabled()) {
+            log.debug("Delete blueprint {}", id);
+        }
         return FutureUtil.toGuavaFuture(getRestTemplate().delete(getSuffixedUrl("/{id}"), id));
     }
 

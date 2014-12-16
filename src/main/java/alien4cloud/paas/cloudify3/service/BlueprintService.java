@@ -1,6 +1,5 @@
 package alien4cloud.paas.cloudify3.service;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -11,6 +10,7 @@ import javax.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -32,7 +32,7 @@ import com.google.common.collect.Maps;
  */
 @Component("cloudify-blueprint-service")
 @Slf4j
-public class BlueprintService {
+public class BlueprintService implements InitializingBean {
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -43,12 +43,6 @@ public class BlueprintService {
     private Path recipeDirectoryPath;
 
     private Map<String, Object> mapping;
-
-    public BlueprintService() throws IOException {
-        ObjectMapper yamlObjectMapper = YamlParserUtil.createYamlObjectMapper();
-        JavaType mapStringObjectType = yamlObjectMapper.getTypeFactory().constructParametricType(HashMap.class, String.class, Object.class);
-        mapping = yamlObjectMapper.readValue(new ClassPathResource("mapping/openstack.yaml").getInputStream(), mapStringObjectType);
-    }
 
     /**
      * Generate blueprint from an alien deployment request
@@ -67,6 +61,9 @@ public class BlueprintService {
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
         context.put("mapping", mapping);
         context.put("deployment", alienDeployment);
+        context.put("provider_types_file",
+                resourceLoaderService.loadResourceFromClasspath("velocity/" + cloudConfigurationHolder.getConfiguration().getProvider() + "-types.yaml.vm")
+                        .getFileName().toString());
         // Generate the blueprint
         VelocityUtil.generate(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
@@ -87,5 +84,14 @@ public class BlueprintService {
     public void setRecipeDirectoryPath(final String path) {
         log.debug("Setting temporary path to {}", path);
         recipeDirectoryPath = Paths.get(path).toAbsolutePath();
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        ObjectMapper yamlObjectMapper = YamlParserUtil.createYamlObjectMapper();
+        JavaType mapStringObjectType = yamlObjectMapper.getTypeFactory().constructParametricType(HashMap.class, String.class, Object.class);
+        mapping = yamlObjectMapper
+                .readValue(new ClassPathResource("mapping/openstack.yaml", resourceLoaderService.getApplicationContextClassLoader()).getInputStream(),
+                        mapStringObjectType);
     }
 }

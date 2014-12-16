@@ -25,7 +25,13 @@ public class CloudifyResponseErrorHandler extends DefaultResponseErrorHandler {
         try {
             super.handleError(response);
         } catch (HttpStatusCodeException exception) {
-            log.error("Rest error with body \n{}", objectMapper.writeValueAsString(objectMapper.readTree(exception.getResponseBodyAsString())));
+            String formattedError = exception.getResponseBodyAsString();
+            try {
+                formattedError = objectMapper.writeValueAsString(objectMapper.readTree(formattedError));
+            } catch (Exception e) {
+                // Ignore if we cannot indent error
+            }
+            log.error("Rest error with body \n{}", formattedError);
             throw exception;
         }
     }
