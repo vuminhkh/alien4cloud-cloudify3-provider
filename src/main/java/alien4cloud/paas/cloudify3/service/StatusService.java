@@ -45,19 +45,22 @@ public class StatusService {
     public DeploymentStatus getStatus(String deploymentId) {
         List<Execution> executions = Lists.newArrayList(executionDAO.list(deploymentId));
         if (executions.size() == 0) {
-            return DeploymentStatus.DEPLOYMENT_IN_PROGRESS;
+            return DeploymentStatus.UNDEPLOYED;
         }
         Execution lastExecution = null;
-        // Get the last install or uninstall execution
+        // Get the last install or uninstall execution, to check for status
         for (Execution execution : executions) {
             if (log.isDebugEnabled()) {
-                log.debug("Deployment {} has execution {} crerated at {} for workflow {} in status {}", deploymentId, execution.getCreatedAt(),
-                        execution.getId(), execution.getStatus());
+                log.debug("Deployment {} has execution {} created at {} for workflow {} in status {}", deploymentId, execution.getId(),
+                        execution.getCreatedAt(), execution.getWorkflowId(), execution.getStatus());
             }
-            if (lastExecution == null && (Workflow.INSTALL.equals(execution.getWorkflowId()) || Workflow.UNINSTALL.equals(execution.getWorkflowId()))) {
-                lastExecution = execution;
-            } else if (DateUtil.compare(execution.getCreatedAt(), lastExecution.getCreatedAt()) > 0) {
-                lastExecution = execution;
+            // Only consider install/uninstall workflow to check for deployment status
+            if (Workflow.INSTALL.equals(execution.getWorkflowId()) || Workflow.UNINSTALL.equals(execution.getWorkflowId())) {
+                if (lastExecution == null) {
+                    lastExecution = execution;
+                } else if (DateUtil.compare(execution.getCreatedAt(), lastExecution.getCreatedAt()) > 0) {
+                    lastExecution = execution;
+                }
             }
         }
         // No install and uninstall yet it must be deployment in progress
@@ -110,18 +113,11 @@ public class StatusService {
             String instanceId = instance.getNodeId();
             InstanceInformation instanceInformation = new InstanceInformation();
             instanceInformation.setState(instance.getState());
-            switch (instance.getState()) {
-            case NodeInstanceStatus.STARTED:
-                instanceInformation.setInstanceStatus(InstanceStatus.SUCCESS);
-                break;
-            case NodeInstanceStatus.STOPPING:
-            case NodeInstanceStatus.STARTING:
-                instanceInformation.setInstanceStatus(InstanceStatus.PROCESSING);
-                break;
-            case NodeInstanceStatus.DELETED:
+            InstanceStatus instanceStatus = getInstanceStatusFromState(instance.getState());
+            if (instanceStatus == null) {
                 continue;
-            default:
-                instanceInformation.setInstanceStatus(InstanceStatus.FAILURE);
+            } else {
+                instanceInformation.setInstanceStatus(instanceStatus);
             }
             instanceInformation.setRuntimeProperties(MapUtil.toString(instance.getRuntimeProperties()));
             instanceInformation.setProperties(nodeTemplate.getProperties());
@@ -129,6 +125,26 @@ public class StatusService {
             nodeInformation.put(instanceId, instanceInformation);
         }
         return information;
+    }
+
+    public InstanceStatus getInstanceStatusFromState(String state) {
+        switch (state) {
+        case NodeInstanceStatus.STARTED:
+            return InstanceStatus.SUCCESS;
+        case NodeInstanceStatus.STOPPING:
+        case NodeInstanceStatus.STOPPED:
+        case NodeInstanceStatus.STARTING:
+        case NodeInstanceStatus.CONFIGURING:
+        case NodeInstanceStatus.CONFIGURED:
+        case NodeInstanceStatus.CREATING:
+        case NodeInstanceStatus.CREATED:
+        case NodeInstanceStatus.DELETING:
+            return InstanceStatus.PROCESSING;
+        case NodeInstanceStatus.DELETED:
+            return null;
+        default:
+            return InstanceStatus.FAILURE;
+        }
     }
 
 }

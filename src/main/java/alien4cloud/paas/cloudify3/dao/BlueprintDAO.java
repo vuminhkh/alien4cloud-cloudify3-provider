@@ -59,9 +59,6 @@ public class BlueprintDAO extends AbstractDAO {
             headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
             ListenableFuture<Blueprint> response = FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getSuffixedUrl("/{id}", "application_file_name"),
                     HttpMethod.PUT, new HttpEntity<>(Files.readAllBytes(destination.toPath()), headers), Blueprint.class, id, sourceName));
-            if (log.isDebugEnabled()) {
-                log.debug("Received response for upload {}", response);
-            }
             return response;
         } finally {
             destination.delete();

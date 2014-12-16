@@ -59,7 +59,7 @@ public class BlueprintService {
     @SneakyThrows
     public Path generateBlueprint(AlienDeployment alienDeployment) {
         // Where the whole blueprint will be generated
-        Path generatedBlueprintDirectoryPath = recipeDirectoryPath.resolve(alienDeployment.getDeploymentId());
+        Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getDeploymentId());
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
         // The velocity context will be filed up with information in order to be able to generate deployment
@@ -70,6 +70,16 @@ public class BlueprintService {
         // Generate the blueprint
         VelocityUtil.generate(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
+    }
+
+    /**
+     * Find out where the blueprint of a deployment might/should be generated to
+     * 
+     * @param deploymentId the deployment's id
+     * @return the path to the generated blueprint
+     */
+    public Path resolveBlueprintPath(String deploymentId) {
+        return recipeDirectoryPath.resolve(deploymentId);
     }
 
     @Required

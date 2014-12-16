@@ -18,11 +18,10 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.CloudifyComputeTemplate;
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
-import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
-import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
+import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
 import alien4cloud.paas.model.DeploymentStatus;
@@ -32,8 +31,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class AbstractTest {
-
-    public static final String BLUEPRINT_ID = "testBlueprint";
 
     public static final String SINGLE_COMPUTE_TOPOLOGY = "single_compute";
 
@@ -46,14 +43,14 @@ public class AbstractTest {
     @Resource
     private DeploymentDAO deploymentDAO;
 
+    @Resource(name = "cloudify-deployment-service")
+    private DeploymentService deploymentService;
+
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
 
     @Resource
     private ComputeTemplateMatcherService computeTemplateMatcherService;
-
-    @Resource
-    private ExecutionDAO executionDAO;
 
     @Resource
     private StatusService statusService;
@@ -85,9 +82,8 @@ public class AbstractTest {
             for (Deployment deployment : deployments) {
                 DeploymentStatus deploymentStatus = statusService.getStatus(deployment.getId());
                 if (deploymentStatus == DeploymentStatus.DEPLOYED || deploymentStatus == DeploymentStatus.FAILURE) {
-                    executionDAO.start(deployment.getId(), Workflow.UNINSTALL, null, false, true);
+                    deploymentService.undeploy(deployment.getId()).get();
                 }
-                deploymentDAO.delete(deployment.getId());
             }
         }
         Thread.sleep(1000L);

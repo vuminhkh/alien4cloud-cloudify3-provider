@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -20,6 +21,7 @@ import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
+import alien4cloud.utils.FileUtil;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
@@ -74,7 +76,12 @@ public class DeploymentService {
     }
 
     public ListenableFuture<?> undeploy(final String deploymentId) {
-        log.info("Undeploying app {} with id {}", deploymentId);
+        log.info("Un-deploying app with id {}", deploymentId);
+        try {
+            FileUtil.delete(blueprintService.resolveBlueprintPath(deploymentId));
+        } catch (IOException e) {
+            log.warn("Unable to delete generated blueprint for deployment " + deploymentId, e);
+        }
         ListenableFuture<Execution> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentId, Workflow.UNINSTALL, null, false, false));
         AsyncFunction deleteDeploymentFunction = new AsyncFunction() {
             @Override
@@ -83,10 +90,19 @@ public class DeploymentService {
             }
         };
         ListenableFuture deletedDeployment = Futures.transform(startUninstall, deleteDeploymentFunction);
-        AsyncFunction deleteBlueprintFunction = new AsyncFunction() {
+        // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of blueprint 2 seconds after the delete of
+        // deployment
+        AsyncFunction<?, ?> deleteBlueprintFunction = new AsyncFunction() {
             @Override
-            public ListenableFuture apply(Object input) throws Exception {
-                return blueprintDAO.asyncDelete(deploymentId);
+            public ListenableFuture<?> apply(Object input) throws Exception {
+                ListenableFuture<?> scheduledDeleteBlueprint = Futures.dereference(scheduledExecutorService.schedule(
+                        new Callable<ListenableFuture<?>>() {
+                            @Override
+                            public ListenableFuture<?> call() throws Exception {
+                                return blueprintDAO.asyncDelete(deploymentId);
+                            }
+                        }, 2, TimeUnit.SECONDS));
+                return scheduledDeleteBlueprint;
             }
         };
         return Futures.transform(deletedDeployment, deleteBlueprintFunction);
@@ -97,7 +113,7 @@ public class DeploymentService {
             @Override
             public ListenableFuture<Execution> apply(final Execution execution) throws Exception {
                 if (ExecutionStatus.isTerminated(execution.getStatus())) {
-                    log.info("Execution {} for workflow {} has finished", execution.getId(), execution.getWorkflowId());
+                    log.info("Execution {} for workflow {} has finished with status {}", execution.getId(), execution.getWorkflowId(), execution.getStatus());
                     return futureExecution;
                 } else {
                     // If it's not finished, schedule another poll in 2 seconds

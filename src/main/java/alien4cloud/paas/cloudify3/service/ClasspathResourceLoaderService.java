@@ -15,7 +15,6 @@ import javax.annotation.Resource;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-// TODO This class must be in common module between the cloudify 2 and 3
 @Component
 public class ClasspathResourceLoaderService {
 

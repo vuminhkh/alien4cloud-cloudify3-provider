@@ -41,6 +41,9 @@ public class EventService {
     private EventDAO eventDAO;
 
     @Resource
+    private StatusService statusService;
+
+    @Resource
     private NodeInstanceDAO nodeInstanceDAO;
 
     public ListenableFuture<AbstractMonitorEvent[]> getEventsSince(Date lastTimestamp, int batchSize) {
@@ -52,14 +55,17 @@ public class EventService {
                 final Map<String, List<PaaSInstanceStateMonitorEvent>> instanceEventByDeployments = Maps.newHashMap();
                 for (Event cloudifyEvent : cloudifyEvents) {
                     AbstractMonitorEvent alienEvent = toAlienEvent(cloudifyEvent);
-                    alienEvents.add(alienEvent);
-                    if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
-                        PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = (PaaSInstanceStateMonitorEvent) alienEvent;
-                        List<PaaSInstanceStateMonitorEvent> instanceEvensForDeployment = instanceEventByDeployments.get(instanceStateMonitorEvent
-                                .getDeploymentId());
-                        if (instanceEvensForDeployment == null) {
-                            instanceEvensForDeployment = Lists.newArrayList();
-                            instanceEventByDeployments.put(instanceStateMonitorEvent.getDeploymentId(), instanceEvensForDeployment);
+                    if (alienEvent != null) {
+                        alienEvents.add(alienEvent);
+                        if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
+                            PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = (PaaSInstanceStateMonitorEvent) alienEvent;
+                            List<PaaSInstanceStateMonitorEvent> instanceEvensForDeployment = instanceEventByDeployments.get(instanceStateMonitorEvent
+                                    .getDeploymentId());
+                            if (instanceEvensForDeployment == null) {
+                                instanceEvensForDeployment = Lists.newArrayList();
+                                instanceEventByDeployments.put(instanceStateMonitorEvent.getDeploymentId(), instanceEvensForDeployment);
+                            }
+                            instanceEvensForDeployment.add(instanceStateMonitorEvent);
                         }
                     }
                 }
@@ -145,11 +151,15 @@ public class EventService {
             alienEvent = failedStatusEvent;
             break;
         case EventType.TASK_SUCCEEDED:
+            String newInstanceState = CloudifyLifeCycle.getSucceededInstanceState(cloudifyEvent.getContext().getOperation());
+            if (newInstanceState == null) {
+                return null;
+            }
             PaaSInstanceStateMonitorEvent instanceTaskStartedEvent = new PaaSInstanceStateMonitorEvent();
             instanceTaskStartedEvent.setInstanceId(cloudifyEvent.getContext().getNodeId());
             instanceTaskStartedEvent.setNodeTemplateId(cloudifyEvent.getContext().getNodeName());
-            String newInstanceState = CloudifyLifeCycle.getSucceededInstanceState(cloudifyEvent.getContext().getOperation());
             instanceTaskStartedEvent.setInstanceState(newInstanceState);
+            instanceTaskStartedEvent.setInstanceStatus(statusService.getInstanceStatusFromState(newInstanceState));
             alienEvent = instanceTaskStartedEvent;
             break;
         default:
