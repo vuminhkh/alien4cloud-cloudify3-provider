@@ -2,7 +2,6 @@ package alien4cloud.paas.cloudify3;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.Resource;
 
@@ -17,13 +16,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
-import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
 import alien4cloud.paas.cloudify3.util.DeploymentUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
-import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.InstanceStatus;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
@@ -38,9 +35,6 @@ public class TestDeploySingleCompute extends AbstractTest {
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
-
-    @Resource
-    private StatusService statusService;
 
     @Resource
     private EventService eventService;
@@ -60,15 +54,6 @@ public class TestDeploySingleCompute extends AbstractTest {
         deploymentService.deploy(deployment).get();
         log.info("Finished deploying {}", deployment.getDeploymentId());
         Thread.sleep(1000L);
-        Assert.assertEquals(DeploymentStatus.DEPLOYED, statusService.getStatus(deployment.getDeploymentId()));
-        Map<String, Map<String, InstanceInformation>> instanceInfos = statusService.getInstancesInformation(deployment.getDeploymentId(), topology);
-        Assert.assertEquals(1, instanceInfos.size());
-        Assert.assertTrue(instanceInfos.containsKey("compute"));
-        Map<String, InstanceInformation> computeInfo = instanceInfos.get("compute");
-        Assert.assertEquals(1, computeInfo.size());
-        InstanceInformation computeInstanceInfo = computeInfo.values().iterator().next();
-        Assert.assertEquals(NodeInstanceStatus.STARTED, computeInstanceInfo.getState());
-        Assert.assertNotNull(computeInstanceInfo.getRuntimeProperties().get("ip"));
         AbstractMonitorEvent[] events = eventService.getEventsSince(beginTestTimestamp, Integer.MAX_VALUE).get();
         List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents = Lists.newArrayList();
         List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents = Lists.newArrayList();

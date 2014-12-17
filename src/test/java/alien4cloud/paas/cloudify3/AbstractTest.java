@@ -23,9 +23,7 @@ import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
-import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
-import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
@@ -54,9 +52,6 @@ public class AbstractTest {
     @Resource
     private ComputeTemplateMatcherService computeTemplateMatcherService;
 
-    @Resource
-    private StatusService statusService;
-
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
     @BeforeClass
@@ -81,10 +76,7 @@ public class AbstractTest {
         Deployment[] deployments = deploymentDAO.list();
         if (deployments.length > 0) {
             for (Deployment deployment : deployments) {
-                DeploymentStatus deploymentStatus = statusService.getStatus(deployment.getId());
-                if (deploymentStatus == DeploymentStatus.DEPLOYED || deploymentStatus == DeploymentStatus.FAILURE) {
-                    deploymentService.undeploy(deployment.getId()).get();
-                }
+                deploymentService.undeploy(deployment.getId()).get();
             }
         }
         Thread.sleep(1000L);

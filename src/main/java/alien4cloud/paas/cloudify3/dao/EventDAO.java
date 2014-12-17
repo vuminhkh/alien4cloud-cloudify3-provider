@@ -1,7 +1,10 @@
 package alien4cloud.paas.cloudify3.dao;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
+
+import javax.xml.bind.DatatypeConverter;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +47,9 @@ public class EventDAO extends AbstractDAO {
             eventsQuery.must(QueryBuilders.matchQuery("context.execution_id", executionId));
         }
         if (timestamp != null) {
-            eventsQuery.must(QueryBuilders.rangeQuery("@timestamp").gt(timestamp.getTime()));
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(timestamp);
+            eventsQuery.must(QueryBuilders.rangeQuery("@timestamp").gt(DatatypeConverter.printDateTime(calendar)));
         }
         eventsQuery.must(QueryBuilders.matchQuery("type", "cloudify_event"));
         return eventsQuery;
@@ -69,7 +74,9 @@ public class EventDAO extends AbstractDAO {
         QueryBuilder eventsQuery = createEventsQuery(executionId, fromDate);
         String eventsQueryText = new String(eventsQuery.buildAsBytes().toBytes());
         Map<String, Object> query = JsonUtil.toMap(eventsQueryText);
-        log.info("Start get events for execution {} with offset {}, batch size {} and query {}", executionId, from, batchSize, eventsQueryText);
+        if (log.isDebugEnabled()) {
+            log.debug("Start get events for execution {} with offset {}, batch size {} and query {}", executionId, from, batchSize, eventsQueryText);
+        }
         request.put("query", query);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);

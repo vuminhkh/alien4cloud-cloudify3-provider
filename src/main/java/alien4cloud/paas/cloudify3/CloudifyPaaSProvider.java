@@ -24,14 +24,11 @@ import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
-import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.exception.PluginConfigurationException;
 import alien4cloud.paas.model.AbstractMonitorEvent;
-import alien4cloud.paas.model.DeploymentStatus;
-import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.tosca.container.model.topology.Topology;
@@ -58,9 +55,6 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
 
     @Resource(name = "cloudify-event-service")
     private EventService eventService;
-
-    @Resource(name = "cloudify-status-service")
-    private StatusService statusService;
 
     @Resource(name = "cloudify-compute-template-matcher-service")
     private ComputeTemplateMatcherService computeTemplateMatcherService;
@@ -136,27 +130,6 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
                 eventsCallback.onFailure(t);
             }
         });
-    }
-
-    /**
-     * ********************************************************************************************************************
-     * *****************************************************Status*********************************************************
-     * ********************************************************************************************************************
-     */
-
-    @Override
-    public DeploymentStatus getStatus(String deploymentId) {
-        return statusService.getStatus(deploymentId);
-    }
-
-    @Override
-    public DeploymentStatus[] getStatuses(String[] deploymentIds) {
-        return statusService.getStatuses(deploymentIds);
-    }
-
-    @Override
-    public Map<String, Map<String, InstanceInformation>> getInstancesInformation(String deploymentId, Topology topology) {
-        return statusService.getInstancesInformation(deploymentId, topology);
     }
 
     /**

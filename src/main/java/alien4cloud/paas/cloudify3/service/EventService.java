@@ -15,10 +15,12 @@ import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
 import alien4cloud.paas.cloudify3.model.Event;
 import alien4cloud.paas.cloudify3.model.EventType;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
+import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.util.MapUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
+import alien4cloud.paas.model.InstanceStatus;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 
@@ -39,9 +41,6 @@ public class EventService {
 
     @Resource
     private EventDAO eventDAO;
-
-    @Resource
-    private StatusService statusService;
 
     @Resource
     private NodeInstanceDAO nodeInstanceDAO;
@@ -159,7 +158,7 @@ public class EventService {
             instanceTaskStartedEvent.setInstanceId(cloudifyEvent.getContext().getNodeId());
             instanceTaskStartedEvent.setNodeTemplateId(cloudifyEvent.getContext().getNodeName());
             instanceTaskStartedEvent.setInstanceState(newInstanceState);
-            instanceTaskStartedEvent.setInstanceStatus(statusService.getInstanceStatusFromState(newInstanceState));
+            instanceTaskStartedEvent.setInstanceStatus(getInstanceStatusFromState(newInstanceState));
             alienEvent = instanceTaskStartedEvent;
             break;
         default:
@@ -168,5 +167,25 @@ public class EventService {
         alienEvent.setDate(cloudifyEvent.getTimestamp().getTime());
         alienEvent.setDeploymentId(cloudifyEvent.getContext().getDeploymentId());
         return alienEvent;
+    }
+
+    private InstanceStatus getInstanceStatusFromState(String state) {
+        switch (state) {
+        case NodeInstanceStatus.STARTED:
+            return InstanceStatus.SUCCESS;
+        case NodeInstanceStatus.STOPPING:
+        case NodeInstanceStatus.STOPPED:
+        case NodeInstanceStatus.STARTING:
+        case NodeInstanceStatus.CONFIGURING:
+        case NodeInstanceStatus.CONFIGURED:
+        case NodeInstanceStatus.CREATING:
+        case NodeInstanceStatus.CREATED:
+        case NodeInstanceStatus.DELETING:
+            return InstanceStatus.PROCESSING;
+        case NodeInstanceStatus.DELETED:
+            return null;
+        default:
+            return InstanceStatus.FAILURE;
+        }
     }
 }
