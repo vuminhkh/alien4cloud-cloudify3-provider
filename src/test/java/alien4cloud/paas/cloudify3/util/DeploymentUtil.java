@@ -29,7 +29,7 @@ public class DeploymentUtil {
     @Resource
     private TopologyTreeBuilderService topologyTreeBuilderService;
 
-    public AlienDeployment buildAlienDeployment(String deploymentId, String deploymentName, Topology topology, DeploymentSetup deploymentSetup) {
+    public AlienDeployment buildAlienDeployment(String deploymentId, String recipeId, Topology topology, DeploymentSetup deploymentSetup) {
         AlienDeployment alienDeployment = new AlienDeployment();
         Map<String, PaaSNodeTemplate> nodes = topologyTreeBuilderService.buildPaaSNodeTemplate(topology);
         List<PaaSNodeTemplate> computes = topologyTreeBuilderService.getHostedOnTree(nodes);
@@ -42,7 +42,7 @@ public class DeploymentUtil {
         alienDeployment.setNodes(nodes);
         alienDeployment.setTopology(topology);
         alienDeployment.setDeploymentId(deploymentId);
-        alienDeployment.setDeploymentName(deploymentName);
+        alienDeployment.setRecipeId(recipeId);
         return alienDeployment;
     }
 }

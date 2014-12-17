@@ -13,6 +13,7 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
@@ -22,6 +23,7 @@ import alien4cloud.paas.cloudify3.util.DeploymentUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceStatus;
+import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.tosca.container.model.topology.Topology;
@@ -44,6 +46,9 @@ public class TestDeploySingleCompute extends AbstractTest {
 
     @Resource
     private DeploymentUtil deploymentUtil;
+
+    @Resource
+    private ExecutionDAO executionDAO;
 
     @Test
     public void testDeploySingleCompute() throws Exception {
@@ -74,8 +79,10 @@ public class TestDeploySingleCompute extends AbstractTest {
         Assert.assertEquals(NodeInstanceStatus.STARTED, instanceStateMonitorEvents.get(1).getInstanceState());
         Assert.assertEquals(InstanceStatus.PROCESSING, instanceStateMonitorEvents.get(0).getInstanceStatus());
         Assert.assertEquals(InstanceStatus.SUCCESS, instanceStateMonitorEvents.get(1).getInstanceStatus());
-
-        deploymentService.undeploy(deployment.getDeploymentId()).get();
+        PaaSDeploymentContext context = new PaaSDeploymentContext();
+        context.setDeploymentId("testDeploySingleCompute");
+        context.setRecipeId("testDeploySingleCompute");
+        deploymentService.undeploy(context).get();
         log.info("Finished un-deploying {}", deployment.getDeploymentId());
     }
 }

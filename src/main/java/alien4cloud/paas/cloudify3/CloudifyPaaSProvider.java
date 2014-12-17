@@ -9,14 +9,12 @@ import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
 
-import alien4cloud.model.application.DeploymentSetup;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
-import alien4cloud.paas.AbstractPaaSProvider;
 import alien4cloud.paas.IConfigurablePaaSProvider;
 import alien4cloud.paas.IManualResourceMatcherPaaSProvider;
 import alien4cloud.paas.IPaaSCallback;
+import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.dao.VersionDAO;
@@ -30,8 +28,8 @@ import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.exception.PluginConfigurationException;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.NodeOperationExecRequest;
-import alien4cloud.paas.model.PaaSNodeTemplate;
-import alien4cloud.tosca.container.model.topology.Topology;
+import alien4cloud.paas.model.PaaSDeploymentContext;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.model.PropertyDefinition;
 
 import com.google.common.util.concurrent.FutureCallback;
@@ -45,7 +43,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  */
 @Slf4j
 @Component("cloudify-paas-provider-bean")
-public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration>, IManualResourceMatcherPaaSProvider {
+public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration>, IManualResourceMatcherPaaSProvider, IPaaSProvider {
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
@@ -69,16 +67,18 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
      */
 
     @Override
-    protected void doDeploy(String deploymentName, String deploymentId, Topology topology, List<PaaSNodeTemplate> computes,
-            Map<String, PaaSNodeTemplate> nodes, DeploymentSetup deploymentSetup) {
-        List<MatchedPaaSComputeTemplate> matchedComputes = computeTemplateMatcherService.match(computes, deploymentSetup);
-        AlienDeployment deployment = new AlienDeployment(deploymentId, deploymentName, topology, matchedComputes, nodes);
+    public void deploy(PaaSTopologyDeploymentContext deploymentContext) {
+        List<MatchedPaaSComputeTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getComputes(),
+                deploymentContext.getDeploymentSetup());
+        // We use deployment name to identify blueprint and deployment as it's more human readable
+        AlienDeployment deployment = new AlienDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), deploymentContext.getTopology(),
+                matchedComputes, deploymentContext.getNodes());
         deploymentService.deploy(deployment);
     }
 
     @Override
-    public void undeploy(String deploymentId) {
-        deploymentService.undeploy(deploymentId);
+    public void undeploy(PaaSDeploymentContext deploymentContext) {
+        deploymentService.undeploy(deploymentContext);
     }
 
     /**
@@ -104,7 +104,7 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
         cloudConfigurationHolder.setConfiguration(newConfiguration);
         try {
             versionDAO.read();
-        } catch (RestClientException e) {
+        } catch (Exception e) {
             cloudConfigurationHolder.setConfiguration(oldConfiguration);
             throw new PluginConfigurationException("Url is not correct");
         }
@@ -150,12 +150,13 @@ public class CloudifyPaaSProvider extends AbstractPaaSProvider implements IConfi
      */
 
     @Override
-    public void scale(String deploymentId, String nodeTemplateId, int instances) {
+    public void scale(PaaSDeploymentContext deploymentContext, String nodeTemplateId, int instances) {
         throw new OperationNotSupportedException("scale is not supported yet");
     }
 
     @Override
-    public Map<String, String> executeOperation(String deploymentId, NodeOperationExecRequest nodeOperationExecRequest) throws OperationExecutionException {
+    public void executeOperation(PaaSDeploymentContext deploymentContext, NodeOperationExecRequest nodeOperationExecRequest,
+            IPaaSCallback<Map<String, String>> callback) throws OperationExecutionException {
         throw new OperationNotSupportedException("executeOperation is not supported yet");
     }
 

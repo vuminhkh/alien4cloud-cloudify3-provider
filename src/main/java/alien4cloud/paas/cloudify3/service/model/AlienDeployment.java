@@ -19,7 +19,7 @@ public class AlienDeployment {
 
     private String deploymentId;
 
-    private String deploymentName;
+    private String recipeId;
 
     private Topology topology;
 

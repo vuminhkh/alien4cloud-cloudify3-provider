@@ -24,6 +24,7 @@ import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
+import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
@@ -62,7 +63,7 @@ public class AbstractTest {
 
     @Before
     public void before() throws Exception {
-        cloudConfigurationHolder.getConfiguration().setUrl("http://129.185.67.92:8100");
+        cloudConfigurationHolder.getConfiguration().setUrl("http://129.185.67.61:8100");
         cloudConfigurationHolder.getConfiguration().setImages(Sets.newHashSet(new Image("727df994-2e1b-404e-9276-b248223a835d", "Ubuntu Precise")));
         cloudConfigurationHolder.getConfiguration().setFlavors(Sets.newHashSet(new Flavor("2", "Medium")));
 
@@ -76,7 +77,10 @@ public class AbstractTest {
         Deployment[] deployments = deploymentDAO.list();
         if (deployments.length > 0) {
             for (Deployment deployment : deployments) {
-                deploymentService.undeploy(deployment.getId()).get();
+                PaaSDeploymentContext context = new PaaSDeploymentContext();
+                context.setDeploymentId(deployment.getId());
+                context.setRecipeId(deployment.getBlueprintId());
+                deploymentService.undeploy(context).get();
             }
         }
         Thread.sleep(1000L);

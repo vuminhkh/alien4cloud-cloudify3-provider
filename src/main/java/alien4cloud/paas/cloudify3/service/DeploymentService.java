@@ -21,6 +21,7 @@ import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
+import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.base.Function;
@@ -55,38 +56,40 @@ public class DeploymentService {
     private ListeningScheduledExecutorService scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1));
 
     public ListenableFuture<Execution> deploy(final AlienDeployment alienDeployment) {
-        log.info("Deploying app {} with id {}", alienDeployment.getDeploymentName(), alienDeployment.getDeploymentId());
+        // Cloudify 3 will use recipe id to identify a blueprint and a deployment instead of deployment id
+        log.info("Deploying recipe {} with deployment id {}", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
         Path blueprintPath = blueprintService.generateBlueprint(alienDeployment);
-        ListenableFuture<Blueprint> createdBlueprint = blueprintDAO.asyncCreate(alienDeployment.getDeploymentId(), blueprintPath.toString());
+        ListenableFuture<Blueprint> createdBlueprint = blueprintDAO.asyncCreate(alienDeployment.getRecipeId(), blueprintPath.toString());
         AsyncFunction<Blueprint, Deployment> createDeploymentFunction = new AsyncFunction<Blueprint, Deployment>() {
             @Override
-            public ListenableFuture<Deployment> apply(Blueprint input) throws Exception {
-                return waitForDeploymentExecutionsFinish(deploymentDAO.asyncCreate(alienDeployment.getDeploymentId(), input.getId(),
+            public ListenableFuture<Deployment> apply(Blueprint blueprint) throws Exception {
+                return waitForDeploymentExecutionsFinish(deploymentDAO.asyncCreate(alienDeployment.getDeploymentId(), blueprint.getId(),
                         Maps.<String, Object> newHashMap()));
             }
         };
         ListenableFuture<Deployment> createdDeployment = Futures.transform(createdBlueprint, createDeploymentFunction);
         AsyncFunction<Deployment, Execution> startExecutionFunction = new AsyncFunction<Deployment, Execution>() {
             @Override
-            public ListenableFuture<Execution> apply(Deployment input) throws Exception {
-                return waitForExecutionFinish(executionDAO.asyncStart(input.getId(), Workflow.INSTALL, null, false, false));
+            public ListenableFuture<Execution> apply(Deployment deployment) throws Exception {
+                return waitForExecutionFinish(executionDAO.asyncStart(deployment.getId(), Workflow.INSTALL, null, false, false));
             }
         };
         return Futures.transform(createdDeployment, startExecutionFunction);
     }
 
-    public ListenableFuture<?> undeploy(final String deploymentId) {
-        log.info("Un-deploying app with id {}", deploymentId);
+    public ListenableFuture<?> undeploy(final PaaSDeploymentContext deploymentContext) {
+        log.info("Undeploying recipe {} with deployment id {}", deploymentContext.getRecipeId(), deploymentContext.getDeploymentId());
         try {
-            FileUtil.delete(blueprintService.resolveBlueprintPath(deploymentId));
+            FileUtil.delete(blueprintService.resolveBlueprintPath(deploymentContext.getRecipeId()));
         } catch (IOException e) {
-            log.warn("Unable to delete generated blueprint for deployment " + deploymentId, e);
+            log.warn("Unable to delete generated blueprint for recipe " + deploymentContext.getRecipeId(), e);
         }
-        ListenableFuture<Execution> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentId, Workflow.UNINSTALL, null, false, false));
+        ListenableFuture<Execution> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentId(), Workflow.UNINSTALL,
+                null, false, false));
         AsyncFunction deleteDeploymentFunction = new AsyncFunction() {
             @Override
             public ListenableFuture apply(Object input) throws Exception {
-                return deploymentDAO.asyncDelete(deploymentId);
+                return deploymentDAO.asyncDelete(deploymentContext.getDeploymentId());
             }
         };
         ListenableFuture deletedDeployment = Futures.transform(startUninstall, deleteDeploymentFunction);
@@ -95,13 +98,12 @@ public class DeploymentService {
         AsyncFunction<?, ?> deleteBlueprintFunction = new AsyncFunction() {
             @Override
             public ListenableFuture<?> apply(Object input) throws Exception {
-                ListenableFuture<?> scheduledDeleteBlueprint = Futures.dereference(scheduledExecutorService.schedule(
-                        new Callable<ListenableFuture<?>>() {
-                            @Override
-                            public ListenableFuture<?> call() throws Exception {
-                                return blueprintDAO.asyncDelete(deploymentId);
-                            }
-                        }, 2, TimeUnit.SECONDS));
+                ListenableFuture<?> scheduledDeleteBlueprint = Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
+                    @Override
+                    public ListenableFuture<?> call() throws Exception {
+                        return blueprintDAO.asyncDelete(deploymentContext.getDeploymentId());
+                    }
+                }, 2, TimeUnit.SECONDS));
                 return scheduledDeleteBlueprint;
             }
         };
@@ -136,10 +138,19 @@ public class DeploymentService {
             @Override
             public ListenableFuture<Execution[]> apply(final Execution[] executions) throws Exception {
                 boolean allExecutionFinished = true;
+                if (log.isDebugEnabled()) {
+                    log.debug("Deployment {} has {} executions", deployment.getId(), executions.length);
+                }
                 for (Execution execution : executions) {
                     if (!ExecutionStatus.isTerminated(execution.getStatus())) {
                         allExecutionFinished = false;
+                        if (log.isDebugEnabled()) {
+                            log.debug("Execution {} for deployment {} has not terminated {}", execution.getId(), execution.getDeploymentId(),
+                                    execution.getStatus());
+                        }
                         break;
+                    } else if (log.isDebugEnabled()) {
+                        log.debug("Execution {} for deployment {} has terminated {}", execution.getId(), execution.getDeploymentId(), execution.getStatus());
                     }
                 }
                 if (allExecutionFinished) {
@@ -161,6 +172,9 @@ public class DeploymentService {
     }
 
     private ListenableFuture<Deployment> waitForDeploymentExecutionsFinish(final ListenableFuture<Deployment> futureDeployment) {
+        if (log.isDebugEnabled()) {
+            log.debug("Begin waiting for all executions finished for deployment");
+        }
         AsyncFunction<Deployment, Deployment> waitFunc = new AsyncFunction<Deployment, Deployment>() {
             @Override
             public ListenableFuture<Deployment> apply(final Deployment deployment) throws Exception {
