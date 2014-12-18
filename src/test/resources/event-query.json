@@ -1,0 +1,31 @@
+{
+  "from": 0,
+  "size": 9999,
+  "sort": {
+    "@timestamp": {
+      "order": "asc"
+    }
+  },
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "type": {
+              "query": "cloudify_event",
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "match": {
+            "context.execution_id": {
+              "query": "dca07b84-d265-4bd1-8bad-591dc398aa03",
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

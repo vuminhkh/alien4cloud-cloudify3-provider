@@ -20,7 +20,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
 import alien4cloud.paas.cloudify3.model.Event;
+import alien4cloud.paas.cloudify3.model.EventType;
 import alien4cloud.paas.cloudify3.model.GetEventsResult;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.rest.utils.JsonUtil;
@@ -52,6 +54,24 @@ public class EventDAO extends AbstractDAO {
             eventsQuery.must(QueryBuilders.rangeQuery("@timestamp").gt(DatatypeConverter.printDateTime(calendar)));
         }
         eventsQuery.must(QueryBuilders.matchQuery("type", "cloudify_event"));
+
+        // instance state query
+        BoolQueryBuilder instanceStateQuery = QueryBuilders
+                .boolQuery()
+                .must(QueryBuilders.boolQuery().should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.START))
+                        .should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.CONFIGURE))
+                        .should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.CREATE))
+                        .should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.DELETE))
+                        .should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.STOP)))
+                .must(QueryBuilders.matchQuery("event_type", EventType.TASK_SUCCEEDED));
+
+        // Workflow query
+        BoolQueryBuilder workflowQuery = QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_STARTED))
+                .must(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_SUCCEEDED))
+                .must(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_FAILED));
+
+        // Or instance or workflow query
+        eventsQuery.must(QueryBuilders.boolQuery().should(instanceStateQuery).should(workflowQuery));
         return eventsQuery;
     }
 

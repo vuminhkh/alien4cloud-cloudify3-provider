@@ -64,7 +64,7 @@ public class DeploymentService {
             @Override
             public ListenableFuture<Deployment> apply(Blueprint blueprint) throws Exception {
                 return waitForDeploymentExecutionsFinish(deploymentDAO.asyncCreate(alienDeployment.getDeploymentId(), blueprint.getId(),
-                        Maps.<String, Object> newHashMap()), 10, TimeUnit.SECONDS);
+                        Maps.<String, Object> newHashMap()));
             }
         };
         ListenableFuture<Deployment> createdDeployment = Futures.transform(createdBlueprint, createDeploymentFunction);
@@ -162,7 +162,7 @@ public class DeploymentService {
                                 execution.getStatus());
                     }
                 }
-                if (allExecutionFinished) {
+                if (allExecutionFinished && executions.length > 0) {
                     return futureExecutions;
                 } else {
                     // If it's not finished, schedule another poll in 2 seconds
@@ -199,20 +199,5 @@ public class DeploymentService {
             }
         };
         return Futures.transform(futureDeployment, waitFunc);
-    }
-
-    private ListenableFuture<Deployment> waitForDeploymentExecutionsFinish(final ListenableFuture<Deployment> futureDeployment, long delay, TimeUnit timeUnit) {
-        if (delay > 0) {
-            ListenableFuture<Deployment> waitForDeploymentFuture = Futures.dereference(scheduledExecutorService.schedule(
-                    new Callable<ListenableFuture<Deployment>>() {
-                        @Override
-                        public ListenableFuture<Deployment> call() throws Exception {
-                            return waitForDeploymentExecutionsFinish(futureDeployment);
-                        }
-                    }, delay, timeUnit));
-            return waitForDeploymentFuture;
-        } else {
-            return waitForDeploymentExecutionsFinish(futureDeployment);
-        }
     }
 }

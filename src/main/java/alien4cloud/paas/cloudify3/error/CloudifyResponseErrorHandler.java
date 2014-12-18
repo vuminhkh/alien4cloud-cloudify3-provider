@@ -26,6 +26,7 @@ public class CloudifyResponseErrorHandler extends DefaultResponseErrorHandler {
         try {
             super.handleError(response);
         } catch (Throwable exception) {
+            log.error("Exception happened with Rest API", exception);
             while (exception instanceof ExecutionException) {
                 if (exception.getCause() != null) {
                     exception = exception.getCause();

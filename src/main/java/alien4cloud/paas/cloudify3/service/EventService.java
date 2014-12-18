@@ -1,6 +1,5 @@
 package alien4cloud.paas.cloudify3.service;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +7,8 @@ import java.util.Set;
 
 import javax.annotation.Resource;
 import javax.xml.bind.DatatypeConverter;
+
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
@@ -39,6 +40,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  * @author Minh Khang VU
  */
 @Component("cloudify-event-service")
+@Slf4j
 public class EventService {
 
     @Resource
@@ -52,11 +54,15 @@ public class EventService {
         AsyncFunction<Event[], AbstractMonitorEvent[]> cloudify3ToAlienEventsAdapter = new AsyncFunction<Event[], AbstractMonitorEvent[]>() {
             @Override
             public ListenableFuture<AbstractMonitorEvent[]> apply(Event[] cloudifyEvents) {
+
                 final List<AbstractMonitorEvent> alienEvents = Lists.newArrayList();
                 final Map<String, List<PaaSInstanceStateMonitorEvent>> instanceEventByDeployments = Maps.newHashMap();
                 for (Event cloudifyEvent : cloudifyEvents) {
                     AbstractMonitorEvent alienEvent = toAlienEvent(cloudifyEvent);
                     if (alienEvent != null) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Received event {}", cloudifyEvent);
+                        }
                         alienEvents.add(alienEvent);
                         if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
                             PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = (PaaSInstanceStateMonitorEvent) alienEvent;
@@ -67,6 +73,10 @@ public class EventService {
                                 instanceEventByDeployments.put(instanceStateMonitorEvent.getDeploymentId(), instanceEvensForDeployment);
                             }
                             instanceEvensForDeployment.add(instanceStateMonitorEvent);
+                        }
+                    } else {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Filtered event {}", cloudifyEvent);
                         }
                     }
                 }
@@ -112,6 +122,11 @@ public class EventService {
                                         instanceStateMonitorEvent.setRuntimeProperties(MapUtil.toString(nodeInstance.getRuntimeProperties()));
                                     }
                                 }
+                            }
+                        }
+                        if (log.isDebugEnabled()) {
+                            for (AbstractMonitorEvent event : alienEvents) {
+                                log.debug("Send event {} to Alien", event);
                             }
                         }
                         return alienEvents.toArray(new AbstractMonitorEvent[alienEvents.size()]);
