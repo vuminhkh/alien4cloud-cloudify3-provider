@@ -22,6 +22,8 @@ public class Workflow extends AbstractCloudifyModel {
 
     public static final String EXECUTE_OPERATION = "execute_operation";
 
+    public static final String CREATE_DEPLOYMENT_ENVIRONMENT = "create_deployment_environment";
+
     private Date createdAt;
 
     private String name;

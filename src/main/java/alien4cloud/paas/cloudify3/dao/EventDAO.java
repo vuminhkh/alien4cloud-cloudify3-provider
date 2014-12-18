@@ -24,6 +24,7 @@ import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
 import alien4cloud.paas.cloudify3.model.Event;
 import alien4cloud.paas.cloudify3.model.EventType;
 import alien4cloud.paas.cloudify3.model.GetEventsResult;
+import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.rest.utils.JsonUtil;
 
@@ -66,9 +67,13 @@ public class EventDAO extends AbstractDAO {
                 .must(QueryBuilders.matchQuery("event_type", EventType.TASK_SUCCEEDED));
 
         // Workflow query
-        BoolQueryBuilder workflowQuery = QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_STARTED))
-                .must(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_SUCCEEDED))
-                .must(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_FAILED));
+        BoolQueryBuilder workflowQuery = QueryBuilders
+                .boolQuery()
+                .must(QueryBuilders.boolQuery().should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_STARTED))
+                        .should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_SUCCEEDED))
+                        .should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_FAILED)))
+                .mustNot(QueryBuilders.matchQuery("workflow_id", Workflow.CREATE_DEPLOYMENT_ENVIRONMENT))
+                .mustNot(QueryBuilders.matchQuery("workflow_id", Workflow.EXECUTE_OPERATION));
 
         // Or instance or workflow query
         eventsQuery.must(QueryBuilders.boolQuery().should(instanceStateQuery).should(workflowQuery));

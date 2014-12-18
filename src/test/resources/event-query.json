@@ -18,11 +18,99 @@
           }
         },
         {
-          "match": {
-            "context.execution_id": {
-              "query": "dca07b84-d265-4bd1-8bad-591dc398aa03",
-              "type": "boolean"
-            }
+          "bool": {
+            "should": [
+              {
+                "bool": {
+                  "must": [
+                    {
+                      "bool": {
+                        "should": [
+                          {
+                            "match": {
+                              "context.operation": {
+                                "query": "cloudify.interfaces.lifecycle.start",
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          {
+                            "match": {
+                              "context.operation": {
+                                "query": "cloudify.interfaces.lifecycle.configure",
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          {
+                            "match": {
+                              "context.operation": {
+                                "query": "cloudify.interfaces.lifecycle.create",
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          {
+                            "match": {
+                              "context.operation": {
+                                "query": "cloudify.interfaces.lifecycle.delete",
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          {
+                            "match": {
+                              "context.operation": {
+                                "query": "cloudify.interfaces.lifecycle.stop",
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "match": {
+                        "event_type": {
+                          "query": "task_succeeded",
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "bool": {
+                  "should": [
+                    {
+                      "match": {
+                        "event_type": {
+                          "query": "workflow_started",
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    {
+                      "match": {
+                        "event_type": {
+                          "query": "workflow_succeeded",
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    {
+                      "match": {
+                        "event_type": {
+                          "query": "workflow_failed",
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
           }
         }
       ]
