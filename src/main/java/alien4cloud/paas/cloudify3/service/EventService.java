@@ -1,11 +1,13 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Resource;
+import javax.xml.bind.DatatypeConverter;
 
 import org.springframework.stereotype.Component;
 
@@ -103,10 +105,12 @@ public class EventService {
                     public AbstractMonitorEvent[] apply(Map<String, Map<String, NodeInstance>> nodeInstancesMap) {
                         for (Map.Entry<String, List<PaaSInstanceStateMonitorEvent>> instanceStateEventEntry : instanceEventByDeployments.entrySet()) {
                             Map<String, NodeInstance> allDeploymentInstances = nodeInstancesMap.get(instanceStateEventEntry.getKey());
-                            for (PaaSInstanceStateMonitorEvent instanceStateMonitorEvent : instanceStateEventEntry.getValue()) {
-                                if (allDeploymentInstances.containsKey(instanceStateMonitorEvent.getInstanceId())) {
-                                    NodeInstance nodeInstance = allDeploymentInstances.get(instanceStateMonitorEvent.getInstanceId());
-                                    instanceStateMonitorEvent.setRuntimeProperties(MapUtil.toString(nodeInstance.getRuntimeProperties()));
+                            if (allDeploymentInstances != null) {
+                                for (PaaSInstanceStateMonitorEvent instanceStateMonitorEvent : instanceStateEventEntry.getValue()) {
+                                    if (allDeploymentInstances.containsKey(instanceStateMonitorEvent.getInstanceId())) {
+                                        NodeInstance nodeInstance = allDeploymentInstances.get(instanceStateMonitorEvent.getInstanceId());
+                                        instanceStateMonitorEvent.setRuntimeProperties(MapUtil.toString(nodeInstance.getRuntimeProperties()));
+                                    }
                                 }
                             }
                         }
@@ -164,7 +168,7 @@ public class EventService {
         default:
             return null;
         }
-        alienEvent.setDate(cloudifyEvent.getTimestamp().getTime());
+        alienEvent.setDate(DatatypeConverter.parseDateTime(cloudifyEvent.getTimestamp()).getTimeInMillis());
         alienEvent.setDeploymentId(cloudifyEvent.getContext().getDeploymentId());
         return alienEvent;
     }

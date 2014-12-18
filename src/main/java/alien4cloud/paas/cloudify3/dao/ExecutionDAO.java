@@ -68,7 +68,9 @@ public class ExecutionDAO extends AbstractDAO {
     }
 
     public ListenableFuture<Execution> asyncCancel(String id, boolean force) {
-        log.info("Cancel execution {}", id);
+        if (log.isDebugEnabled()) {
+            log.debug("Cancel execution {}", id);
+        }
         Map<String, Object> request = Maps.newHashMap();
         if (force) {
             request.put("action", "force-cancel");
@@ -87,7 +89,9 @@ public class ExecutionDAO extends AbstractDAO {
     }
 
     public ListenableFuture<Execution> asyncRead(String id) {
-        log.info("Read execution {}", id);
+        if (log.isDebugEnabled()) {
+            log.debug("Read execution {}", id);
+        }
         return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Execution.class, id));
     }
 

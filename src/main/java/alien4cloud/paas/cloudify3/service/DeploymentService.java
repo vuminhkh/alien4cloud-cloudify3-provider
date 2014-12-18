@@ -64,7 +64,7 @@ public class DeploymentService {
             @Override
             public ListenableFuture<Deployment> apply(Blueprint blueprint) throws Exception {
                 return waitForDeploymentExecutionsFinish(deploymentDAO.asyncCreate(alienDeployment.getDeploymentId(), blueprint.getId(),
-                        Maps.<String, Object> newHashMap()));
+                        Maps.<String, Object> newHashMap()), 10, TimeUnit.SECONDS);
             }
         };
         ListenableFuture<Deployment> createdDeployment = Futures.transform(createdBlueprint, createDeploymentFunction);
@@ -89,7 +89,15 @@ public class DeploymentService {
         AsyncFunction deleteDeploymentFunction = new AsyncFunction() {
             @Override
             public ListenableFuture apply(Object input) throws Exception {
-                return deploymentDAO.asyncDelete(deploymentContext.getDeploymentId());
+                // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of deployment 2 seconds after the
+                // end of uninstall operation
+                ListenableFuture<?> scheduledDeleteDeployment = Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
+                    @Override
+                    public ListenableFuture<?> call() throws Exception {
+                        return deploymentDAO.asyncDelete(deploymentContext.getDeploymentId());
+                    }
+                }, 2, TimeUnit.SECONDS));
+                return scheduledDeleteDeployment;
             }
         };
         ListenableFuture deletedDeployment = Futures.transform(startUninstall, deleteDeploymentFunction);
@@ -101,7 +109,7 @@ public class DeploymentService {
                 ListenableFuture<?> scheduledDeleteBlueprint = Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
                     @Override
                     public ListenableFuture<?> call() throws Exception {
-                        return blueprintDAO.asyncDelete(deploymentContext.getDeploymentId());
+                        return blueprintDAO.asyncDelete(deploymentContext.getRecipeId());
                     }
                 }, 2, TimeUnit.SECONDS));
                 return scheduledDeleteBlueprint;
@@ -145,12 +153,13 @@ public class DeploymentService {
                     if (!ExecutionStatus.isTerminated(execution.getStatus())) {
                         allExecutionFinished = false;
                         if (log.isDebugEnabled()) {
-                            log.debug("Execution {} for deployment {} has not terminated {}", execution.getId(), execution.getDeploymentId(),
+                            log.debug("Execution {} for deployment {} has not terminated {}", execution.getWorkflowId(), execution.getDeploymentId(),
                                     execution.getStatus());
                         }
                         break;
                     } else if (log.isDebugEnabled()) {
-                        log.debug("Execution {} for deployment {} has terminated {}", execution.getId(), execution.getDeploymentId(), execution.getStatus());
+                        log.debug("Execution {} for deployment {} has terminated {}", execution.getWorkflowId(), execution.getDeploymentId(),
+                                execution.getStatus());
                     }
                 }
                 if (allExecutionFinished) {
@@ -190,5 +199,20 @@ public class DeploymentService {
             }
         };
         return Futures.transform(futureDeployment, waitFunc);
+    }
+
+    private ListenableFuture<Deployment> waitForDeploymentExecutionsFinish(final ListenableFuture<Deployment> futureDeployment, long delay, TimeUnit timeUnit) {
+        if (delay > 0) {
+            ListenableFuture<Deployment> waitForDeploymentFuture = Futures.dereference(scheduledExecutorService.schedule(
+                    new Callable<ListenableFuture<Deployment>>() {
+                        @Override
+                        public ListenableFuture<Deployment> call() throws Exception {
+                            return waitForDeploymentExecutionsFinish(futureDeployment);
+                        }
+                    }, delay, timeUnit));
+            return waitForDeploymentFuture;
+        } else {
+            return waitForDeploymentExecutionsFinish(futureDeployment);
+        }
     }
 }

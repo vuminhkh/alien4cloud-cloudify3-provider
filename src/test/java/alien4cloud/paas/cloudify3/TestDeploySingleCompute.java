@@ -13,7 +13,6 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
@@ -46,9 +45,6 @@ public class TestDeploySingleCompute extends AbstractTest {
 
     @Resource
     private DeploymentUtil deploymentUtil;
-
-    @Resource
-    private ExecutionDAO executionDAO;
 
     @Test
     public void testDeploySingleCompute() throws Exception {

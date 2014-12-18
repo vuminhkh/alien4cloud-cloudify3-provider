@@ -1,6 +1,7 @@
 package alien4cloud.paas.cloudify3.error;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,15 +25,25 @@ public class CloudifyResponseErrorHandler extends DefaultResponseErrorHandler {
     public void handleError(ClientHttpResponse response) throws IOException {
         try {
             super.handleError(response);
-        } catch (HttpStatusCodeException exception) {
-            String formattedError = exception.getResponseBodyAsString();
-            try {
-                formattedError = objectMapper.writeValueAsString(objectMapper.readTree(formattedError));
-            } catch (Exception e) {
-                // Ignore if we cannot indent error
+        } catch (Throwable exception) {
+            while (exception instanceof ExecutionException) {
+                if (exception.getCause() != null) {
+                    exception = exception.getCause();
+                } else {
+                    break;
+                }
             }
-            log.error("Rest error with body \n{}", formattedError);
-            throw exception;
+            if (exception instanceof HttpStatusCodeException) {
+                HttpStatusCodeException httpException = (HttpStatusCodeException) exception;
+                String formattedError = httpException.getResponseBodyAsString();
+                try {
+                    formattedError = objectMapper.writeValueAsString(objectMapper.readTree(formattedError));
+                } catch (Exception e) {
+                    // Ignore if we cannot indent error
+                }
+                log.error("Rest error with body \n{}", formattedError);
+                throw httpException;
+            }
         }
     }
 }
