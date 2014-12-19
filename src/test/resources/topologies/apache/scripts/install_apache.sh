@@ -1,5 +1,8 @@
 #!/bin/bash
 
+PORT=$(ctx node properties port)
+DOC_ROOT=$(ctx node properties document_root)
+
 defaultPort=80
 
 # Removing previous apache2 installation if exist

@@ -20,7 +20,7 @@ import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
-import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
+import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.utils.FileUtil;
 
@@ -55,7 +55,7 @@ public class DeploymentService {
 
     private ListeningScheduledExecutorService scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1));
 
-    public ListenableFuture<Execution> deploy(final AlienDeployment alienDeployment) {
+    public ListenableFuture<Execution> deploy(final CloudifyDeployment alienDeployment) {
         // Cloudify 3 will use recipe id to identify a blueprint and a deployment instead of deployment id
         log.info("Deploying recipe {} with deployment id {}", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
         Path blueprintPath = blueprintService.generateBlueprint(alienDeployment);

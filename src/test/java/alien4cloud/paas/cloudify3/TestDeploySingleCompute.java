@@ -16,7 +16,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
-import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
+import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
 import alien4cloud.paas.cloudify3.util.DeploymentUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
@@ -50,7 +50,7 @@ public class TestDeploySingleCompute extends AbstractTest {
     public void testDeploySingleCompute() throws Exception {
         Date beginTestTimestamp = new Date();
         Topology topology = applicationUtil.createAlienApplication("testDeploySingleCompute", SINGLE_COMPUTE_TOPOLOGY);
-        AlienDeployment deployment = deploymentUtil.buildAlienDeployment("testDeploySingleCompute", "testDeploySingleCompute", topology,
+        CloudifyDeployment deployment = deploymentUtil.buildAlienDeployment("testDeploySingleCompute", "testDeploySingleCompute", topology,
                 generateDeploymentSetup(topology.getNodeTemplates().keySet()));
         deploymentService.deploy(deployment).get();
         log.info("Finished deploying {}", deployment.getDeploymentId());

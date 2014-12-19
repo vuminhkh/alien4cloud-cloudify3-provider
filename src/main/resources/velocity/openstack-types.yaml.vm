@@ -1,9 +1,31 @@
-#foreach($templateEntry in $cloud.computeTemplates.entrySet())
-    alien4cloud.paas.cloudify3.computes.$templateEntry.key:
-        derived_from: $mapping.compute_type
+node_types:
+## Compute templates
+#foreach($computeTemplateEntry in $cloud.computeTemplates.entrySet())
+    ${mapping.generated_type_prefix}.computes.${computeTemplateEntry.key}:
+        derived_from: $mapping.native_types.compute_type
         properties:
             server:
                 default:
-                    image: $templateEntry.value.image
-                    flavor: $templateEntry.value.flavor
+                    image: $computeTemplateEntry.value.image
+                    flavor: $computeTemplateEntry.value.flavor
+#end
+## TODO Network
+## TODO Volume
+#foreach($nonNativeType in ${deployment.nonNativesTypes})
+    ${nonNativeType.elementId}:
+        derived_from: ${nonNativeType.derivedFrom.get(0)}
+        properties:
+#foreach($propertyEntry in ${nonNativeType.properties.entrySet()})
+            $propertyEntry.key:
+                #if($propertyEntry.value.description)description: $propertyEntry.value.description#end
+                type: $propertyEntry.value.type
+                default: $propertyEntry.value.default
+#end
+        interfaces:
+#foreach($interfaceEntry in ${nonNativeType.interfaces.entrySet()})
+                #if($interfaceEntry.key == "Standard" || $interfaceEntry.key == "tosca.interfaces.node.lifecycle.Standard")cloudify.interfaces.lifecycle#else$interfaceEntry.key#end:
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+                    $operationEntry.key: $operationEntry.value.artifactName
+#end
+#end
 #end

@@ -18,11 +18,15 @@ import alien4cloud.utils.FileUtil;
 @Slf4j
 public class CSARUtil {
 
-    public static final String TOSCA_NORMATIVE_TYPES_1_0_0_WD03_NAME = "tosca-normative-types-1.0.0.wd03";
+    public static final String TOSCA_NORMATIVE_TYPES_NAME = "tosca-normative-types";
+
+    public static final String APACHE_NAME = "apache";
 
     public static final Path ARTIFACTS_DIRECTORY = Paths.get("./target/csars");
 
-    public static final Path TOSCA_NORMATIVE_TYPES = ARTIFACTS_DIRECTORY.resolve(TOSCA_NORMATIVE_TYPES_1_0_0_WD03_NAME);
+    public static final Path TOSCA_NORMATIVE_TYPES = ARTIFACTS_DIRECTORY.resolve(TOSCA_NORMATIVE_TYPES_NAME);
+
+    public static final Path APACHE_TYPES = ARTIFACTS_DIRECTORY.resolve(APACHE_NAME);
 
     @Resource
     private ArchiveUploadService archiveUploadService;
@@ -37,7 +41,11 @@ public class CSARUtil {
 
     public void uploadNormativeTypes() throws Exception {
         repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, "https://github.com/alien4cloud/tosca-normative-types.git", "1.0.0.wd03",
-                TOSCA_NORMATIVE_TYPES_1_0_0_WD03_NAME);
+                TOSCA_NORMATIVE_TYPES_NAME);
         uploadCSAR(TOSCA_NORMATIVE_TYPES);
+    }
+
+    public void uploadApacheTypes() throws Exception {
+        uploadCSAR(Paths.get("src/test/resources/topologies/apache"));
     }
 }

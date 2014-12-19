@@ -17,7 +17,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
+import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
 import alien4cloud.utils.YamlParserUtil;
 
@@ -51,7 +51,7 @@ public class BlueprintService implements InitializingBean {
      * @return the generated blueprint
      */
     @SneakyThrows
-    public Path generateBlueprint(AlienDeployment alienDeployment) {
+    public Path generateBlueprint(CloudifyDeployment alienDeployment) {
         // Where the whole blueprint will be generated
         Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getRecipeId());
         // Where the main blueprint file will be generated

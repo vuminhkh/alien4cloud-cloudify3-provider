@@ -6,7 +6,7 @@ imports:
     - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
 
 node_types:
-    alien4cloud.paas.cloudify3.computes.Medium_Ubuntu_Precise:
+    alien4cloud.computes.Medium_Ubuntu_Precise:
         derived_from: cloudify.openstack.nodes.Server
         properties:
             server:
@@ -16,6 +16,6 @@ node_types:
 
 node_templates:
     compute:
-        type: alien4cloud.paas.cloudify3.computes.Medium_Ubuntu_Precise
+        type: alien4cloud.computes.Medium_Ubuntu_Precise
         instances:
             deploy: 1

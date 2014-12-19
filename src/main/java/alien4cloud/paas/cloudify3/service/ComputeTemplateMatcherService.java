@@ -11,14 +11,14 @@ import alien4cloud.model.application.DeploymentSetup;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.ComputeTemplate;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
-import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
- * Handle compute template mapping, it's a reverse mapping to
+ * Handle compute template mapping
  *
  * @author Minh Khang VU
  */
@@ -49,8 +49,8 @@ public class ComputeTemplateMatcherService {
      * @param deploymentSetup the deployment setup
      * @return the list of matched compute
      */
-    public List<MatchedPaaSComputeTemplate> match(List<PaaSNodeTemplate> computes, DeploymentSetup deploymentSetup) {
-        List<MatchedPaaSComputeTemplate> matchedComputes = Lists.newArrayList();
+    public List<MatchedPaaSNativeComponentTemplate> match(List<PaaSNodeTemplate> computes, DeploymentSetup deploymentSetup) {
+        List<MatchedPaaSNativeComponentTemplate> matchedComputes = Lists.newArrayList();
         for (PaaSNodeTemplate compute : computes) {
             // Try to get the compute template this compute is matched to
             ComputeTemplate template = deploymentSetup.getCloudResourcesMapping().get(compute.getId());
@@ -66,7 +66,7 @@ public class ComputeTemplateMatcherService {
                 log.error(error);
                 throw new BadConfigurationException(error);
             }
-            matchedComputes.add(new MatchedPaaSComputeTemplate(compute, templateId));
+            matchedComputes.add(new MatchedPaaSNativeComponentTemplate(compute, templateId));
         }
         return matchedComputes;
     }

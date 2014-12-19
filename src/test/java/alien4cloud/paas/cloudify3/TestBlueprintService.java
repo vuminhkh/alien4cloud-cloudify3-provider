@@ -14,7 +14,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import alien4cloud.paas.cloudify3.service.BlueprintService;
-import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
+import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
 import alien4cloud.paas.cloudify3.util.DeploymentUtil;
 import alien4cloud.tosca.container.model.topology.Topology;
@@ -36,8 +36,17 @@ public class TestBlueprintService extends AbstractTest {
     @Test
     public void testGenerateSingleCompute() {
         Topology topology = applicationUtil.createAlienApplication("testGenerateSingleCompute", SINGLE_COMPUTE_TOPOLOGY);
-        AlienDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateSingleCompute", "testGenerateSingleCompute", topology,
+        CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateSingleCompute", "testGenerateSingleCompute", topology,
                 generateDeploymentSetup(topology.getNodeTemplates().keySet()));
+        Path generated = blueprintService.generateBlueprint(alienDeployment);
+        FileAssert.assertEquals(new File("src/test/resources/outputs/blueprints/single_compute.yaml"), generated.toFile());
+    }
+
+    @Test
+    public void testGenerateSingleComputeWithApache() {
+        Topology topology = applicationUtil.createAlienApplication("testGenerateSingleComputeWithApache", SINGLE_COMPUTE_TOPOLOGY_WITH_APACHE);
+        CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateSingleComputeWithApache", "testGenerateSingleComputeWithApache",
+                topology, generateDeploymentSetup(topology.getNodeTemplates().keySet()));
         Path generated = blueprintService.generateBlueprint(alienDeployment);
         FileAssert.assertEquals(new File("src/test/resources/outputs/blueprints/single_compute.yaml"), generated.toFile());
     }

@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
+import alien4cloud.component.model.IndexedModelUtils;
+import alien4cloud.component.model.IndexedNodeType;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.paas.IConfigurablePaaSProvider;
 import alien4cloud.paas.IManualResourceMatcherPaaSProvider;
@@ -22,16 +24,20 @@ import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
-import alien4cloud.paas.cloudify3.service.model.AlienDeployment;
-import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
+import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
+import alien4cloud.paas.cloudify3.service.VolumeMatcherService;
+import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.exception.PluginConfigurationException;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
+import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.model.PropertyDefinition;
 
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -57,6 +63,12 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
     @Resource(name = "cloudify-compute-template-matcher-service")
     private ComputeTemplateMatcherService computeTemplateMatcherService;
 
+    @Resource(name = "cloudify-volume-matcher-service")
+    private VolumeMatcherService volumeMatcherService;
+
+    @Resource(name = "cloudify-network-matcher-service")
+    private NetworkMatcherService networkMatcherService;
+
     @Resource
     private VersionDAO versionDAO;
 
@@ -68,11 +80,21 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public void deploy(PaaSTopologyDeploymentContext deploymentContext) {
-        List<MatchedPaaSComputeTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getComputes(),
+        List<MatchedPaaSNativeComponentTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
                 deploymentContext.getDeploymentSetup());
-        // We use deployment name to identify blueprint and deployment as it's more human readable
-        AlienDeployment deployment = new AlienDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), deploymentContext.getTopology(),
-                matchedComputes, deploymentContext.getNodes());
+
+        List<MatchedPaaSNativeComponentTemplate> matchedNetworks = networkMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
+                deploymentContext.getDeploymentSetup());
+
+        List<MatchedPaaSNativeComponentTemplate> matchedVolumes = volumeMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
+                deploymentContext.getDeploymentSetup());
+        Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
+        for (PaaSNodeTemplate nonNative : deploymentContext.getPaaSTopology().getNonNatives()) {
+            nonNativesTypesMap.put(nonNative.getIndexedNodeType().getElementId(), nonNative.getIndexedNodeType());
+        }
+        CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
+                matchedNetworks, matchedVolumes, deploymentContext.getPaaSTopology().getNonNatives(),
+                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap));
         deploymentService.deploy(deployment);
     }
 

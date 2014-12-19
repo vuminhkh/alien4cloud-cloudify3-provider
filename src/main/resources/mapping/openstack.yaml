@@ -4,4 +4,22 @@ imports:
   - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
   - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
 
-compute_type: cloudify.openstack.nodes.Server
+generated_type_prefix: alien4cloud
+
+native_types:
+  compute_type: cloudify.openstack.nodes.Server
+  network_type: cloudify.openstack.nodes.Network
+  block_storage_type: cloudify.openstack.nodes.Volume
+
+normative_types:
+  tosca.nodes.Root: cloudify.nodes.Root
+  tosca.nodes.Compute: cloudify.openstack.nodes.Server
+  tosca.nodes.BlockStorage: cloudify.openstack.nodes.Volume
+  tosca.nodes.SoftwareComponent: cloudify.nodes.SoftwareComponent
+  tosca.nodes.WebServer: cloudify.nodes.WebServer
+  tosca.nodes.DBMS: cloudify.nodes.DBMS
+  tosca.nodes.Database: cloudify.nodes.Database
+  tosca.nodes.WebApplication: cloudify.nodes.ApplicationModule
+  tosca.relationships.DependsOn: cloudify.relationships.depends_on
+  tosca.relationships.HostedOn: cloudify.relationships.contained_in
+  tosca.relationships.ConnectsTo: cloudify.relationships.connected_to

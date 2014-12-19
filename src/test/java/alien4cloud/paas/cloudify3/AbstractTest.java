@@ -35,6 +35,8 @@ public class AbstractTest {
 
     public static final String SINGLE_COMPUTE_TOPOLOGY = "single_compute";
 
+    public static final String SINGLE_COMPUTE_TOPOLOGY_WITH_APACHE = "single_compute_with_apache";
+
     @Resource
     private CSARUtil csarUtil;
 
@@ -63,7 +65,7 @@ public class AbstractTest {
 
     @Before
     public void before() throws Exception {
-        cloudConfigurationHolder.getConfiguration().setUrl("http://129.185.67.61:8100");
+        cloudConfigurationHolder.getConfiguration().setUrl("http://129.185.67.87:8100");
         cloudConfigurationHolder.getConfiguration().setImages(Sets.newHashSet(new Image("727df994-2e1b-404e-9276-b248223a835d", "Ubuntu Precise")));
         cloudConfigurationHolder.getConfiguration().setFlavors(Sets.newHashSet(new Flavor("2", "Medium")));
 
@@ -72,6 +74,7 @@ public class AbstractTest {
         computeTemplateMatcherService.configure(matcherConfig);
 
         csarUtil.uploadNormativeTypes();
+        csarUtil.uploadApacheTypes();
 
         // Clean deployment
         Deployment[] deployments = deploymentDAO.list();

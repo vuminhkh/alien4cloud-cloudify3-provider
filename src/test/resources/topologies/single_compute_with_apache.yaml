@@ -1,0 +1,18 @@
+node_templates:
+  compute:
+    type: tosca.nodes.Compute
+    properties:
+      os_type: linux
+      os_distribution: ubuntu
+      os_version: ubuntu
+  apache:
+    type: alien.nodes.Apache
+    properties:
+      port: 8080
+      document_root: "/var/www"
+
+dependencies:
+  - name: apache-type
+    version: 1.0.0.wd03-SNAPSHOT
+  - name: tosca-normative-types
+    version: 1.0.0.wd03-SNAPSHOT
