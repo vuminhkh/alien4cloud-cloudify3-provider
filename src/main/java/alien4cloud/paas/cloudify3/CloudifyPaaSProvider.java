@@ -28,6 +28,7 @@ import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
 import alien4cloud.paas.cloudify3.service.VolumeMatcherService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
+import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.exception.PluginConfigurationException;
 import alien4cloud.paas.model.AbstractMonitorEvent;
@@ -79,7 +80,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      */
 
     @Override
-    public void deploy(PaaSTopologyDeploymentContext deploymentContext) {
+    public void deploy(PaaSTopologyDeploymentContext deploymentContext, final IPaaSCallback callback) {
         List<MatchedPaaSNativeComponentTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
                 deploymentContext.getDeploymentSetup());
 
@@ -95,12 +96,12 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
                 matchedNetworks, matchedVolumes, deploymentContext.getPaaSTopology().getNonNatives(),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap));
-        deploymentService.deploy(deployment);
+        FutureUtil.associateFutureToPaaSCallback(deploymentService.deploy(deployment), callback);
     }
 
     @Override
-    public void undeploy(PaaSDeploymentContext deploymentContext) {
-        deploymentService.undeploy(deploymentContext);
+    public void undeploy(PaaSDeploymentContext deploymentContext, IPaaSCallback callback) {
+        FutureUtil.associateFutureToPaaSCallback(deploymentService.undeploy(deploymentContext), callback);
     }
 
     /**
@@ -144,7 +145,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         Futures.addCallback(events, new FutureCallback<AbstractMonitorEvent[]>() {
             @Override
             public void onSuccess(AbstractMonitorEvent[] result) {
-                eventsCallback.onData(result);
+                eventsCallback.onSuccess(result);
             }
 
             @Override
@@ -172,7 +173,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      */
 
     @Override
-    public void scale(PaaSDeploymentContext deploymentContext, String nodeTemplateId, int instances) {
+    public void scale(PaaSDeploymentContext deploymentContext, String nodeTemplateId, int instances, IPaaSCallback<?> callback) {
         throw new OperationNotSupportedException("scale is not supported yet");
     }
 

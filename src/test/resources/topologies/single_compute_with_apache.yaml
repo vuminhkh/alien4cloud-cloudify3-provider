@@ -10,6 +10,12 @@ node_templates:
     properties:
       port: 8080
       document_root: "/var/www"
+    relationships:
+      hostedOnCompute:
+        target: compute
+        type: tosca.relationships.HostedOn
+        requirement_name: host
+        requirement_type: tosca.capabilities.Container
 
 dependencies:
   - name: apache-type

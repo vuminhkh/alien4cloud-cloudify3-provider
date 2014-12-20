@@ -38,9 +38,11 @@ public class DeploymentUtil {
         Map<String, PaaSNodeTemplate> nodes = topologyTreeBuilderService.buildPaaSNodeTemplate(topology);
         PaaSTopology paaSTopology = topologyTreeBuilderService.buildPaaSTopology(nodes);
         List<MatchedPaaSNativeComponentTemplate> matchedComputes = Lists.newArrayList();
-        for (PaaSNodeTemplate compute : paaSTopology.getComputes()) {
-            String templateId = computeTemplateMatcherService.getTemplateId(deploymentSetup.getCloudResourcesMapping().get(compute.getId()));
-            matchedComputes.add(new MatchedPaaSNativeComponentTemplate(compute, templateId));
+        if (deploymentSetup != null) {
+            for (PaaSNodeTemplate compute : paaSTopology.getComputes()) {
+                String templateId = computeTemplateMatcherService.getTemplateId(deploymentSetup.getCloudResourcesMapping().get(compute.getId()));
+                matchedComputes.add(new MatchedPaaSNativeComponentTemplate(compute, templateId));
+            }
         }
         alienDeployment.setComputes(matchedComputes);
         alienDeployment.setNonNatives(paaSTopology.getNonNatives());

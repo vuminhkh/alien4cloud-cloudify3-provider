@@ -32,7 +32,7 @@ import com.google.common.collect.Lists;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
 @Slf4j
-public class TestDeploySingleCompute extends AbstractTest {
+public class TestDeploySingleCompute extends AbstractDeploymentTest {
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;

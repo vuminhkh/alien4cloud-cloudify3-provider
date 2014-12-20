@@ -17,14 +17,8 @@ import alien4cloud.model.cloud.MatchedComputeTemplate;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.Flavor;
 import alien4cloud.paas.cloudify3.configuration.Image;
-import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
-import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
-import alien4cloud.paas.cloudify3.model.Blueprint;
-import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
-import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
-import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
@@ -37,17 +31,7 @@ public class AbstractTest {
 
     public static final String SINGLE_COMPUTE_TOPOLOGY_WITH_APACHE = "single_compute_with_apache";
 
-    @Resource
-    private CSARUtil csarUtil;
-
-    @Resource
-    private BlueprintDAO blueprintDAO;
-
-    @Resource
-    private DeploymentDAO deploymentDAO;
-
-    @Resource(name = "cloudify-deployment-service")
-    private DeploymentService deploymentService;
+    private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -55,7 +39,8 @@ public class AbstractTest {
     @Resource
     private ComputeTemplateMatcherService computeTemplateMatcherService;
 
-    private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
+    @Resource
+    private CSARUtil csarUtil;
 
     @BeforeClass
     public static void cleanup() throws IOException {
@@ -75,27 +60,6 @@ public class AbstractTest {
 
         csarUtil.uploadNormativeTypes();
         csarUtil.uploadApacheTypes();
-
-        // Clean deployment
-        Deployment[] deployments = deploymentDAO.list();
-        if (deployments.length > 0) {
-            for (Deployment deployment : deployments) {
-                PaaSDeploymentContext context = new PaaSDeploymentContext();
-                context.setDeploymentId(deployment.getId());
-                context.setRecipeId(deployment.getBlueprintId());
-                deploymentService.undeploy(context).get();
-            }
-        }
-        Thread.sleep(1000L);
-
-        // Clean blueprint
-        Blueprint[] blueprints = blueprintDAO.list();
-        if (blueprints.length > 0) {
-            for (Blueprint blueprint : blueprints) {
-                blueprintDAO.delete(blueprint.getId());
-            }
-        }
-        Thread.sleep(1000L);
     }
 
     protected DeploymentSetup generateDeploymentSetup(Collection<String> nodeIds) {

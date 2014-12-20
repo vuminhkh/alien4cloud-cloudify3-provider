@@ -1,31 +1,30 @@
 node_types:
 ## Compute templates
 #foreach($computeTemplateEntry in $cloud.computeTemplates.entrySet())
-    ${mapping.generated_type_prefix}.computes.${computeTemplateEntry.key}:
-        derived_from: $mapping.native_types.compute_type
-        properties:
-            server:
-                default:
-                    image: $computeTemplateEntry.value.image
-                    flavor: $computeTemplateEntry.value.flavor
+  ${mapping.generated_type_prefix}.computes.${computeTemplateEntry.key}:
+    derived_from: $mapping.native_types.compute_type
+    properties:
+      server:
+        default:
+          image: $computeTemplateEntry.value.image
+          flavor: $computeTemplateEntry.value.flavor
 #end
 ## TODO Network
 ## TODO Volume
 #foreach($nonNativeType in ${deployment.nonNativesTypes})
-    ${nonNativeType.elementId}:
-        derived_from: ${nonNativeType.derivedFrom.get(0)}
-        properties:
+  ${nonNativeType.elementId}:
+    derived_from: $mapping.normative_types.get($nonNativeType.derivedFrom.get(0))
+    properties:
 #foreach($propertyEntry in ${nonNativeType.properties.entrySet()})
-            $propertyEntry.key:
-                #if($propertyEntry.value.description)description: $propertyEntry.value.description#end
-                type: $propertyEntry.value.type
-                default: $propertyEntry.value.default
+      $propertyEntry.key:
+        type: #if($propertyEntry.value.type == "version")string$newline#else$propertyEntry.value.type$newline#end
+        default: $propertyEntry.value.default
 #end
-        interfaces:
+    interfaces:
 #foreach($interfaceEntry in ${nonNativeType.interfaces.entrySet()})
-                #if($interfaceEntry.key == "Standard" || $interfaceEntry.key == "tosca.interfaces.node.lifecycle.Standard")cloudify.interfaces.lifecycle#else$interfaceEntry.key#end:
+      #if($interfaceEntry.key == "Standard" || $interfaceEntry.key == "tosca.interfaces.node.lifecycle.Standard")cloudify.interfaces.lifecycle#else$interfaceEntry.key#end:
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-                    $operationEntry.key: $operationEntry.value.artifactName
+        $operationEntry.key: $nonNativeType.archiveName/$nonNativeType.elementId/$operationEntry.value.implementationArtifact.artifactRef
 #end
 #end
 #end

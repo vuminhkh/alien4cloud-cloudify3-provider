@@ -1,8 +1,12 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Resource;
@@ -16,9 +20,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
+import alien4cloud.component.model.IndexedNodeType;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
+import alien4cloud.paas.model.PaaSNodeTemplate;
+import alien4cloud.tosca.model.ImplementationArtifact;
+import alien4cloud.tosca.model.Interface;
+import alien4cloud.tosca.model.Operation;
 import alien4cloud.utils.YamlParserUtil;
 
 import com.fasterxml.jackson.databind.JavaType;
@@ -61,11 +70,38 @@ public class BlueprintService implements InitializingBean {
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
         context.put("mapping", mapping);
         context.put("deployment", alienDeployment);
+        context.put("newline", "\n");
         context.put("provider_types_file",
                 resourceLoaderService.loadResourceFromClasspath("velocity/" + cloudConfigurationHolder.getConfiguration().getProvider() + "-types.yaml.vm")
                         .getFileName().toString());
         // Generate the blueprint
         VelocityUtil.generate(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
+        // Copy artifacts
+        List<PaaSNodeTemplate> nonNatives = alienDeployment.getNonNatives();
+        if (nonNatives != null) {
+            for (PaaSNodeTemplate nonNative : nonNatives) {
+                IndexedNodeType nonNativeType = nonNative.getIndexedNodeType();
+                Map<String, Interface> interfaces = nonNativeType.getInterfaces();
+                // Copy implementation artifacts
+                for (Map.Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
+                    Map<String, Operation> operations = interfaceEntry.getValue().getOperations();
+                    for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
+                        ImplementationArtifact artifact = operationEntry.getValue().getImplementationArtifact();
+                        if (artifact != null) {
+                            String artifactRelativePathName = artifact.getArtifactRef();
+                            FileSystem csarFS = FileSystems.newFileSystem(nonNative.getCsarPath(), null);
+                            Path artifactPath = csarFS.getPath(artifactRelativePathName);
+                            Path copiedArtifactDirectory = generatedBlueprintDirectoryPath.resolve(nonNativeType.getArchiveName()).resolve(
+                                    nonNativeType.getElementId());
+                            Files.createDirectories(copiedArtifactDirectory);
+                            Path artifactCopiedPath = copiedArtifactDirectory.resolve(artifactRelativePathName);
+                            Files.createDirectories(artifactCopiedPath.getParent());
+                            Files.copy(artifactPath, artifactCopiedPath);
+                        }
+                    }
+                }
+            }
+        }
         return generatedBlueprintFilePath;
     }
 
