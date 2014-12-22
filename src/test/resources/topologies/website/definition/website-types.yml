@@ -1,0 +1,38 @@
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+description: TOSCA simple profile with Apache
+
+node_types:
+  alien.nodes.WebSite:
+    derived_from: tosca.nodes.WebApplication
+    description: A static website packaged in a zip file.
+    requirements:
+      - host: alien.capabilities.ApacheContainer
+        type: alien.relationships.WebSiteHostedOn
+    properties:
+      zip_url:
+        type: string
+      context_path:
+        type: string
+    artifacts:
+      - website_zip:
+        type: tosca.artifacts.File
+
+relationship_types:
+  alien.relationships.WebSiteHostedOn:
+    derived_from: tosca.relationships.HostedOn
+    description: Relationship use to describe that the website is deployed on the target Apache server.
+    valid_sources: [ tosca.nodes.WebApplication ]
+    valid_targets: [ alien.capabilities.ApacheContainer ]
+    interfaces:
+      Configure:
+          post_configure_source:
+            inputs:
+              WEBFILE_URL: { get_property: [SOURCE, zip_url] }
+              CONTEXT_PATH: { get_property: [SOURCE, context_path] }
+              DOC_ROOT: { get_property: [TARGET, document_root] }
+            implementation: scripts/deploy_website.groovy
+
+artifact_types:
+  tosca.artifacts.GroovyScript:
+    description: A groovy script (.groovy file)
+    file_ext: [groovy]

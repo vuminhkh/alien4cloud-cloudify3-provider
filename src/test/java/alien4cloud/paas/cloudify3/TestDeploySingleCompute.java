@@ -51,7 +51,7 @@ public class TestDeploySingleCompute extends AbstractDeploymentTest {
         Date beginTestTimestamp = new Date();
         Topology topology = applicationUtil.createAlienApplication("testDeploySingleCompute", SINGLE_COMPUTE_TOPOLOGY);
         CloudifyDeployment deployment = deploymentUtil.buildAlienDeployment("testDeploySingleCompute", "testDeploySingleCompute", topology,
-                generateDeploymentSetup(topology.getNodeTemplates().keySet()));
+                generateDeploymentSetup(topology));
         deploymentService.deploy(deployment).get();
         log.info("Finished deploying {}", deployment.getDeploymentId());
         Thread.sleep(1000L);

@@ -28,9 +28,17 @@ node_templates:
     type: $nonNativeNode.indexedNodeType.elementId
     instances:
       deploy: 1
+#if($nonNativeNode.nodeTemplate.properties && !$nonNativeNode.nodeTemplate.properties.isEmpty())
+    properties:
+#foreach($property in $nonNativeNode.nodeTemplate.properties.entrySet())
+      $property.getKey(): $property.getValue()
+#end
+#end
+#if($nonNativeNode.relationshipTemplates && !$nonNativeNode.relationshipTemplates.isEmpty())
     relationships:
 #foreach($relationship in $nonNativeNode.relationshipTemplates)
       - target: $relationship.relationshipTemplate.target
         type: #if($mapping.normative_types.containsKey($relationship.indexedRelationshipType.elementId))$mapping.normative_types.get($relationship.indexedRelationshipType.elementId)#else$relationship.indexedRelationshipType.elementId#end
+#end
 #end
 #end

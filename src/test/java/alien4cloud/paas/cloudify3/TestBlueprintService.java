@@ -3,7 +3,6 @@ package alien4cloud.paas.cloudify3;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 
 import javax.annotation.Resource;
 
@@ -47,7 +46,7 @@ public class TestBlueprintService extends AbstractTest {
     public void testGenerateSingleCompute() {
         Topology topology = applicationUtil.createAlienApplication("testGenerateSingleCompute", SINGLE_COMPUTE_TOPOLOGY);
         CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateSingleCompute", "testGenerateSingleCompute", topology,
-                generateDeploymentSetup(Arrays.asList("compute")));
+                generateDeploymentSetup(topology));
         Path generated = blueprintService.generateBlueprint(alienDeployment);
         FileAssert.assertEquals(new File("src/test/resources/outputs/blueprints/single_compute.yaml"), generated.toFile());
     }
@@ -56,7 +55,7 @@ public class TestBlueprintService extends AbstractTest {
     public void testGenerateSingleComputeWithApache() {
         Topology topology = applicationUtil.createAlienApplication("testGenerateSingleComputeWithApache", SINGLE_COMPUTE_TOPOLOGY_WITH_APACHE);
         CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateSingleComputeWithApache", "testGenerateSingleComputeWithApache",
-                topology, generateDeploymentSetup(Arrays.asList("compute")));
+                topology, generateDeploymentSetup(topology));
         Path generated = blueprintService.generateBlueprint(alienDeployment);
         FileAssert.assertEquals(new File("src/test/resources/outputs/blueprints/single_compute_with_apache.yaml"), generated.toFile());
         Assert.isTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/start_apache.sh")));

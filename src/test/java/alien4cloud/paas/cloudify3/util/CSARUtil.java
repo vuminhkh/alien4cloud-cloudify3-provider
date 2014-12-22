@@ -20,13 +20,9 @@ public class CSARUtil {
 
     public static final String TOSCA_NORMATIVE_TYPES_NAME = "tosca-normative-types";
 
-    public static final String APACHE_NAME = "apache";
-
     public static final Path ARTIFACTS_DIRECTORY = Paths.get("./target/csars");
 
     public static final Path TOSCA_NORMATIVE_TYPES = ARTIFACTS_DIRECTORY.resolve(TOSCA_NORMATIVE_TYPES_NAME);
-
-    public static final Path APACHE_TYPES = ARTIFACTS_DIRECTORY.resolve(APACHE_NAME);
 
     @Resource
     private ArchiveUploadService archiveUploadService;
@@ -47,5 +43,30 @@ public class CSARUtil {
 
     public void uploadApacheTypes() throws Exception {
         uploadCSAR(Paths.get("src/test/resources/topologies/apache"));
+    }
+
+    public void uploadMySqlTypes() throws Exception {
+        uploadCSAR(Paths.get("src/test/resources/topologies/mysql"));
+    }
+
+    public void uploadPHPTypes() throws Exception {
+        uploadCSAR(Paths.get("src/test/resources/topologies/php"));
+    }
+
+    public void uploadWebsiteTypes() throws Exception {
+        uploadCSAR(Paths.get("src/test/resources/topologies/website"));
+    }
+
+    public void uploadWordpress() throws Exception {
+        uploadCSAR(Paths.get("src/test/resources/topologies/wordpress"));
+    }
+
+    public void uploadAll() throws Exception {
+        uploadNormativeTypes();
+        uploadApacheTypes();
+        uploadMySqlTypes();
+        uploadPHPTypes();
+        uploadWebsiteTypes();
+        uploadWordpress();
     }
 }

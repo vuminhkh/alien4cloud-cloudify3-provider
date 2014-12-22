@@ -14,17 +14,33 @@ node_types:
 #foreach($nonNativeType in ${deployment.nonNativesTypes})
   ${nonNativeType.elementId}:
     derived_from: $mapping.normative_types.get($nonNativeType.derivedFrom.get(0))
+#if($nonNativeType.properties && !$nonNativeType.properties.isEmpty())
     properties:
 #foreach($propertyEntry in ${nonNativeType.properties.entrySet()})
       $propertyEntry.key:
         type: #if($propertyEntry.value.type == "version")string$newline#else$propertyEntry.value.type$newline#end
         default: $propertyEntry.value.default
 #end
+#end
+#if($nonNativeType.properties && !$nonNativeType.properties.isEmpty())
     interfaces:
 #foreach($interfaceEntry in ${nonNativeType.interfaces.entrySet()})
       #if($interfaceEntry.key == "Standard" || $interfaceEntry.key == "tosca.interfaces.node.lifecycle.Standard")cloudify.interfaces.lifecycle#else$interfaceEntry.key#end:
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
         $operationEntry.key: $nonNativeType.archiveName/$nonNativeType.elementId/$operationEntry.value.implementationArtifact.artifactRef
 #end
+#end
+#end
+#end
+
+#foreach($nonNativeRelationshipType in ${deployment.nonNativesRelationshipTypes})
+    ${nonNativeRelationshipType.elementId}:
+    derived_from: $mapping.normative_types.get($nonNativeRelationshipType.derivedFrom.get(0))
+    interfaces:
+#foreach($interfaceEntry in ${nonNativeRelationshipType.interfaces.entrySet()})
+    #if($interfaceEntry.key == "Standard" || $interfaceEntry.key == "tosca.interfaces.node.lifecycle.Standard")cloudify.interfaces.lifecycle#else$interfaceEntry.key#end:
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+        $operationEntry.key: $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+    #end
 #end
 #end

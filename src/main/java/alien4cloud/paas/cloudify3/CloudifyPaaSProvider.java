@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import alien4cloud.component.model.IndexedModelUtils;
 import alien4cloud.component.model.IndexedNodeType;
+import alien4cloud.component.model.IndexedRelationshipType;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.paas.IConfigurablePaaSProvider;
 import alien4cloud.paas.IManualResourceMatcherPaaSProvider;
@@ -35,7 +36,9 @@ import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSNodeTemplate;
+import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.tosca.container.model.NormativeRelationshipConstants;
 import alien4cloud.tosca.model.PropertyDefinition;
 
 import com.google.common.collect.Maps;
@@ -84,18 +87,27 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         List<MatchedPaaSNativeComponentTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
                 deploymentContext.getDeploymentSetup());
 
-        List<MatchedPaaSNativeComponentTemplate> matchedNetworks = networkMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
+        List<MatchedPaaSNativeComponentTemplate> matchedNetworks = networkMatcherService.match(deploymentContext.getPaaSTopology().getNetworks(),
                 deploymentContext.getDeploymentSetup());
 
-        List<MatchedPaaSNativeComponentTemplate> matchedVolumes = volumeMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
+        List<MatchedPaaSNativeComponentTemplate> matchedVolumes = volumeMatcherService.match(deploymentContext.getPaaSTopology().getVolumes(),
                 deploymentContext.getDeploymentSetup());
         Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
+        Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
         for (PaaSNodeTemplate nonNative : deploymentContext.getPaaSTopology().getNonNatives()) {
             nonNativesTypesMap.put(nonNative.getIndexedNodeType().getElementId(), nonNative.getIndexedNodeType());
+            List<PaaSRelationshipTemplate> relationshipTemplates = nonNative.getRelationshipTemplates();
+            for (PaaSRelationshipTemplate relationshipTemplate : relationshipTemplates) {
+                if (!NormativeRelationshipConstants.DEPENDS_ON.equals(relationshipTemplate.getIndexedRelationshipType().getElementId())
+                        && !NormativeRelationshipConstants.HOSTED_ON.equals(relationshipTemplate.getIndexedRelationshipType().getElementId()))
+                    nonNativesRelationshipsTypesMap.put(relationshipTemplate.getIndexedRelationshipType().getElementId(),
+                            relationshipTemplate.getIndexedRelationshipType());
+            }
         }
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
                 matchedNetworks, matchedVolumes, deploymentContext.getPaaSTopology().getNonNatives(),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap));
+                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
+                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap));
         FutureUtil.associateFutureToPaaSCallback(deploymentService.deploy(deployment), callback);
     }
 

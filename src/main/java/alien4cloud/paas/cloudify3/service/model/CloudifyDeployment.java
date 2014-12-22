@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import alien4cloud.component.model.IndexedNodeType;
+import alien4cloud.component.model.IndexedRelationshipType;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 
 @Getter
@@ -29,4 +30,7 @@ public class CloudifyDeployment {
     private List<PaaSNodeTemplate> nonNatives;
 
     private List<IndexedNodeType> nonNativesTypes;
+
+    private List<IndexedRelationshipType> nonNativesRelationshipTypes;
+
 }
