@@ -1,19 +1,19 @@
 #!/bin/bash
 
-echo "install PHP5..."
+ctx logger info "install PHP5..."
 LOCK="/tmp/lockaptget"
 
 while true; do
   if mkdir "${LOCK}" &>/dev/null; then
-    echo "PHP take the lock"
+    ctx logger info "PHP take the lock"
     break;
   fi
-  echo "Waiting the end of one of our recipes..."
+  ctx logger info "Waiting the end of one of our recipes..."
   sleep 0.5
 done
 
 while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
-  echo "Waiting for other software managers to finish..."
+  ctx logger info "Waiting for other software managers to finish..."
   sleep 0.5
 done
 sudo rm -f /var/lib/dpkg/lock

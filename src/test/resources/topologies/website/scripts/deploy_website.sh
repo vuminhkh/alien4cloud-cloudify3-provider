@@ -1,10 +1,10 @@
 #!/bin/bash
 
 if ! type "unzip" > /dev/null; then
-  echo "Install unzip..."
+  ctx logger info "Install unzip..."
   sudo apt-get update || error_exit $? "Failed on: sudo apt-get update"
   while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
-    echo "Waiting for other software managers to finish..."
+    ctx logger info "Waiting for other software managers to finish..."
     sleep 2s
   done
   sudo rm -f /var/lib/dpkg/lock
@@ -12,12 +12,12 @@ if ! type "unzip" > /dev/null; then
 fi
 
 if [ "$WEBFILE_URL" ]; then
-  echo "Deploy from URL..."
+  ctx logger info "Deploy from URL..."
   eval "wget $WEBFILE_URL"
   nameZip=${WEBFILE_URL##*/}
   eval "unzip -o $nameZip -d tmp"
 else
-  echo "Deploy from artifact"
+  ctx logger info "Deploy from artifact"
   unzip -o $website_zip -d tmp
 fi
 
@@ -29,5 +29,5 @@ eval "sudo rm -rf $DOC_ROOT/$CONTEXT_PATH/*"
 eval "sudo mv -f tmp/* $DOC_ROOT/$CONTEXT_PATH"
 eval "sudo chown -R www-data:www-data $DOC_ROOT/$CONTEXT_PATH"
 
-echo "End of website install, restart apache2 to update permission on $DOC_ROOT/$CONTEXT_PATH"
+ctx logger info "End of website install, restart apache2 to update permission on $DOC_ROOT/$CONTEXT_PATH"
 sudo /etc/init.d/apache2 restart

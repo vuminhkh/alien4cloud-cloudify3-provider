@@ -18,12 +18,12 @@ echo "---------------------------- ------------------------"
 CURRENT_PATH=`dirname "$0"`
 
 function StartMySQL {
-  echo "Starting MYSQL..."
+  ctx logger info "Starting MYSQL..."
   sudo /etc/init.d/mysql stop
   sudo /usr/bin/mysqld_safe > /dev/null 2>&1 &
   RET=1
   while [[ RET -ne 0 ]]; do
-    echo "=> Waiting for confirmation of MySQL service startup"
+    ctx logger info "=> Waiting for confirmation of MySQL service startup"
     sleep 5
     sudo mysql -uroot -e "status" > /dev/null 2>&1
     RET=$?
@@ -34,15 +34,15 @@ function AllowFileSystemToMySQL {
   MYSQL_DATA_DIR=$VOLUME_HOME/data
   MYSQL_LOG=$VOLUME_HOME/logs
 
-  echo "Setting data directory to $MYSQL_DATA_DIR an logs to $MYSQL_LOG ..."
+  ctx logger info "Setting data directory to $MYSQL_DATA_DIR an logs to $MYSQL_LOG ..."
   if sudo test ! -d $MYSQL_DATA_DIR; then
-    echo "Creating DATA dir > $MYSQL_DATA_DIR ..."
+    ctx logger info "Creating DATA dir > $MYSQL_DATA_DIR ..."
     sudo mkdir -p $MYSQL_DATA_DIR
     # mysql as owner and group owner
     sudo chown -R mysql:mysql $MYSQL_DATA_DIR
   fi
   if sudo test ! -d $MYSQL_LOG; then
-    echo "Creating LOG dir > $MYSQL_LOG ..."
+    ctx logger info "Creating LOG dir > $MYSQL_LOG ..."
     sudo mkdir -p $MYSQL_LOG
     # mysql as owner and group owner
     sudo chown -R mysql:mysql $MYSQL_LOG
@@ -60,7 +60,7 @@ function AllowFileSystemToMySQL {
 }
 
 function UpdateMySQLConf {
-  echo "Updating MySQL conf files [DATA, LOGS]..."
+  ctx logger info "Updating MySQL conf files [DATA, LOGS]..."
   sudo sed -i "s:/var/lib/mysql:$MYSQL_DATA_DIR:g" /etc/mysql/my.cnf
   sudo sed -i "s:/var/log/mysql/error.log:$MYSQL_LOG/error.log:g" /etc/mysql/my.cnf
   sudo sed -i "s:3306:$PORT:g" /etc/mysql/my.cnf
@@ -80,13 +80,13 @@ function UpdateMySQLConf {
 function InitMySQLDb {
   # create database DB_NAME
   if [ "$DB_NAME" ]; then
-    echo "INIT DATABASE $DB_NAME"
+    ctx logger info "INIT DATABASE $DB_NAME"
     sudo mysql -u root -e "CREATE DATABASE $DB_NAME";
   fi
 
   # create user and give rights
   if [ "$DB_USER" ]; then
-    echo "CREATE USER $DB_USER WITH PASSWORD $DB_PASSWORD AND GRAND RIGHTS ON $DB_NAME"
+    ctx logger info "CREATE USER $DB_USER WITH PASSWORD $DB_PASSWORD AND GRAND RIGHTS ON $DB_NAME"
     sudo mysql -uroot -e "CREATE USER '${DB_USER}'@'%' IDENTIFIED BY '$DB_PASSWORD'"
     sudo mysql -uroot -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'%' WITH GRANT OPTION"
     sudo mysql -uroot -e "FLUSH PRIVILEGES"
@@ -95,14 +95,14 @@ function InitMySQLDb {
 
 # Create a new database path to the attched volume
 if sudo test ! -d $VOLUME_HOME/data; then
-  echo "=> An empty or uninitialized MySQL volume is detected in $VOLUME_HOME/data"
+  ctx logger info "=> An empty or uninitialized MySQL volume is detected in $VOLUME_HOME/data"
   AllowFileSystemToMySQL
   UpdateMySQLConf
-  echo "=> Init new database path to $MYSQL_DATA_DIR"
+  ctx logger info "=> Init new database path to $MYSQL_DATA_DIR"
   sudo mysql_install_db --basedir=/usr --datadir=$MYSQL_DATA_DIR
-  echo "=> MySQL database initialized !"
+  ctx logger info "=> MySQL database initialized !"
 else
-  echo "=> Using an existing volume of MySQL"
+  ctx logger info "=> Using an existing volume of MySQL"
   AllowFileSystemToMySQL
   UpdateMySQLConf
 fi

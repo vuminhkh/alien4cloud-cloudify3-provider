@@ -49,7 +49,27 @@ public class EventService {
     @Resource
     private NodeInstanceDAO nodeInstanceDAO;
 
+    /**
+     * This queue is used for internal events
+     */
+    private List<AbstractMonitorEvent> internalProviderEventsQueue = Lists.newLinkedList();
+
     public ListenableFuture<AbstractMonitorEvent[]> getEventsSince(Date lastTimestamp, int batchSize) {
+//        if (!internalProviderEventsQueue.isEmpty()) {
+//            List<AbstractMonitorEvent> toBeReturned = internalProviderEventsQueue;
+//            if (internalProviderEventsQueue.size() > batchSize) {
+//                toBeReturned = internalProviderEventsQueue.subList(0, batchSize);
+//            }
+//            for (AbstractMonitorEvent event : internalProviderEventsQueue) {
+//                event.setDate(lastTimestamp.getTime());
+//            }
+//            try {
+//                return Futures.immediateFuture(internalProviderEventsQueue.toArray(new AbstractMonitorEvent[internalProviderEventsQueue.size()]));
+//            } finally {
+//                if(toBeReturned.size() == )
+//                internalProviderEventsQueue.clear();
+//            }
+//        }
         ListenableFuture<Event[]> eventsFuture = eventDAO.asyncGetBatch(null, lastTimestamp, 0, batchSize);
         AsyncFunction<Event[], AbstractMonitorEvent[]> cloudify3ToAlienEventsAdapter = new AsyncFunction<Event[], AbstractMonitorEvent[]>() {
             @Override
