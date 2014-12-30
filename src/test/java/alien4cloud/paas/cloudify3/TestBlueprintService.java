@@ -58,7 +58,15 @@ public class TestBlueprintService extends AbstractTest {
                 topology, generateDeploymentSetup(topology));
         Path generated = blueprintService.generateBlueprint(alienDeployment);
         FileAssert.assertEquals(new File("src/test/resources/outputs/blueprints/single_compute_with_apache.yaml"), generated.toFile());
-        Assert.isTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/start_apache.sh")));
-        Assert.isTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/install_apache.sh")));
+        Assert.isTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/scripts/start_apache.sh")));
+        Assert.isTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/scripts/install_apache.sh")));
+    }
+
+    @Test
+    public void testGenerateLamp() {
+        Topology topology = applicationUtil.createAlienApplication("testGenerateLamp", LAMP_TOPOLOGY);
+        CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateLamp", "testGenerateLamp",
+                topology, generateDeploymentSetup(topology));
+        blueprintService.generateBlueprint(alienDeployment);
     }
 }

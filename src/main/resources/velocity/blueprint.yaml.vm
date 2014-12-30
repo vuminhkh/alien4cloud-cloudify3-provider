@@ -5,7 +5,7 @@ This template is used to generate cloudify 3 recipe from alien model
 - $deployment --> contains Alien's deployment and types
 - $provider_types --> template file for specific provider types
 *#
-tosca_definitions_version: $mapping.dsl_version
+tosca_definitions_version: $mapping.dslVersion
 
 imports:
 #foreach($import in $mapping.imports)
@@ -17,7 +17,7 @@ imports:
 node_templates:
 #foreach($compute in $deployment.computes)
   $compute.paaSNodeTemplate.id:
-    type: ${mapping.generated_type_prefix}.computes.$compute.computeTemplateId
+    type: ${mapping.generatedTypePrefix}.computes.$compute.computeTemplateId
     instances:
       deploy: 1
 #end
@@ -28,17 +28,18 @@ node_templates:
     type: $nonNativeNode.indexedNodeType.elementId
     instances:
       deploy: 1
-#if($nonNativeNode.nodeTemplate.properties && !$nonNativeNode.nodeTemplate.properties.isEmpty())
+#if($util.mapHasEntries($nodeTemplate.properties))
     properties:
 #foreach($property in $nonNativeNode.nodeTemplate.properties.entrySet())
       $property.getKey(): $property.getValue()
 #end
 #end
-#if($nonNativeNode.relationshipTemplates && !$nonNativeNode.relationshipTemplates.isEmpty())
+#set( $relationshipTemplates = $util.getSourceRelationships($nonNativeNode) )
+#if($util.collectionHasElement($relationshipTemplates))
     relationships:
-#foreach($relationship in $nonNativeNode.relationshipTemplates)
+#foreach($relationship in $relationshipTemplates)
       - target: $relationship.relationshipTemplate.target
-        type: #if($mapping.normative_types.containsKey($relationship.indexedRelationshipType.elementId))$mapping.normative_types.get($relationship.indexedRelationshipType.elementId)#else$relationship.indexedRelationshipType.elementId#end
+        type: $util.tryToMapToCloudifyType($relationship.indexedRelationshipType.elementId)
 #end
 #end
 #end

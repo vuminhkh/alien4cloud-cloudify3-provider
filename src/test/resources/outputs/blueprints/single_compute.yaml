@@ -11,8 +11,8 @@ node_types:
     properties:
       server:
         default:
-          image: 727df994-2e1b-404e-9276-b248223a835d
-          flavor: 2
+          image: 6fb17427-05d8-4638-8369-10d99fa7fef0
+          flavor: 3
 
 node_templates:
   compute:

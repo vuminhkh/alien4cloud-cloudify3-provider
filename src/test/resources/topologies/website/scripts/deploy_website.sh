@@ -5,7 +5,7 @@ if ! type "unzip" > /dev/null; then
   sudo apt-get update || error_exit $? "Failed on: sudo apt-get update"
   while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
     echo "Waiting for other software managers to finish..."
-    sleep $[ ( $RANDOM % 10 )  + 2 ]s
+    sleep 2s
   done
   sudo rm -f /var/lib/dpkg/lock
   sudo apt-get install unzip || error_exit $? "Failed on: sudo apt-get install unzip"

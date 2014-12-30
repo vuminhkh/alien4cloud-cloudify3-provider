@@ -49,8 +49,8 @@ node_types:
           - valid_values: [ "/mountedStorage", "/var/mysql" ]
     interfaces:
       Standard:
-        create: scripts/installMysql.sh
-        start: scripts/startMysql.sh
+        create: scripts/install_mysql.sh
+        start: scripts/start_mysql.sh
 
 capability_types:
   alien.capabilities.MysqlDatabase:
