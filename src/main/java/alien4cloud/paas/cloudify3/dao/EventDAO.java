@@ -69,8 +69,7 @@ public class EventDAO extends AbstractDAO {
         // Workflow query
         BoolQueryBuilder workflowQuery = QueryBuilders
                 .boolQuery()
-                .must(QueryBuilders.boolQuery().should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_STARTED))
-                        .should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_SUCCEEDED))
+                .must(QueryBuilders.boolQuery().should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_SUCCEEDED))
                         .should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_FAILED)))
                 .mustNot(QueryBuilders.matchQuery("workflow_id", Workflow.CREATE_DEPLOYMENT_ENVIRONMENT))
                 .mustNot(QueryBuilders.matchQuery("workflow_id", Workflow.EXECUTE_OPERATION));

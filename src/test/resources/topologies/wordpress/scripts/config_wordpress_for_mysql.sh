@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DB_IP=$(ctx target instance runtime_properties ip_address)
+DB_IP=$(ctx target instance runtime-properties ip_address)
 DB_NAME=$(ctx target node properties db_name)
 DB_USER=$(ctx target node properties db_user)
 DB_PASSWORD=$(ctx target node properties db_password)

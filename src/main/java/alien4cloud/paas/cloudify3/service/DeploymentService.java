@@ -21,12 +21,14 @@ import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
@@ -53,11 +55,15 @@ public class DeploymentService {
     @Resource
     private ExecutionDAO executionDAO;
 
+    @Resource
+    private EventService eventService;
+
     private ListeningScheduledExecutorService scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1));
 
     public ListenableFuture<Execution> deploy(final CloudifyDeployment alienDeployment) {
         // Cloudify 3 will use recipe id to identify a blueprint and a deployment instead of deployment id
         log.info("Deploying recipe {} with deployment id {}", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
+        eventService.registerDeploymentEvent(alienDeployment.getDeploymentId(), DeploymentStatus.DEPLOYMENT_IN_PROGRESS);
         Path blueprintPath = blueprintService.generateBlueprint(alienDeployment);
         ListenableFuture<Blueprint> createdBlueprint = blueprintDAO.asyncCreate(alienDeployment.getRecipeId(), blueprintPath.toString());
         AsyncFunction<Blueprint, Deployment> createDeploymentFunction = new AsyncFunction<Blueprint, Deployment>() {
@@ -74,11 +80,26 @@ public class DeploymentService {
                 return waitForExecutionFinish(executionDAO.asyncStart(deployment.getId(), Workflow.INSTALL, null, false, false));
             }
         };
-        return Futures.transform(createdDeployment, startExecutionFunction);
+        ListenableFuture<Execution> executionFuture = Futures.transform(createdDeployment, startExecutionFunction);
+        Futures.addCallback(executionFuture, new FutureCallback<Execution>() {
+            @Override
+            public void onSuccess(Execution result) {
+                log.info("Deployment of recipe {} with deployment id {} has been registered", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                log.error("Deployment of recipe " + alienDeployment.getRecipeId() + " with deployment id " + alienDeployment.getDeploymentId() + " has failed",
+                        t);
+                eventService.registerDeploymentEvent(alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
+            }
+        });
+        return executionFuture;
     }
 
     public ListenableFuture<?> undeploy(final PaaSDeploymentContext deploymentContext) {
         log.info("Undeploying recipe {} with deployment id {}", deploymentContext.getRecipeId(), deploymentContext.getDeploymentId());
+        eventService.registerDeploymentEvent(deploymentContext.getDeploymentId(), DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS);
         try {
             FileUtil.delete(blueprintService.resolveBlueprintPath(deploymentContext.getRecipeId()));
         } catch (IOException e) {

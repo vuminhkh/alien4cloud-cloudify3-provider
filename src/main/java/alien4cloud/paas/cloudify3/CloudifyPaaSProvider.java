@@ -22,6 +22,7 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.dao.VersionDAO;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
+import alien4cloud.paas.cloudify3.model.Version;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
@@ -138,7 +139,8 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         CloudConfiguration oldConfiguration = cloudConfigurationHolder.getConfiguration();
         cloudConfigurationHolder.setConfiguration(newConfiguration);
         try {
-            versionDAO.read();
+            Version version = versionDAO.read();
+            log.info("Configure PaaS provider for Cloudify version " + version.getVersion());
         } catch (Exception e) {
             cloudConfigurationHolder.setConfiguration(oldConfiguration);
             throw new PluginConfigurationException("Url is not correct");
