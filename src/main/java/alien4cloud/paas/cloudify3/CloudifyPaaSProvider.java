@@ -27,6 +27,7 @@ import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
+import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.VolumeMatcherService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
@@ -34,12 +35,15 @@ import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.exception.PluginConfigurationException;
 import alien4cloud.paas.model.AbstractMonitorEvent;
+import alien4cloud.paas.model.DeploymentStatus;
+import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.container.model.NormativeRelationshipConstants;
+import alien4cloud.tosca.container.model.topology.Topology;
 import alien4cloud.tosca.model.PropertyDefinition;
 
 import com.google.common.collect.Maps;
@@ -76,6 +80,9 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Resource
     private VersionDAO versionDAO;
+
+    @Resource
+    private StatusService statusService;
 
     /**
      * ********************************************************************************************************************
@@ -152,6 +159,17 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      * *****************************************************Events*********************************************************
      * ********************************************************************************************************************
      */
+
+    @Override
+    public void getStatus(PaaSDeploymentContext deploymentContext, IPaaSCallback<DeploymentStatus> callback) {
+        statusService.getStatus(deploymentContext.getDeploymentId(), callback);
+    }
+
+    @Override
+    public void getInstancesInformation(PaaSDeploymentContext deploymentContext, Topology topology,
+            IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
+        statusService.getInstancesInformation(deploymentContext.getDeploymentId(), topology, callback);
+    }
 
     @Override
     public void getEventsSince(Date lastTimestamp, int batchSize, final IPaaSCallback<AbstractMonitorEvent[]> eventsCallback) {

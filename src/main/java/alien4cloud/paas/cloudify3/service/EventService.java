@@ -18,12 +18,10 @@ import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
 import alien4cloud.paas.cloudify3.model.Event;
 import alien4cloud.paas.cloudify3.model.EventType;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
-import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.util.MapUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
-import alien4cloud.paas.model.InstanceStatus;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 
@@ -49,6 +47,9 @@ public class EventService {
 
     @Resource
     private NodeInstanceDAO nodeInstanceDAO;
+
+    @Resource
+    private StatusService statusService;
 
     /**
      * This queue is used for internal events
@@ -82,7 +83,9 @@ public class EventService {
             public void onSuccess(AbstractMonitorEvent[] result) {
                 for (final AbstractMonitorEvent event : result) {
                     if (event instanceof PaaSDeploymentStatusMonitorEvent) {
-                        if (DeploymentStatus.DEPLOYED.equals(((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus())) {
+                        DeploymentStatus deploymentStatus = ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus();
+                        statusService.registerDeploymentEvent(event.getDeploymentId(), deploymentStatus);
+                        if (DeploymentStatus.DEPLOYED.equals(deploymentStatus)) {
                             ListenableFuture<NodeInstance[]> nodeInstancesFuture = nodeInstanceDAO.asyncList(event.getDeploymentId());
                             Futures.addCallback(nodeInstancesFuture, new FutureCallback<NodeInstance[]>() {
                                 @Override
@@ -112,6 +115,7 @@ public class EventService {
     }
 
     public synchronized void registerDeploymentEvent(String deploymentId, DeploymentStatus deploymentStatus) {
+        statusService.registerDeploymentEvent(deploymentId, deploymentStatus);
         PaaSDeploymentStatusMonitorEvent deploymentStatusMonitorEvent = new PaaSDeploymentStatusMonitorEvent();
         deploymentStatusMonitorEvent.setDeploymentStatus(deploymentStatus);
         deploymentStatusMonitorEvent.setDeploymentId(deploymentId);
@@ -253,7 +257,7 @@ public class EventService {
     private PaaSInstanceStateMonitorEvent toAlienEvent(NodeInstance nodeInstance) {
         PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = new PaaSInstanceStateMonitorEvent();
         instanceStateMonitorEvent.setInstanceState(nodeInstance.getState());
-        instanceStateMonitorEvent.setInstanceStatus(getInstanceStatusFromState(nodeInstance.getState()));
+        instanceStateMonitorEvent.setInstanceStatus(statusService.getInstanceStatusFromState(nodeInstance.getState()));
         instanceStateMonitorEvent.setDeploymentId(nodeInstance.getDeploymentId());
         instanceStateMonitorEvent.setNodeTemplateId(nodeInstance.getNodeId());
         instanceStateMonitorEvent.setInstanceId(nodeInstance.getId());
@@ -289,7 +293,7 @@ public class EventService {
             instanceTaskStartedEvent.setInstanceId(cloudifyEvent.getContext().getNodeId());
             instanceTaskStartedEvent.setNodeTemplateId(cloudifyEvent.getContext().getNodeName());
             instanceTaskStartedEvent.setInstanceState(newInstanceState);
-            instanceTaskStartedEvent.setInstanceStatus(getInstanceStatusFromState(newInstanceState));
+            instanceTaskStartedEvent.setInstanceStatus(statusService.getInstanceStatusFromState(newInstanceState));
             alienEvent = instanceTaskStartedEvent;
             break;
         default:
@@ -298,25 +302,5 @@ public class EventService {
         alienEvent.setDate(DatatypeConverter.parseDateTime(cloudifyEvent.getTimestamp()).getTimeInMillis());
         alienEvent.setDeploymentId(cloudifyEvent.getContext().getDeploymentId());
         return alienEvent;
-    }
-
-    private InstanceStatus getInstanceStatusFromState(String state) {
-        switch (state) {
-        case NodeInstanceStatus.STARTED:
-            return InstanceStatus.SUCCESS;
-        case NodeInstanceStatus.STOPPING:
-        case NodeInstanceStatus.STOPPED:
-        case NodeInstanceStatus.STARTING:
-        case NodeInstanceStatus.CONFIGURING:
-        case NodeInstanceStatus.CONFIGURED:
-        case NodeInstanceStatus.CREATING:
-        case NodeInstanceStatus.CREATED:
-        case NodeInstanceStatus.DELETING:
-            return InstanceStatus.PROCESSING;
-        case NodeInstanceStatus.DELETED:
-            return null;
-        default:
-            return InstanceStatus.FAILURE;
-        }
     }
 }

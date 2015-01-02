@@ -32,6 +32,9 @@ import alien4cloud.tosca.container.model.topology.Topology;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Handle all deployment status request
@@ -59,8 +62,8 @@ public class StatusService {
         List<String> deploymentIds = Lists.transform(Arrays.asList(deployments), new Function<Deployment, String>() {
 
             @Override
-            public String apply(Deployment input) {
-                return input.getId();
+            public String apply(Deployment deployment) {
+                return deployment.getId();
             }
         });
         for (String deploymentId : deploymentIds) {
@@ -128,11 +131,7 @@ public class StatusService {
     }
 
     private DeploymentStatus getStatusFromCache(String deploymentId) {
-        if (statusCache.containsKey(deploymentId)) {
-            return statusCache.get(deploymentId);
-        } else {
-            return null;
-        }
+        return statusCache.get(deploymentId);
     }
 
     public void getStatus(String deploymentId, IPaaSCallback<DeploymentStatus> callback) {
@@ -147,51 +146,72 @@ public class StatusService {
         callback.onSuccess(deploymentStatuses.toArray(new DeploymentStatus[deploymentStatuses.size()]));
     }
 
-    public Map<String, Map<String, InstanceInformation>> getInstancesInformation(String deploymentId, Topology topology) {
-        NodeInstance[] instances = nodeInstanceDAO.list(deploymentId);
-        Map<String, Map<String, InstanceInformation>> information = Maps.newHashMap();
-        for (NodeInstance instance : instances) {
-            NodeTemplate nodeTemplate = topology.getNodeTemplates().get(instance.getNodeId());
-            Map<String, InstanceInformation> nodeInformation = information.get(instance.getNodeId());
-            if (nodeInformation == null) {
-                nodeInformation = Maps.newHashMap();
-                information.put(instance.getNodeId(), nodeInformation);
-            }
-            String instanceId = instance.getNodeId();
-            InstanceInformation instanceInformation = new InstanceInformation();
-            instanceInformation.setState(instance.getState());
-            InstanceStatus instanceStatus = getInstanceStatusFromState(instance.getState());
-            if (instanceStatus == null) {
-                continue;
-            } else {
-                instanceInformation.setInstanceStatus(instanceStatus);
-            }
-            instanceInformation.setRuntimeProperties(MapUtil.toString(instance.getRuntimeProperties()));
-            instanceInformation.setProperties(nodeTemplate.getProperties());
-            instanceInformation.setAttributes(nodeTemplate.getAttributes());
-            nodeInformation.put(instanceId, instanceInformation);
+    public void getInstancesInformation(final String deploymentId, final Topology topology,
+            final IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
+        if (!statusCache.containsKey(deploymentId)) {
+            callback.onSuccess(Maps.<String, Map<String, InstanceInformation>> newHashMap());
+            return;
         }
-        return information;
+        ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(deploymentId);
+        Futures.addCallback(instancesFuture, new FutureCallback<NodeInstance[]>() {
+            @Override
+            public void onSuccess(NodeInstance[] instances) {
+                Map<String, Map<String, InstanceInformation>> information = Maps.newHashMap();
+                for (NodeInstance instance : instances) {
+                    NodeTemplate nodeTemplate = topology.getNodeTemplates().get(instance.getNodeId());
+                    Map<String, InstanceInformation> nodeInformation = information.get(instance.getNodeId());
+                    if (nodeInformation == null) {
+                        nodeInformation = Maps.newHashMap();
+                        information.put(instance.getNodeId(), nodeInformation);
+                    }
+                    String instanceId = instance.getId();
+                    InstanceInformation instanceInformation = new InstanceInformation();
+                    instanceInformation.setState(instance.getState());
+                    InstanceStatus instanceStatus = getInstanceStatusFromState(instance.getState());
+                    if (instanceStatus == null) {
+                        continue;
+                    } else {
+                        instanceInformation.setInstanceStatus(instanceStatus);
+                    }
+                    instanceInformation.setRuntimeProperties(MapUtil.toString(instance.getRuntimeProperties()));
+                    instanceInformation.setProperties(nodeTemplate.getProperties());
+                    instanceInformation.setAttributes(nodeTemplate.getAttributes());
+                    nodeInformation.put(instanceId, instanceInformation);
+                }
+                callback.onSuccess(information);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                if(log.isDebugEnabled()) {
+                    log.debug("Problem retrieving instance information for deployment <" + deploymentId + "> ");
+                }
+                callback.onSuccess(Maps.<String, Map<String, InstanceInformation>> newHashMap());
+            }
+        });
+    }
+
+    public void registerDeploymentEvent(String deploymentId, DeploymentStatus deploymentStatus) {
+        this.statusCache.put(deploymentId, deploymentStatus);
     }
 
     public InstanceStatus getInstanceStatusFromState(String state) {
         switch (state) {
-            case NodeInstanceStatus.STARTED:
-                return InstanceStatus.SUCCESS;
-            case NodeInstanceStatus.STOPPING:
-            case NodeInstanceStatus.STOPPED:
-            case NodeInstanceStatus.STARTING:
-            case NodeInstanceStatus.CONFIGURING:
-            case NodeInstanceStatus.CONFIGURED:
-            case NodeInstanceStatus.CREATING:
-            case NodeInstanceStatus.CREATED:
-            case NodeInstanceStatus.DELETING:
-                return InstanceStatus.PROCESSING;
-            case NodeInstanceStatus.DELETED:
-                return null;
-            default:
-                return InstanceStatus.FAILURE;
+        case NodeInstanceStatus.STARTED:
+            return InstanceStatus.SUCCESS;
+        case NodeInstanceStatus.STOPPING:
+        case NodeInstanceStatus.STOPPED:
+        case NodeInstanceStatus.STARTING:
+        case NodeInstanceStatus.CONFIGURING:
+        case NodeInstanceStatus.CONFIGURED:
+        case NodeInstanceStatus.CREATING:
+        case NodeInstanceStatus.CREATED:
+        case NodeInstanceStatus.DELETING:
+            return InstanceStatus.PROCESSING;
+        case NodeInstanceStatus.DELETED:
+            return null;
+        default:
+            return InstanceStatus.FAILURE;
         }
     }
-
 }
