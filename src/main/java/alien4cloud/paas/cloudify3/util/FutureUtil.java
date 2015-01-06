@@ -29,12 +29,16 @@ public class FutureUtil {
         Futures.addCallback(future, new FutureCallback<T>() {
             @Override
             public void onSuccess(T result) {
-                callback.onSuccess(result);
+                if (callback != null) {
+                    callback.onSuccess(result);
+                }
             }
 
             @Override
             public void onFailure(Throwable t) {
-                callback.onFailure(t);
+                if (callback != null) {
+                    callback.onFailure(t);
+                }
             }
         });
     }

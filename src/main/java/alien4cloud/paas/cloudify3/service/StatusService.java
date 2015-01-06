@@ -4,7 +4,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
@@ -56,8 +55,7 @@ public class StatusService {
     @Resource
     private DeploymentDAO deploymentDAO;
 
-    @PostConstruct
-    public void postConstruct() throws Exception {
+    public void init() throws Exception {
         Deployment[] deployments = deploymentDAO.list();
         List<String> deploymentIds = Lists.transform(Arrays.asList(deployments), new Function<Deployment, String>() {
 
@@ -131,7 +129,11 @@ public class StatusService {
     }
 
     private DeploymentStatus getStatusFromCache(String deploymentId) {
-        return statusCache.get(deploymentId);
+        if (!statusCache.containsKey(deploymentId)) {
+            return DeploymentStatus.UNDEPLOYED;
+        } else {
+            return statusCache.get(deploymentId);
+        }
     }
 
     public void getStatus(String deploymentId, IPaaSCallback<DeploymentStatus> callback) {
@@ -183,7 +185,7 @@ public class StatusService {
 
             @Override
             public void onFailure(Throwable t) {
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("Problem retrieving instance information for deployment <" + deploymentId + "> ");
                 }
                 callback.onSuccess(Maps.<String, Map<String, InstanceInformation>> newHashMap());

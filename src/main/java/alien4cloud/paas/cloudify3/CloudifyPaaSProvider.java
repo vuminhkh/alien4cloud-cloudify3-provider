@@ -3,6 +3,7 @@ package alien4cloud.paas.cloudify3;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Resource;
 
@@ -14,6 +15,7 @@ import alien4cloud.component.model.IndexedModelUtils;
 import alien4cloud.component.model.IndexedNodeType;
 import alien4cloud.component.model.IndexedRelationshipType;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
+import alien4cloud.model.cloud.CloudResourceType;
 import alien4cloud.paas.IConfigurablePaaSProvider;
 import alien4cloud.paas.IManualResourceMatcherPaaSProvider;
 import alien4cloud.paas.IPaaSCallback;
@@ -147,6 +149,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         cloudConfigurationHolder.setConfiguration(newConfiguration);
         try {
             Version version = versionDAO.read();
+            statusService.init();
             log.info("Configure PaaS provider for Cloudify version " + version.getVersion());
         } catch (Exception e) {
             cloudConfigurationHolder.setConfiguration(oldConfiguration);
@@ -192,6 +195,17 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      * *****************************************************Matcher********************************************************
      * ********************************************************************************************************************
      */
+
+    @Override
+    public String[] getAvailableResourceIds(CloudResourceType resourceType) {
+        switch (resourceType) {
+        case COMPUTE:
+            Set<String> paaSResourceIds = cloudConfigurationHolder.getConfiguration().getComputeTemplates().keySet();
+            return paaSResourceIds.toArray(new String[paaSResourceIds.size()]);
+        default:
+            throw new OperationNotSupportedException("getAvailableResourceIds " + resourceType + " is not yet managed");
+        }
+    }
 
     @Override
     public void updateMatcherConfig(CloudResourceMatcherConfig cloudResourceMatcherConfig) {

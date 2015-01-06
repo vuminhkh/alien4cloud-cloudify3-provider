@@ -15,5 +15,5 @@ public class MatchedPaaSNativeComponentTemplate {
 
     private PaaSNodeTemplate paaSNodeTemplate;
 
-    private String computeTemplateId;
+    private String paaSResourceId;
 }

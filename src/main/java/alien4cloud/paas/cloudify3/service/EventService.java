@@ -86,6 +86,7 @@ public class EventService {
                         DeploymentStatus deploymentStatus = ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus();
                         statusService.registerDeploymentEvent(event.getDeploymentId(), deploymentStatus);
                         if (DeploymentStatus.DEPLOYED.equals(deploymentStatus)) {
+                            log.info("Deployment {} has finished successfully", event.getDeploymentId());
                             ListenableFuture<NodeInstance[]> nodeInstancesFuture = nodeInstanceDAO.asyncList(event.getDeploymentId());
                             Futures.addCallback(nodeInstancesFuture, new FutureCallback<NodeInstance[]>() {
                                 @Override
@@ -101,6 +102,9 @@ public class EventService {
                                             t);
                                 }
                             });
+                        } else {
+                            log.info("Deployment {} has finished with status {}", event.getDeploymentId(),
+                                    ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus());
                         }
                     }
                 }

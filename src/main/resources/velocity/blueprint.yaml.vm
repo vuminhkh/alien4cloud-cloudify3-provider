@@ -17,7 +17,7 @@ imports:
 node_templates:
 #foreach($compute in $deployment.computes)
   $compute.paaSNodeTemplate.id:
-    type: ${mapping.generatedTypePrefix}.computes.$compute.computeTemplateId
+    type: ${mapping.generatedTypePrefix}.computes.$compute.paaSResourceId
     instances:
       deploy: 1
 #end
