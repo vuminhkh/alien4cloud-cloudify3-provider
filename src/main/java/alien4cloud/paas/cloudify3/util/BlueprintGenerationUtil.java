@@ -5,14 +5,14 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.AllArgsConstructor;
-import alien4cloud.component.model.IndexedArtifactToscaElement;
+import alien4cloud.model.components.IndexedArtifactToscaElement;
+import alien4cloud.model.components.Interface;
+import alien4cloud.model.components.Operation;
 import alien4cloud.paas.cloudify3.service.model.ProviderMappingConfiguration;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
 import alien4cloud.paas.plan.ToscaRelationshipLifecycleConstants;
-import alien4cloud.tosca.model.Interface;
-import alien4cloud.tosca.model.Operation;
 
 import com.google.common.collect.Lists;
 

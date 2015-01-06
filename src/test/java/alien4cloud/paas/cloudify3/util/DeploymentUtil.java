@@ -9,10 +9,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.component.model.IndexedModelUtils;
-import alien4cloud.component.model.IndexedNodeType;
-import alien4cloud.component.model.IndexedRelationshipType;
 import alien4cloud.model.application.DeploymentSetup;
+import alien4cloud.model.components.IndexedModelUtils;
+import alien4cloud.model.components.IndexedNodeType;
+import alien4cloud.model.components.IndexedRelationshipType;
+import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
@@ -20,8 +21,7 @@ import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopology;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
-import alien4cloud.tosca.container.model.NormativeRelationshipConstants;
-import alien4cloud.tosca.container.model.topology.Topology;
+import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;

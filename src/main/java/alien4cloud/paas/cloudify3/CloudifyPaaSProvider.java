@@ -11,11 +11,13 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.component.model.IndexedModelUtils;
-import alien4cloud.component.model.IndexedNodeType;
-import alien4cloud.component.model.IndexedRelationshipType;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.CloudResourceType;
+import alien4cloud.model.components.IndexedModelUtils;
+import alien4cloud.model.components.IndexedNodeType;
+import alien4cloud.model.components.IndexedRelationshipType;
+import alien4cloud.model.components.PropertyDefinition;
+import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IConfigurablePaaSProvider;
 import alien4cloud.paas.IManualResourceMatcherPaaSProvider;
 import alien4cloud.paas.IPaaSCallback;
@@ -44,9 +46,7 @@ import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
-import alien4cloud.tosca.container.model.NormativeRelationshipConstants;
-import alien4cloud.tosca.container.model.topology.Topology;
-import alien4cloud.tosca.model.PropertyDefinition;
+import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;

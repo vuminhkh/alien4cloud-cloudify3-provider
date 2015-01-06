@@ -16,11 +16,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.Assert;
 
+import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
 import alien4cloud.paas.cloudify3.util.DeploymentUtil;
-import alien4cloud.tosca.container.model.topology.Topology;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
@@ -65,8 +65,8 @@ public class TestBlueprintService extends AbstractTest {
     @Test
     public void testGenerateLamp() {
         Topology topology = applicationUtil.createAlienApplication("testGenerateLamp", LAMP_TOPOLOGY);
-        CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateLamp", "testGenerateLamp",
-                topology, generateDeploymentSetup(topology));
+        CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateLamp", "testGenerateLamp", topology,
+                generateDeploymentSetup(topology));
         blueprintService.generateBlueprint(alienDeployment);
     }
 }

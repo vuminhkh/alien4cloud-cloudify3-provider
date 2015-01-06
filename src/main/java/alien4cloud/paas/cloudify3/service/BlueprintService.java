@@ -20,9 +20,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
-import alien4cloud.component.model.IndexedArtifactToscaElement;
-import alien4cloud.component.model.IndexedNodeType;
-import alien4cloud.component.model.IndexedRelationshipType;
+import alien4cloud.model.components.ImplementationArtifact;
+import alien4cloud.model.components.IndexedArtifactToscaElement;
+import alien4cloud.model.components.IndexedNodeType;
+import alien4cloud.model.components.IndexedRelationshipType;
+import alien4cloud.model.components.Interface;
+import alien4cloud.model.components.Operation;
 import alien4cloud.paas.IPaaSTemplate;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
@@ -31,9 +34,6 @@ import alien4cloud.paas.cloudify3.util.BlueprintGenerationUtil;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
-import alien4cloud.tosca.model.ImplementationArtifact;
-import alien4cloud.tosca.model.Interface;
-import alien4cloud.tosca.model.Operation;
 import alien4cloud.utils.YamlParserUtil;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
