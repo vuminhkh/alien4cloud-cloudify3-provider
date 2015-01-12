@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import alien4cloud.model.components.IndexedArtifactToscaElement;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
 import alien4cloud.paas.cloudify3.service.model.ProviderMappingConfiguration;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
@@ -32,6 +33,46 @@ public class BlueprintGenerationUtil {
 
     public boolean collectionHasElement(Collection<?> list) {
         return list != null && !list.isEmpty();
+    }
+
+    public boolean hasFloatingIp(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSNativeComponentTemplate> externalMatchedNetworks) {
+        if (allComputeNetworks == null || externalMatchedNetworks == null) {
+            return false;
+        }
+        for (PaaSNodeTemplate network : allComputeNetworks) {
+            if (isExternal(network, externalMatchedNetworks)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public String getExternalNetworkName(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSNativeComponentTemplate> externalMatchedNetworks) {
+        for (PaaSNodeTemplate network : allComputeNetworks) {
+            MatchedPaaSNativeComponentTemplate externalMatchedNetwork = getMatchedNetwork(network, externalMatchedNetworks);
+            if (externalMatchedNetwork != null) {
+                return externalMatchedNetwork.getPaaSResourceId();
+            }
+        }
+        return null;
+    }
+
+    private boolean isExternal(PaaSNodeTemplate network, List<MatchedPaaSNativeComponentTemplate> matchedNetworks) {
+        for (MatchedPaaSNativeComponentTemplate externalMatchedNetwork : matchedNetworks) {
+            if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private MatchedPaaSNativeComponentTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSNativeComponentTemplate> matchedNetworks) {
+        for (MatchedPaaSNativeComponentTemplate externalMatchedNetwork : matchedNetworks) {
+            if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
+                return externalMatchedNetwork;
+            }
+        }
+        return null;
     }
 
     public boolean typeHasInterfaces(IndexedArtifactToscaElement type) {

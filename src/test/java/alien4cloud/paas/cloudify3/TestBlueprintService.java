@@ -6,6 +6,8 @@ import java.nio.file.Path;
 
 import javax.annotation.Resource;
 
+import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import junitx.framework.FileAssert;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,10 +27,13 @@ import alien4cloud.paas.cloudify3.util.DeploymentUtil;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
 @Slf4j
-public class TestBlueprintService extends AbstractTest {
+public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Resource
     private BlueprintService blueprintService;
+
+    @Resource
+    private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
     @Resource
     private ApplicationUtil applicationUtil;
@@ -68,5 +73,11 @@ public class TestBlueprintService extends AbstractTest {
         CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateLamp", "testGenerateLamp", topology,
                 generateDeploymentSetup(topology));
         blueprintService.generateBlueprint(alienDeployment);
+    }
+
+    @Test
+    public void testGenerateFloatingIP() {
+        blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext("testGenerateFloatingIP",
+                NETWORK_TOPOLOGY)));
     }
 }

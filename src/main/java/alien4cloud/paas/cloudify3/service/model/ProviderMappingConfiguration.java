@@ -26,5 +26,7 @@ public class ProviderMappingConfiguration {
         private String computeType;
         private String networkType;
         private String blockStorageType;
+        private String floatingIpType;
+        private String floatingIpRelationshipType;
     }
 }

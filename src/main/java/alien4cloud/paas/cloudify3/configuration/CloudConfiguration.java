@@ -17,7 +17,7 @@ import com.google.common.collect.Maps;
 @Getter
 @Setter
 @SuppressWarnings("PMD.UnusedPrivateField")
-@FormProperties({ "provider", "url", "images", "flavors" })
+@FormProperties({ "provider", "url", "images", "flavors", "networks" })
 public class CloudConfiguration {
 
     /**
@@ -35,6 +35,8 @@ public class CloudConfiguration {
 
     private Set<Flavor> flavors;
 
+    private Set<Network> networks;
+
     /**
      * The mapping for compute template id --> template configuration (image + flavor)
      */
@@ -50,5 +52,16 @@ public class CloudConfiguration {
             }
         }
         return computeTemplates;
+    }
+
+    @JsonIgnore
+    public Map<String, Network> getNetworkTemplates() {
+        Map<String, Network> networkTemplates = Maps.newHashMap();
+        if (networks != null) {
+            for (Network network : networks) {
+                networkTemplates.put(network.getId(), network);
+            }
+        }
+        return networkTemplates;
     }
 }

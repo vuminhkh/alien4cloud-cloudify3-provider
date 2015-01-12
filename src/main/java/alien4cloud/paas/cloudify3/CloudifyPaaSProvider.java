@@ -1,7 +1,6 @@
 package alien4cloud.paas.cloudify3;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -13,9 +12,6 @@ import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.CloudResourceType;
-import alien4cloud.model.components.IndexedModelUtils;
-import alien4cloud.model.components.IndexedNodeType;
-import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IConfigurablePaaSProvider;
@@ -27,14 +23,13 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.dao.VersionDAO;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
 import alien4cloud.paas.cloudify3.model.Version;
+import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
 import alien4cloud.paas.cloudify3.service.StatusService;
-import alien4cloud.paas.cloudify3.service.VolumeMatcherService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.exception.PluginConfigurationException;
@@ -43,12 +38,8 @@ import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
-import alien4cloud.paas.model.PaaSNodeTemplate;
-import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
-import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 
-import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -74,11 +65,11 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
     @Resource(name = "cloudify-compute-template-matcher-service")
     private ComputeTemplateMatcherService computeTemplateMatcherService;
 
-    @Resource(name = "cloudify-volume-matcher-service")
-    private VolumeMatcherService volumeMatcherService;
-
     @Resource(name = "cloudify-network-matcher-service")
     private NetworkMatcherService networkMatcherService;
+
+    @Resource(name = "cloudify-deployment-builder-service")
+    private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
     @Resource
     private VersionDAO versionDAO;
@@ -94,30 +85,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public void deploy(PaaSTopologyDeploymentContext deploymentContext, final IPaaSCallback callback) {
-        List<MatchedPaaSNativeComponentTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
-                deploymentContext.getDeploymentSetup());
-
-        List<MatchedPaaSNativeComponentTemplate> matchedNetworks = networkMatcherService.match(deploymentContext.getPaaSTopology().getNetworks(),
-                deploymentContext.getDeploymentSetup());
-
-        List<MatchedPaaSNativeComponentTemplate> matchedVolumes = volumeMatcherService.match(deploymentContext.getPaaSTopology().getVolumes(),
-                deploymentContext.getDeploymentSetup());
-        Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
-        Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
-        for (PaaSNodeTemplate nonNative : deploymentContext.getPaaSTopology().getNonNatives()) {
-            nonNativesTypesMap.put(nonNative.getIndexedNodeType().getElementId(), nonNative.getIndexedNodeType());
-            List<PaaSRelationshipTemplate> relationshipTemplates = nonNative.getRelationshipTemplates();
-            for (PaaSRelationshipTemplate relationshipTemplate : relationshipTemplates) {
-                if (!NormativeRelationshipConstants.DEPENDS_ON.equals(relationshipTemplate.getIndexedRelationshipType().getElementId())
-                        && !NormativeRelationshipConstants.HOSTED_ON.equals(relationshipTemplate.getIndexedRelationshipType().getElementId()))
-                    nonNativesRelationshipsTypesMap.put(relationshipTemplate.getIndexedRelationshipType().getElementId(),
-                            relationshipTemplate.getIndexedRelationshipType());
-            }
-        }
-        CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
-                matchedNetworks, matchedVolumes, deploymentContext.getPaaSTopology().getNonNatives(),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap));
+        CloudifyDeployment deployment = cloudifyDeploymentBuilderService.buildCloudifyDeployment(deploymentContext);
         FutureUtil.associateFutureToPaaSCallback(deploymentService.deploy(deployment), callback);
     }
 
@@ -209,7 +177,8 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public void updateMatcherConfig(CloudResourceMatcherConfig cloudResourceMatcherConfig) {
-        computeTemplateMatcherService.configure(cloudResourceMatcherConfig);
+        computeTemplateMatcherService.configure(cloudResourceMatcherConfig.getComputeTemplateMapping());
+        networkMatcherService.configure(cloudResourceMatcherConfig.getNetworkMapping());
     }
 
     /**

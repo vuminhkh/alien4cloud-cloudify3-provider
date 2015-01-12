@@ -23,9 +23,9 @@ public class CloudifyDeployment {
 
     private List<MatchedPaaSNativeComponentTemplate> computes;
 
-    private List<MatchedPaaSNativeComponentTemplate> networks;
+    private List<MatchedPaaSNativeComponentTemplate> internalNetworks;
 
-    private List<MatchedPaaSNativeComponentTemplate> volumes;
+    private List<MatchedPaaSNativeComponentTemplate> externalNetworks;
 
     private List<PaaSNodeTemplate> nonNatives;
 

@@ -20,9 +20,19 @@ node_templates:
     type: ${mapping.generatedTypePrefix}.computes.$compute.paaSResourceId
     instances:
       deploy: 1
+#if($util.hasFloatingIp($compute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks))
+    relationships:
+      - target: floatingip_$compute.paaSNodeTemplate.id
+        type: $mapping.nativeTypes.floatingIpRelationshipType
+  floatingip_$compute.paaSNodeTemplate.id:
+    type: $mapping.nativeTypes.floatingIpType
+    properties:
+      floatingip:
+        floating_network_name: $util.getExternalNetworkName($compute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks)
 #end
+#end
+## TODO Internal Network
 ## TODO Volume
-## TODO Network
 #foreach($nonNativeNode in $deployment.nonNatives)
   $nonNativeNode.id:
     type: $nonNativeNode.indexedNodeType.elementId
