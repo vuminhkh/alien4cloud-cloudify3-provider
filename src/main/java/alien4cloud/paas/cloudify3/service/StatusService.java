@@ -161,6 +161,10 @@ public class StatusService {
                 Map<String, Map<String, InstanceInformation>> information = Maps.newHashMap();
                 for (NodeInstance instance : instances) {
                     NodeTemplate nodeTemplate = topology.getNodeTemplates().get(instance.getNodeId());
+                    if (nodeTemplate == null) {
+                        // Sometimes we have generated instance that do not exist in alien topology
+                        continue;
+                    }
                     Map<String, InstanceInformation> nodeInformation = information.get(instance.getNodeId());
                     if (nodeInformation == null) {
                         nodeInformation = Maps.newHashMap();
