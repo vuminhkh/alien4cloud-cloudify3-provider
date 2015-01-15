@@ -1,5 +1,14 @@
 tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
 description: TOSCA simple profile with Wordpress
+template_name: wordpress-type
+template_version: 1.1.0-SNAPSHOT
+template_author: FastConnect
+
+imports:
+  - "tosca-normative-types:1.0.0.wd03-SNAPSHOT"
+  - "apache-type:1.1.0-SNAPSHOT"
+  - "mysql-type:1.1.0-SNAPSHOT"
+  - "php-type:1.1.0-SNAPSHOT"
 
 node_types:
   alien.nodes.Wordpress:
@@ -29,7 +38,9 @@ node_types:
         upper_bound: 1
     interfaces:
       Standard:
-        create: scripts/install_wordpress.sh
+        start: scripts/start_wordpress.groovy
+      fastconnect.cloudify.extensions:
+        start_detection: scripts/wordpress_start_detection.groovy
 
 relationship_types:
   alien.relationships.WordpressHostedOnApache:
@@ -39,7 +50,12 @@ relationship_types:
     valid_targets: [ alien.capabilities.ApacheContainer ]
     interfaces:
       Configure:
-        pre_configure_source: scripts/config_wordpress.sh
+        pre_configure_source:
+          inputs:
+            WEBFILE_URL: { get_property: [SOURCE, zip_url] }
+            CONTEXT_PATH: { get_property: [SOURCE, context_path] }
+            DOC_ROOT: { get_property: [TARGET, document_root] }
+          implementation: scripts/config_wordpress.sh
   alien.relationships.WordpressConnectToMysql:
     derived_from: tosca.relationships.ConnectsTo
     description: Relationship use to connect the Wordpress with a Mysql databse
@@ -47,7 +63,13 @@ relationship_types:
     valid_targets: [ alien.capabilities.MysqlDatabase ]
     interfaces:
       Configure:
-          pre_configure_source: scripts/config_wordpress_for_mysql.sh
+          pre_configure_source:
+            inputs:
+              DB_IP: { get_attribute: [TARGET, ip_address] }
+              DB_NAME: { get_property: [TARGET, db_name] }
+              DB_USER: { get_property: [TARGET, db_user] }
+              DB_PASSWORD: { get_property: [TARGET, db_password] }
+            implementation: scripts/config_wordpress_for_mysql.sh
   alien.relationships.WordpressConnectToPHP:
     derived_from: tosca.relationships.ConnectsTo
     description: Relationship use to install the Mysql module for PHP
@@ -56,3 +78,8 @@ relationship_types:
     interfaces:
       Configure:
           pre_configure_source: scripts/install_php_module.sh
+
+artifact_types:
+  tosca.artifacts.GroovyScript:
+    description: A groovy script (.groovy file)
+    file_ext: [groovy]
