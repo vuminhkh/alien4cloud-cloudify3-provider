@@ -6,12 +6,9 @@ import java.nio.file.Path;
 
 import javax.annotation.Resource;
 
-import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
-import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import junitx.framework.FileAssert;
 import lombok.extern.slf4j.Slf4j;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
@@ -20,6 +17,7 @@ import org.springframework.util.Assert;
 
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
+import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
 import alien4cloud.paas.cloudify3.util.DeploymentUtil;
@@ -41,12 +39,6 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private DeploymentUtil deploymentUtil;
 
-    @Before
-    @Override
-    public void before() throws Exception {
-        super.before();
-    }
-
     @Test
     public void testGenerateSingleCompute() {
         Topology topology = applicationUtil.createAlienApplication("testGenerateSingleCompute", SINGLE_COMPUTE_TOPOLOGY);
@@ -58,10 +50,8 @@ public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Test
     public void testGenerateSingleComputeWithApache() {
-        Topology topology = applicationUtil.createAlienApplication("testGenerateSingleComputeWithApache", SINGLE_COMPUTE_TOPOLOGY_WITH_APACHE);
-        CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateSingleComputeWithApache", "testGenerateSingleComputeWithApache",
-                topology, generateDeploymentSetup(topology));
-        Path generated = blueprintService.generateBlueprint(alienDeployment);
+        Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext(
+                "testGenerateSingleComputeWithApache", SINGLE_COMPUTE_TOPOLOGY_WITH_APACHE)));
         FileAssert.assertEquals(new File("src/test/resources/outputs/blueprints/single_compute_with_apache.yaml"), generated.toFile());
         Assert.isTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/scripts/start_apache.sh")));
         Assert.isTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/scripts/install_apache.sh")));
@@ -69,10 +59,8 @@ public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Test
     public void testGenerateLamp() {
-        Topology topology = applicationUtil.createAlienApplication("testGenerateLamp", LAMP_TOPOLOGY);
-        CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateLamp", "testGenerateLamp", topology,
-                generateDeploymentSetup(topology));
-        blueprintService.generateBlueprint(alienDeployment);
+        blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext("testGenerateLamp",
+                LAMP_TOPOLOGY)));
     }
 
     @Test

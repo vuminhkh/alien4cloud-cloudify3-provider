@@ -1,4 +1,9 @@
 node_templates:
+  NetPub:
+    type: tosca.nodes.Network
+    name: NetPub
+    properties:
+      network_name: net-pub
   Apache:
     type: alien.nodes.Apache
     name: Apache
@@ -66,6 +71,10 @@ node_templates:
     properties:
       os_arch: x86_64
       os_type: linux
+    relationships:
+      connectivity:
+        type: tosca.relationships.Network
+        target: NetPub
 
 dependencies:
   - name: tosca-normative-types

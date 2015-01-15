@@ -53,10 +53,6 @@ public class CSARUtil {
         uploadCSAR(Paths.get("src/test/resources/topologies/php"));
     }
 
-    public void uploadWebsiteTypes() throws Exception {
-        uploadCSAR(Paths.get("src/test/resources/topologies/website"));
-    }
-
     public void uploadWordpress() throws Exception {
         uploadCSAR(Paths.get("src/test/resources/topologies/wordpress"));
     }
@@ -66,7 +62,6 @@ public class CSARUtil {
         uploadApacheTypes();
         uploadMySqlTypes();
         uploadPHPTypes();
-        uploadWebsiteTypes();
         uploadWordpress();
     }
 }

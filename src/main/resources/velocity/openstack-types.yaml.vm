@@ -18,13 +18,14 @@ node_types:
     properties:
 #foreach($propertyEntry in ${nonNativeType.properties.entrySet()})
       $propertyEntry.key:
-        type: #if($propertyEntry.value.type == "version")string$newline#else$propertyEntry.value.type$newline#end
-        default: $propertyEntry.value.default
+        type: string
+        default: "$propertyEntry.value.default"
 #end
 #end
-#if($util.typeHasInterfaces($nonNativeType))
+#set( $nodeTypeInterfacesWithoutParameters = $util.getInterfaces($nonNativeType, false) )
+#if($util.mapHasEntries($nodeTypeInterfacesWithoutParameters))
     interfaces:
-#foreach($interfaceEntry in ${nonNativeType.interfaces.entrySet()})
+#foreach($interfaceEntry in $nodeTypeInterfacesWithoutParameters.entrySet())
       $util.tryToMapToCloudifyInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
         $operationEntry.key: $nonNativeType.archiveName/$nonNativeType.elementId/$operationEntry.value.implementationArtifact.artifactRef
@@ -37,13 +38,26 @@ relationships:
 #foreach($nonNativeRelationshipType in ${deployment.nonNativesRelationshipTypes})
   ${nonNativeRelationshipType.elementId}:
     derived_from: $util.getDerivedFromType($nonNativeRelationshipType.derivedFrom)
-#if($util.typeHasInterfaces($nonNativeRelationshipType))
+#set( $relationshipTypeInterfacesWithoutParameters = $util.getInterfaces($nonNativeRelationshipType, false) )
+#if($util.mapHasEntries($relationshipTypeInterfacesWithoutParameters))
+#set( $relationshipTypeSourceInterfacesWithoutParameters = $util.getRelationshipSourceInterfaces($relationshipTypeInterfacesWithoutParameters) )
+#if($util.mapHasEntries($relationshipTypeSourceInterfacesWithoutParameters))
     source_interfaces:
-#foreach($interfaceEntry in ${nonNativeRelationshipType.interfaces.entrySet()})
+#foreach($interfaceEntry in $relationshipTypeSourceInterfacesWithoutParameters.entrySet())
       $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-        $util.tryToMapToCloudifyRelationshipInterfaceOperation($operationEntry.key):
-          implementation: $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+        $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+#end
+#end
+#end
+#set( $relationshipTypeTargetInterfacesWithoutParameters = $util.getRelationshipTargetInterfaces($relationshipTypeInterfacesWithoutParameters) )
+#if($util.mapHasEntries($relationshipTypeTargetInterfacesWithoutParameters))
+    target_interfaces:
+#foreach($interfaceEntry in $relationshipTypeTargetInterfacesWithoutParameters.entrySet())
+      $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+        $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+#end
 #end
 #end
 #end

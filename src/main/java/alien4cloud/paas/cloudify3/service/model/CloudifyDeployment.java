@@ -1,6 +1,7 @@
 package alien4cloud.paas.cloudify3.service.model;
 
 import java.util.List;
+import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,5 +33,7 @@ public class CloudifyDeployment {
     private List<IndexedNodeType> nonNativesTypes;
 
     private List<IndexedRelationshipType> nonNativesRelationshipTypes;
+
+    private Map<String, PaaSNodeTemplate> allNodes;
 
 }

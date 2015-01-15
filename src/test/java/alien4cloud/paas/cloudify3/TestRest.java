@@ -13,6 +13,7 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
 import alien4cloud.paas.cloudify3.dao.EventDAO;
@@ -67,10 +68,14 @@ public class TestRest {
     private NodeDAO nodeDAO;
 
     @Resource
-    NodeInstanceDAO nodeInstanceDAO;
+    private NodeInstanceDAO nodeInstanceDAO;
+
+    @Resource
+    private CloudConfigurationHolder cloudConfigurationHolder;
 
     @Before
     public void before() throws InterruptedException {
+        cloudConfigurationHolder.getConfiguration().setUrl("http://129.185.67.112:8100");
         if (deploymentDAO.list().length > 0) {
             deploymentDAO.delete(DEPLOYMENT_ID);
         }
@@ -104,7 +109,7 @@ public class TestRest {
         blueprintDAO.create(BLUEPRINT_ID, BLUEPRINTS_PATH + BLUEPRINT_ID + "/" + BLUEPRINT_FILE);
         Deployment[] deployments = deploymentDAO.list();
         Assert.assertEquals(0, deployments.length);
-        deploymentDAO.create(DEPLOYMENT_ID, BLUEPRINT_ID, DEPLOYMENT_INPUTS);
+        deploymentDAO.create(DEPLOYMENT_ID, BLUEPRINT_ID, Maps.<String, Object> newHashMap());
         Thread.sleep(1000L);
         deployments = deploymentDAO.list();
         Assert.assertEquals(1, deployments.length);
@@ -122,8 +127,8 @@ public class TestRest {
 
     @Test
     public void testExecution() throws InterruptedException {
-        blueprintDAO.create(BLUEPRINT_ID, BLUEPRINTS_PATH + BLUEPRINT_ID + "/" + BLUEPRINT_FILE);
-        deploymentDAO.create(DEPLOYMENT_ID, BLUEPRINT_ID, DEPLOYMENT_INPUTS);
+        blueprintDAO.create(BLUEPRINT_ID, "/home/vuminhkh/Projects/alien4cloud-cloudify3-provider/target/alien/cloudify3/testDeployApache/blueprint.yaml");
+        deploymentDAO.create(DEPLOYMENT_ID, BLUEPRINT_ID, Maps.<String, Object> newHashMap());
         // The creation of a deployment automatically trigger a initialization execution
         waitForExecutionFinished(DEPLOYMENT_ID);
         Execution startExecution = executionDAO.start(DEPLOYMENT_ID, Workflow.INSTALL, null, false, false);

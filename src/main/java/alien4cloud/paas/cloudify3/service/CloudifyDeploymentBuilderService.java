@@ -69,7 +69,7 @@ public class CloudifyDeploymentBuilderService {
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
                 matchedInternalNetworks, matchedExternalNetworks, deploymentContext.getPaaSTopology().getNonNatives(),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap));
+                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), deploymentContext.getPaaSTopology().getAllNodes());
         return deployment;
     }
 }

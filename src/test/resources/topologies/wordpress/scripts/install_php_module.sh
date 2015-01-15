@@ -1,14 +1,14 @@
 #!/bin/bash
 
-ctx logger info "install PHP module for Mysql..."
+echo "install PHP module for Mysql..."
 sudo apt-get update || exit ${1}
 
 while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
-  ctx logger info "Waiting for other software managers to finish..."
+  echo "Waiting for other software managers to finish..."
   sleep 2s
 done
 sudo apt-get -y -q install php5-mysql || exit ${1}
-ctx logger info "restart apache2 to launch php5-mysql"
+echo "restart apache2 to launch php5-mysql"
 if (( $(ps -ef | grep -v grep | grep apache2 | wc -l) > 0 ))
   then
   sudo /etc/init.d/apache2 restart

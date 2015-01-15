@@ -68,7 +68,7 @@ public class AbstractTest {
 
     @Before
     public void before() throws Exception {
-        cloudConfigurationHolder.getConfiguration().setUrl("http://129.185.67.112:8100");
+        cloudConfigurationHolder.getConfiguration().setUrl("http://129.185.67.107:8100");
         cloudConfigurationHolder.getConfiguration().setImages(Sets.newHashSet(new Image("727df994-2e1b-404e-9276-b248223a835d", "Ubuntu Precise")));
         cloudConfigurationHolder.getConfiguration().setFlavors(Sets.newHashSet(new Flavor("3", "Medium")));
         cloudConfigurationHolder.getConfiguration().setNetworks(
