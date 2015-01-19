@@ -1,0 +1,21 @@
+
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
+
+node_types:
+  alien4cloud.computes.Medium_Ubuntu_Precise:
+    derived_from: cloudify.openstack.nodes.Server
+    properties:
+      server:
+        default:
+          image: 6fb17427-05d8-4638-8369-10d99fa7fef0
+          flavor: 3
+
+node_templates:
+  compute:
+    type: alien4cloud.computes.Medium_Ubuntu_Precise
+    instances:
+      deploy: 1

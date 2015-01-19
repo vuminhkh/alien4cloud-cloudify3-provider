@@ -1,0 +1,109 @@
+#*
+This template is used to generate cloudify 3 recipe from alien model
+- $mapping --> contains specific IaaS mapping loaded from src/main/resources/mapping/$provider.yaml
+- $cloud --> contains alien4cloud.paas.cloudify3.configuration.CloudConfiguration instance
+- $deployment --> contains Alien's deployment and types
+- $provider_types --> template file for specific provider types
+*#
+tosca_definitions_version: $mapping.dslVersion
+
+imports:
+#foreach($import in $mapping.imports)
+  - $import
+#end
+
+#parse("$provider_types_file")
+
+node_templates:
+#foreach($compute in $deployment.computes)
+  $compute.paaSNodeTemplate.id:
+    type: ${mapping.generatedTypePrefix}.computes.$compute.paaSResourceId
+    instances:
+      deploy: 1
+#if($util.hasFloatingIp($compute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks))
+    relationships:
+      - target: floatingip_$compute.paaSNodeTemplate.id
+        type: $mapping.nativeTypes.floatingIpRelationshipType
+  floatingip_$compute.paaSNodeTemplate.id:
+    type: $mapping.nativeTypes.floatingIpType
+    properties:
+      floatingip:
+        floating_network_name: $util.getExternalNetworkName($compute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks)
+#end
+#end
+## TODO Internal Network
+## TODO Volume
+#foreach($nonNativeNode in $deployment.nonNatives)
+  $nonNativeNode.id:
+    type: $nonNativeNode.indexedNodeType.elementId
+    instances:
+      deploy: 1
+#if($util.mapHasEntries($nodeTemplate.properties))
+    properties:
+#foreach($property in $nonNativeNode.nodeTemplate.properties.entrySet())
+      $property.getKey(): "$property.getValue()"
+#end
+#end
+#set( $relationshipInterfacesWithParameters = $util.getInterfaces($nonNativeNode.indexedNodeType, true) )
+#if($util.mapHasEntries($relationshipInterfacesWithParameters))
+    interfaces:
+#foreach($interfaceEntry in $relationshipInterfacesWithParameters.entrySet())
+        $util.tryToMapToCloudifyInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+            $operationEntry.key:
+              implementation: $nonNativeNode.indexedNodeType.archiveName/$nonNativeNode.indexedNodeType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+              inputs:
+                process:
+                  env:
+#foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
+                    $inputEntry.key: $util.formatNodeOperationInput($nonNativeNode, $inputEntry.value, $deployment.allNodes)
+#end
+#end
+#end
+#end
+#set( $relationshipTemplates = $util.getSourceRelationships($nonNativeNode) )
+#if($util.collectionHasElement($relationshipTemplates))
+    relationships:
+#foreach($relationship in $relationshipTemplates)
+      - target: $relationship.relationshipTemplate.target
+        type: $util.tryToMapToCloudifyType($relationship.indexedRelationshipType.elementId)
+#set( $relationshipInterfacesWithParameters = $util.getInterfaces($relationship.indexedRelationshipType, true) )
+#if($util.mapHasEntries($relationshipInterfacesWithParameters))
+#set( $relationshipSourceInterfacesWithParameters = $util.getRelationshipSourceInterfaces($relationshipInterfacesWithParameters) )
+#if($util.mapHasEntries($relationshipSourceInterfacesWithParameters))
+        source_interfaces:
+#foreach($interfaceEntry in $relationshipSourceInterfacesWithParameters.entrySet())
+          $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+            $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key):
+              implementation: $relationship.indexedRelationshipType.archiveName/$relationship.indexedRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+              inputs:
+                process:
+                  env:
+#foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
+                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, $deployment.allNodes)
+#end
+#end
+#end
+#end
+#set( $relationshipTargetInterfacesWithParameters = $util.getRelationshipTargetInterfaces($relationshipInterfacesWithParameters) )
+#if($util.mapHasEntries($relationshipTargetInterfacesWithParameters))
+        target_interfaces:
+#foreach($interfaceEntry in $relationshipTargetInterfacesWithParameters.entrySet())
+          $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+            $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key):
+              implementation: $relationship.indexedRelationshipType.archiveName/$relationship.indexedRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+              inputs:
+                process:
+                  env:
+#foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
+                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, $deployment.allNodes)
+#end
+#end
+#end
+#end
+#end
+#end
+#end
+#end
