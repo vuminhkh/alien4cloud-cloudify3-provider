@@ -81,19 +81,7 @@ public class DeploymentService {
             }
         };
         ListenableFuture<Execution> executionFuture = Futures.transform(createdDeployment, startExecutionFunction);
-        Futures.addCallback(executionFuture, new FutureCallback<Execution>() {
-            @Override
-            public void onSuccess(Execution result) {
-                log.info("Deployment of recipe {} with deployment id {} has been registered", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                log.error("Deployment of recipe " + alienDeployment.getRecipeId() + " with deployment id " + alienDeployment.getDeploymentId() + " has failed",
-                        t);
-                eventService.registerDeploymentEvent(alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
-            }
-        });
+        addFailureCallback(executionFuture, "Deployment", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
         return executionFuture;
     }
 
@@ -136,7 +124,24 @@ public class DeploymentService {
                 return scheduledDeleteBlueprint;
             }
         };
-        return Futures.transform(deletedDeployment, deleteBlueprintFunction);
+        ListenableFuture<?> undeploymentFuture = Futures.transform(deletedDeployment, deleteBlueprintFunction);
+        addFailureCallback(undeploymentFuture, "Undeployment", deploymentContext.getRecipeId(), deploymentContext.getDeploymentId());
+        return undeploymentFuture;
+    }
+
+    private void addFailureCallback(ListenableFuture future, final String operationName, final String recipeId, final String deploymentId) {
+        Futures.addCallback(future, new FutureCallback<Execution>() {
+            @Override
+            public void onSuccess(Execution result) {
+                log.info(operationName + " of recipe {} with deployment id {} has been registered", recipeId, deploymentId);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                log.error(operationName + " of recipe " + recipeId + " with deployment id " + deploymentId + " has failed", t);
+                eventService.registerDeploymentEvent(deploymentId, DeploymentStatus.FAILURE);
+            }
+        });
     }
 
     private ListenableFuture<Execution> waitForExecutionFinish(final ListenableFuture<Execution> futureExecution) {

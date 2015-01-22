@@ -170,6 +170,9 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         case COMPUTE:
             Set<String> paaSResourceIds = cloudConfigurationHolder.getConfiguration().getComputeTemplates().keySet();
             return paaSResourceIds.toArray(new String[paaSResourceIds.size()]);
+        case NETWORK:
+            Set<String> networkIds = cloudConfigurationHolder.getConfiguration().getNetworkTemplates().keySet();
+            return networkIds.toArray(new String[networkIds.size()]);
         default:
             throw new OperationNotSupportedException("getAvailableResourceIds " + resourceType + " is not yet managed");
         }
