@@ -115,7 +115,7 @@ public class AbstractTest {
             case "NetPub":
                 networkMapping.put(networkId, network);
                 break;
-            case "internal-network":
+            case "InternalNetwork":
                 networkMapping.put(networkId, internalNetwork);
                 break;
             default:
