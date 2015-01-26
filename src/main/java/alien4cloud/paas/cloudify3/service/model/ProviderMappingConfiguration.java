@@ -12,19 +12,14 @@ public class ProviderMappingConfiguration {
 
     private Set<String> imports;
 
-    private String dslVersion;
-
-    private String generatedTypePrefix;
-
     private ProviderNativeTypes nativeTypes;
-
-    private Map<String, String> normativeTypes;
 
     @Getter
     @Setter
     public static class ProviderNativeTypes {
         private String computeType;
         private String networkType;
+        private String subnetType;
         private String blockStorageType;
         private String floatingIpType;
         private String floatingIpRelationshipType;

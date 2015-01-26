@@ -1,0 +1,7 @@
+imports:
+  - http://www.getcloudify.org/spec/libcloud-plugin/1.1/plugin.yaml
+
+native_types:
+  floating_ip_type: cloudify.libcloud.nodes.FloatingIP
+  floating_ip_relationship_type: cloudify.libcloud.server_connected_to_floating_ip
+  compute_type: cloudify.libcloud.nodes.Server

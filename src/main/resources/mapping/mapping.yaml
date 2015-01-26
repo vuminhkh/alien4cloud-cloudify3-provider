@@ -1,0 +1,14 @@
+dsl_version: cloudify_dsl_1_0
+
+generated_type_prefix: alien4cloud
+
+normative_types:
+  tosca.nodes.Root: cloudify.nodes.Root
+  tosca.nodes.SoftwareComponent: cloudify.nodes.SoftwareComponent
+  tosca.nodes.WebServer: cloudify.nodes.WebServer
+  tosca.nodes.DBMS: cloudify.nodes.DBMS
+  tosca.nodes.Database: cloudify.nodes.Database
+  tosca.nodes.WebApplication: cloudify.nodes.ApplicationModule
+  tosca.relationships.DependsOn: cloudify.relationships.depends_on
+  tosca.relationships.HostedOn: cloudify.relationships.contained_in
+  tosca.relationships.ConnectsTo: cloudify.relationships.connected_to
