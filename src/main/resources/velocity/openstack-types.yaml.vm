@@ -8,4 +8,14 @@
           image: $computeTemplateEntry.value.image
           flavor: $computeTemplateEntry.value.flavor
 #end
+#foreach($volumeTemplateEntry in $cloud.volumeTemplates.entrySet())
+  ${mapping.generatedTypePrefix}.volumes.${volumeTemplateEntry.key}:
+    derived_from: $providerMapping.nativeTypes.volumeType
+    properties:
+      default:
+        device_name: $volumeTemplateEntry.value.deviceName
+      volume:
+        default:
+          size: $volumeTemplateEntry.value.size
+#end
 ## TODO Volume

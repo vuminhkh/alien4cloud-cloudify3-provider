@@ -28,6 +28,8 @@ public class CloudifyDeployment {
 
     private List<MatchedPaaSNativeComponentTemplate> externalNetworks;
 
+    private List<PaaSNodeTemplate> volumes;
+
     private List<PaaSNodeTemplate> nonNatives;
 
     private List<IndexedNodeType> nonNativesTypes;

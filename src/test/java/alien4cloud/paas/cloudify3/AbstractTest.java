@@ -14,8 +14,8 @@ import alien4cloud.model.application.DeploymentSetup;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.ComputeTemplate;
 import alien4cloud.model.cloud.MatchedComputeTemplate;
-import alien4cloud.model.cloud.MatchedNetwork;
-import alien4cloud.model.cloud.Network;
+import alien4cloud.model.cloud.MatchedNetworkTemplate;
+import alien4cloud.model.cloud.NetworkTemplate;
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
@@ -48,9 +48,9 @@ public class AbstractTest {
 
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
-    private Network network = new Network(4, "", "net-pub", "");
+    private NetworkTemplate network = new NetworkTemplate(4, "", "net-pub", "");
 
-    private Network internalNetwork = new Network(4, "", "internal-network", "");
+    private NetworkTemplate internalNetwork = new NetworkTemplate(4, "", "internal-network", "");
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -83,7 +83,7 @@ public class AbstractTest {
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
         matcherConfig.setMatchedComputeTemplates(Lists.newArrayList(new MatchedComputeTemplate(computeTemplate, "Medium_Ubuntu_Precise")));
-        matcherConfig.setMatchedNetworks(Lists.newArrayList(new MatchedNetwork(network, "net-pub"), new MatchedNetwork(internalNetwork, "internal-network")));
+        matcherConfig.setMatchedNetworks(Lists.newArrayList(new MatchedNetworkTemplate(network, "net-pub"), new MatchedNetworkTemplate(internalNetwork, "internal-network")));
         computeTemplateMatcherService.configure(matcherConfig.getComputeTemplateMapping());
         networkMatcherService.configure(matcherConfig.getNetworkMapping());
         csarUtil.uploadAll();
@@ -108,7 +108,7 @@ public class AbstractTest {
             resourcesMapping.put(nodeId, computeTemplate);
         }
 
-        Map<String, Network> networkMapping = Maps.newHashMap();
+        Map<String, NetworkTemplate> networkMapping = Maps.newHashMap();
         deploymentSetup.setNetworkMapping(networkMapping);
         for (String networkId : networkIds) {
             switch (networkId) {

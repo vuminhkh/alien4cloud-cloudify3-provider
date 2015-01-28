@@ -81,7 +81,7 @@ public class DeploymentService {
             }
         };
         ListenableFuture<Execution> executionFuture = Futures.transform(createdDeployment, startExecutionFunction);
-        addFailureCallback(executionFuture, "Deployment", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
+        addFailureCallback(executionFuture, "Deployment", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
         return executionFuture;
     }
 
@@ -125,21 +125,23 @@ public class DeploymentService {
             }
         };
         ListenableFuture<?> undeploymentFuture = Futures.transform(deletedDeployment, deleteBlueprintFunction);
-        addFailureCallback(undeploymentFuture, "Undeployment", deploymentContext.getRecipeId(), deploymentContext.getDeploymentId());
+        addFailureCallback(undeploymentFuture, "Undeployment", deploymentContext.getRecipeId(), deploymentContext.getDeploymentId(),
+                DeploymentStatus.UNDEPLOYED);
         return undeploymentFuture;
     }
 
-    private void addFailureCallback(ListenableFuture future, final String operationName, final String recipeId, final String deploymentId) {
+    private void addFailureCallback(ListenableFuture future, final String operationName, final String recipeId, final String deploymentId,
+            final DeploymentStatus status) {
         Futures.addCallback(future, new FutureCallback<Execution>() {
             @Override
             public void onSuccess(Execution result) {
-                log.info(operationName + " of recipe {} with deployment id {} has been registered", recipeId, deploymentId);
+                log.info(operationName + " of recipe {} with deployment id {} has been executed asynchronously", recipeId, deploymentId);
             }
 
             @Override
             public void onFailure(Throwable t) {
                 log.error(operationName + " of recipe " + recipeId + " with deployment id " + deploymentId + " has failed", t);
-                eventService.registerDeploymentEvent(deploymentId, DeploymentStatus.FAILURE);
+                eventService.registerDeploymentEvent(deploymentId, status);
             }
         });
     }

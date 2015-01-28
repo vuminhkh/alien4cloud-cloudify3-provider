@@ -9,16 +9,19 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
-public class Subnet {
+@NoArgsConstructor
+@SuppressWarnings("PMD.UnusedPrivateField")
+public class Volume {
 
     @NotNull
     private String id;
 
     @NotNull
-    private Integer ipVersion;
+    private String name;
 
     @NotNull
-    private String cidr;
+    public Integer size;
+
+    public String deviceName;
 }

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
-import alien4cloud.model.cloud.ICloudResource;
+import alien4cloud.model.cloud.ICloudResourceTemplate;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
@@ -13,7 +13,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 @Slf4j
-public class AbstractResourceMatcherService<T extends ICloudResource> {
+public class AbstractResourceMatcherService<T extends ICloudResourceTemplate> {
 
     private Map<T, String> alienTemplateToCloudifyTemplateMapping = Maps.newHashMap();
 

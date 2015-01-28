@@ -1,0 +1,17 @@
+node_templates:
+  Compute:
+    type: tosca.nodes.Compute
+    properties:
+      os_arch: x86_64
+      os_type: linux
+  BlockStorage:
+    type: tosca.nodes.BlockStorage
+    properties:
+      size: 1024
+    relationships:
+      attachedToCompute:
+        type: tosca.relationships.AttachTo
+        target: Compute
+dependencies:
+  - name: tosca-normative-types
+    version: 1.0.0.wd03-SNAPSHOT

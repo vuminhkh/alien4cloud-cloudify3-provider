@@ -1,7 +1,7 @@
 package alien4cloud.paas.cloudify3.configuration;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.validation.constraints.NotNull;
 
@@ -23,7 +23,7 @@ public class CloudConfiguration {
     /**
      * Cloudify 3 Rest API URL
      */
-    @FormValidValues({ "openstack", "ec2" })
+    @FormValidValues({ "openstack" })
     @NotNull
     private String provider = "openstack";
 
@@ -31,11 +31,13 @@ public class CloudConfiguration {
     @NotNull
     private String url = "http://yourManagerIP:8100";
 
-    private Set<Image> images;
+    private List<Image> images;
 
-    private Set<Flavor> flavors;
+    private List<Flavor> flavors;
 
-    private Set<Network> networks;
+    private List<Network> networks;
+
+    private List<Volume> volumes;
 
     /**
      * The mapping for compute template id --> template configuration (image + flavor)
@@ -63,5 +65,16 @@ public class CloudConfiguration {
             }
         }
         return networkTemplates;
+    }
+
+    @JsonIgnore
+    public Map<String, Volume> getVolumeTemplates() {
+        Map<String, Volume> storageTemplates = Maps.newHashMap();
+        if (volumes != null) {
+            for (Volume volume : volumes) {
+                storageTemplates.put(volume.getId(), volume);
+            }
+        }
+        return storageTemplates;
     }
 }
