@@ -28,7 +28,7 @@ import com.google.common.collect.Maps;
 
 /**
  * Some utilities method which help generating cloudify 3 blueprint
- * 
+ *
  * @author Minh Khang VU
  */
 @AllArgsConstructor
@@ -107,7 +107,7 @@ public class BlueprintGenerationUtil {
 
     /**
      * Extract all operations, interfaces that has input or do not have input from the give type.
-     * 
+     *
      * @param type the tosca type
      * @param withParameter interfaces' operations with parameters
      * @return only interfaces' operations that have input or don't have input
@@ -205,12 +205,12 @@ public class BlueprintGenerationUtil {
     private String doGetNodeNameHasPropertyOrAttribute(PaaSNodeTemplate node, String attributeName, String functionName) {
         Set<String> propertiesOrAttributes = null;
         if ("get_property".equals(functionName)) {
-            if (node.getIndexedNodeType().getProperties() != null) {
-                propertiesOrAttributes = node.getIndexedNodeType().getProperties().keySet();
+            if (node.getIndexedToscaElement().getProperties() != null) {
+                propertiesOrAttributes = node.getIndexedToscaElement().getProperties().keySet();
             }
         } else {
-            if (node.getIndexedNodeType().getAttributes() != null) {
-                propertiesOrAttributes = node.getIndexedNodeType().getAttributes().keySet();
+            if (node.getIndexedToscaElement().getAttributes() != null) {
+                propertiesOrAttributes = node.getIndexedToscaElement().getAttributes().keySet();
             }
         }
         if (propertiesOrAttributes == null || !propertiesOrAttributes.contains(attributeName)) {

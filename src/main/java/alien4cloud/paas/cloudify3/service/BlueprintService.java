@@ -119,14 +119,14 @@ public class BlueprintService {
         Set<String> processedRelationshipTypes = Sets.newHashSet();
         if (nonNatives != null) {
             for (PaaSNodeTemplate nonNative : nonNatives) {
-                IndexedNodeType nonNativeType = nonNative.getIndexedNodeType();
+                IndexedNodeType nonNativeType = nonNative.getIndexedToscaElement();
                 if (processedNodeTypes.add(nonNativeType.getElementId())) {
                     // Don't process a type more than once
                     copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative, nonNativeType);
                 }
                 List<PaaSRelationshipTemplate> relationships = nonNative.getRelationshipTemplates();
                 for (PaaSRelationshipTemplate relationship : relationships) {
-                    IndexedRelationshipType relationshipType = relationship.getIndexedRelationshipType();
+                    IndexedRelationshipType relationshipType = relationship.getIndexedToscaElement();
                     if (processedRelationshipTypes.add(relationshipType.getElementId())) {
                         copyImplementationArtifacts(generatedBlueprintDirectoryPath, relationship, relationshipType);
                     }
@@ -161,7 +161,7 @@ public class BlueprintService {
 
     /**
      * Find out where the blueprint of a deployment might/should be generated to
-     * 
+     *
      * @param recipeId the recipe's id
      * @return the path to the generated blueprint
      */

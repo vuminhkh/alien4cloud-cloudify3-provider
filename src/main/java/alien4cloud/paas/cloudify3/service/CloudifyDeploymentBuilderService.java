@@ -46,13 +46,14 @@ public class CloudifyDeploymentBuilderService {
         Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
         Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
         for (PaaSNodeTemplate nonNative : deploymentContext.getPaaSTopology().getNonNatives()) {
-            nonNativesTypesMap.put(nonNative.getIndexedNodeType().getElementId(), nonNative.getIndexedNodeType());
+            nonNativesTypesMap.put(nonNative.getIndexedToscaElement().getElementId(), nonNative.getIndexedToscaElement());
             List<PaaSRelationshipTemplate> relationshipTemplates = nonNative.getRelationshipTemplates();
             for (PaaSRelationshipTemplate relationshipTemplate : relationshipTemplates) {
-                if (!NormativeRelationshipConstants.DEPENDS_ON.equals(relationshipTemplate.getIndexedRelationshipType().getElementId())
-                        && !NormativeRelationshipConstants.HOSTED_ON.equals(relationshipTemplate.getIndexedRelationshipType().getElementId()))
-                    nonNativesRelationshipsTypesMap.put(relationshipTemplate.getIndexedRelationshipType().getElementId(),
-                            relationshipTemplate.getIndexedRelationshipType());
+                if (!NormativeRelationshipConstants.DEPENDS_ON.equals(relationshipTemplate.getIndexedToscaElement().getElementId())
+                        && !NormativeRelationshipConstants.HOSTED_ON.equals(relationshipTemplate.getIndexedToscaElement().getElementId())) {
+                    nonNativesRelationshipsTypesMap.put(relationshipTemplate.getIndexedToscaElement().getElementId(),
+                            relationshipTemplate.getIndexedToscaElement());
+                }
             }
         }
 
