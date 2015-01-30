@@ -56,6 +56,23 @@ public class CloudConfiguration {
         return computeTemplates;
     }
 
+    /**
+     * The reverse mapping for compute template id --> template configuration (image + flavor)
+     */
+    @JsonIgnore
+    public Map<CloudifyComputeTemplate, String> getReverseComputeTemplatesMapping() {
+        Map<CloudifyComputeTemplate, String> computeTemplates = Maps.newHashMap();
+        if (images != null && flavors != null) {
+            for (Image image : images) {
+                for (Flavor flavor : flavors) {
+                    computeTemplates.put(new CloudifyComputeTemplate(image.getId(), flavor.getId()), flavor.getName().replaceAll(" ", "_") + "_"
+                            + image.getName().replaceAll(" ", "_"));
+                }
+            }
+        }
+        return computeTemplates;
+    }
+
     @JsonIgnore
     public Map<String, Network> getNetworkTemplates() {
         Map<String, Network> networkTemplates = Maps.newHashMap();

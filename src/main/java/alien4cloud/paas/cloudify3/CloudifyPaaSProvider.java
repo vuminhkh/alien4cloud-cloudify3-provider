@@ -15,7 +15,6 @@ import alien4cloud.model.cloud.CloudResourceType;
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IConfigurablePaaSProvider;
-import alien4cloud.paas.IManualResourceMatcherPaaSProvider;
 import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
@@ -49,7 +48,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  */
 @Slf4j
 @Component("cloudify-paas-provider-bean")
-public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration>, IManualResourceMatcherPaaSProvider, IPaaSProvider {
+public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration>, IPaaSProvider {
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
@@ -171,7 +170,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public void updateMatcherConfig(CloudResourceMatcherConfig cloudResourceMatcherConfig) {
-        computeTemplateMatcherService.configure(cloudResourceMatcherConfig.getComputeTemplateMapping());
+        computeTemplateMatcherService.configure(computeTemplateMatcherService.getComputeTemplateMapping(cloudResourceMatcherConfig));
         networkMatcherService.configure(cloudResourceMatcherConfig.getNetworkMapping());
     }
 

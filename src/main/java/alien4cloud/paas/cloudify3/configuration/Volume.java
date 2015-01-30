@@ -21,7 +21,11 @@ public class Volume {
     private String name;
 
     @NotNull
-    public Integer size;
+    private Integer size;
 
-    public String deviceName;
+    private String deviceName;
+
+    private String location;
+
+    private String fileSystem;
 }

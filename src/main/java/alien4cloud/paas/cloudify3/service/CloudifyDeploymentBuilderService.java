@@ -33,6 +33,9 @@ public class CloudifyDeploymentBuilderService {
     @Resource(name = "cloudify-network-matcher-service")
     private NetworkMatcherService networkMatcherService;
 
+    @Resource(name = "cloudify-storage-matcher-service")
+    private StorageTemplateMatcherService storageMatcherService;
+
     @Resource(name = "cloudify-configuration-holder")
     private CloudConfigurationHolder cloudConfigurationHolder;
 
@@ -42,6 +45,8 @@ public class CloudifyDeploymentBuilderService {
                 deploymentContext.getDeploymentSetup().getCloudResourcesMapping());
         List<MatchedPaaSNativeComponentTemplate> matchedNetworks = networkMatcherService.match(deploymentContext.getPaaSTopology().getNetworks(),
                 deploymentContext.getDeploymentSetup().getNetworkMapping());
+        List<MatchedPaaSNativeComponentTemplate> matchedStorages = storageMatcherService.match(deploymentContext.getPaaSTopology().getVolumes(),
+                deploymentContext.getDeploymentSetup().getStorageMapping());
 
         Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
         Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
@@ -68,7 +73,7 @@ public class CloudifyDeploymentBuilderService {
             }
         }
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
-                matchedInternalNetworks, matchedExternalNetworks, deploymentContext.getPaaSTopology().getNonNatives(),
+                matchedInternalNetworks, matchedExternalNetworks, matchedStorages, deploymentContext.getPaaSTopology().getNonNatives(),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), deploymentContext.getPaaSTopology().getAllNodes());
         return deployment;
