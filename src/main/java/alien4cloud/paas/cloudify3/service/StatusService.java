@@ -220,21 +220,22 @@ public class StatusService {
 
     public InstanceStatus getInstanceStatusFromState(String state) {
         switch (state) {
-        case NodeInstanceStatus.STARTED:
-            return InstanceStatus.SUCCESS;
-        case NodeInstanceStatus.STOPPING:
-        case NodeInstanceStatus.STOPPED:
-        case NodeInstanceStatus.STARTING:
-        case NodeInstanceStatus.CONFIGURING:
-        case NodeInstanceStatus.CONFIGURED:
-        case NodeInstanceStatus.CREATING:
-        case NodeInstanceStatus.CREATED:
-        case NodeInstanceStatus.DELETING:
-            return InstanceStatus.PROCESSING;
-        case NodeInstanceStatus.DELETED:
-            return null;
-        default:
-            return InstanceStatus.FAILURE;
+            case NodeInstanceStatus.STARTED:
+                return InstanceStatus.SUCCESS;
+            case NodeInstanceStatus.UNINITIALIZED:
+            case NodeInstanceStatus.STOPPING:
+            case NodeInstanceStatus.STOPPED:
+            case NodeInstanceStatus.STARTING:
+            case NodeInstanceStatus.CONFIGURING:
+            case NodeInstanceStatus.CONFIGURED:
+            case NodeInstanceStatus.CREATING:
+            case NodeInstanceStatus.CREATED:
+            case NodeInstanceStatus.DELETING:
+                return InstanceStatus.PROCESSING;
+            case NodeInstanceStatus.DELETED:
+                return null;
+            default:
+                return InstanceStatus.FAILURE;
         }
     }
 }

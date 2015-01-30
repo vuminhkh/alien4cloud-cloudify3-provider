@@ -153,7 +153,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
     @Override
     public String[] getAvailableResourceIds(CloudResourceType resourceType) {
         switch (resourceType) {
-        case COMPUTE:
+        case IMAGE:
             Set<String> paaSResourceIds = cloudConfigurationHolder.getConfiguration().getComputeTemplates().keySet();
             return paaSResourceIds.toArray(new String[paaSResourceIds.size()]);
         case NETWORK:
@@ -162,6 +162,11 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         default:
             throw new OperationNotSupportedException("getAvailableResourceIds " + resourceType + " is not yet managed");
         }
+    }
+
+    @Override
+    public String[] getAvailableResourceIds(CloudResourceType resourceType, String imageId) {
+        return getAvailableResourceIds(resourceType);
     }
 
     @Override

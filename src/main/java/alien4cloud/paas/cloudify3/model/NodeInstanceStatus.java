@@ -2,6 +2,8 @@ package alien4cloud.paas.cloudify3.model;
 
 public class NodeInstanceStatus {
 
+    public static final String UNINITIALIZED = "uninitialized";
+
     public static final String CREATING = "creating";
 
     public static final String CREATED = "created";
