@@ -11,12 +11,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import alien4cloud.model.application.DeploymentSetup;
+import alien4cloud.model.cloud.CloudImage;
 import alien4cloud.model.cloud.CloudImageFlavor;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.ComputeTemplate;
-import alien4cloud.model.cloud.MatchedCloudImage;
-import alien4cloud.model.cloud.MatchedCloudImageFlavor;
-import alien4cloud.model.cloud.MatchedNetworkTemplate;
 import alien4cloud.model.cloud.NetworkTemplate;
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.Topology;
@@ -84,12 +82,21 @@ public class AbstractTest {
                         "internal-network-subnet", 4, "192.168.1.0/24")))));
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
-        matcherConfig.setMatchedImages(Lists.newArrayList(new MatchedCloudImage(new MatchedCloudImage.CloudImageId("alien_image"),
-                "727df994-2e1b-404e-9276-b248223a835d")));
-        matcherConfig.setMatchedFlavors(Lists.newArrayList(new MatchedCloudImageFlavor(new CloudImageFlavor("alien_flavor", 1, 2L, 3L),
-                "727df994-2e1b-404e-9276-b248223a835d")));
-        matcherConfig.setMatchedNetworks(Lists.newArrayList(new MatchedNetworkTemplate(network, "net-pub"), new MatchedNetworkTemplate(internalNetwork,
-                "internal-network")));
+
+        Map<CloudImage, String> imageMapping = Maps.newHashMap();
+        CloudImage cloudImage = new CloudImage();
+        cloudImage.setId("alien_image");
+        imageMapping.put(cloudImage, "727df994-2e1b-404e-9276-b248223a835d");
+        matcherConfig.setImageMapping(imageMapping);
+
+        Map<CloudImageFlavor, String> flavorMapping = Maps.newHashMap();
+        flavorMapping.put(new CloudImageFlavor("alien_flavor", 1, 2L, 3L), "2");
+        matcherConfig.setFlavorMapping(flavorMapping);
+
+        Map<NetworkTemplate, String> networkMapping = Maps.newHashMap();
+        networkMapping.put(network, "net-pub");
+        networkMapping.put(internalNetwork, "internal-network");
+
         computeTemplateMatcherService.configure(computeTemplateMatcherService.getComputeTemplateMapping(matcherConfig));
         networkMatcherService.configure(matcherConfig.getNetworkMapping());
         csarUtil.uploadAll();
