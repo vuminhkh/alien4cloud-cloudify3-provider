@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.configuration;
+package alien4cloud.paas.cloudify3.service.model;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -12,7 +12,7 @@ import lombok.Setter;
 @EqualsAndHashCode
 @AllArgsConstructor
 @NoArgsConstructor
-public class CloudifyComputeTemplate {
+public class PaaSComputeTemplate {
 
     private String image;
 

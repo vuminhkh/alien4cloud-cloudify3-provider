@@ -108,8 +108,8 @@ public class BlueprintService {
         context.put("util", util);
         context.put("deployment", alienDeployment);
         context.put("newline", "\n");
-        context.put("provider_types_file",
-                resourceLoaderService.loadResourceFromClasspath("velocity/" + cloudConfigurationHolder.getConfiguration().getProvider() + "-types.yaml.vm")
+        context.put("provider_nodes_file",
+                resourceLoaderService.loadResourceFromClasspath("velocity/" + cloudConfigurationHolder.getConfiguration().getProvider() + "-nodes.yaml.vm")
                         .getFileName().toString());
         // Generate the blueprint
         VelocityUtil.generate(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);

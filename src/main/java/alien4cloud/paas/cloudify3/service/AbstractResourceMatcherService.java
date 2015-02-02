@@ -4,15 +4,16 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
+import alien4cloud.model.cloud.ICloudResourceTemplate;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
-import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 @Slf4j
-public class AbstractResourceMatcherService<T> {
+public class AbstractResourceMatcherService<T extends ICloudResourceTemplate> {
 
     private Map<T, String> alienTemplateToCloudifyTemplateMapping = Maps.newHashMap();
 
@@ -37,13 +38,13 @@ public class AbstractResourceMatcherService<T> {
      * @param deploymentSetup the deployment setup
      * @return the list of matched resource
      */
-    public List<MatchedPaaSNativeComponentTemplate> match(List<PaaSNodeTemplate> resources, Map<String, T> deploymentSetup) {
+    public List<MatchedPaaSTemplate<T>> match(List<PaaSNodeTemplate> resources, Map<String, T> deploymentSetup) {
         if (deploymentSetup == null) {
             String error = "Deployment setup is null";
             log.error(error);
             throw new BadConfigurationException(error);
         }
-        List<MatchedPaaSNativeComponentTemplate> matchedResources = Lists.newArrayList();
+        List<MatchedPaaSTemplate<T>> matchedResources = Lists.newArrayList();
         for (PaaSNodeTemplate resource : resources) {
             // Try to get the resource template this resource is matched to
             T template = deploymentSetup.get(resource.getId());
@@ -53,13 +54,7 @@ public class AbstractResourceMatcherService<T> {
                 throw new BadConfigurationException(error);
             }
             String templateId = getTemplateId(template);
-            if (templateId == null) {
-                String error = "The resource node <" + resource.getId() + "> is matched to the template <" + template
-                        + ">, but the PaaS provider has no match for this template, actual matching <" + alienTemplateToCloudifyTemplateMapping + ">";
-                log.error(error);
-                throw new BadConfigurationException(error);
-            }
-            matchedResources.add(new MatchedPaaSNativeComponentTemplate(resource, templateId));
+            matchedResources.add(new MatchedPaaSTemplate(resource, template, templateId));
         }
         return matchedResources;
     }

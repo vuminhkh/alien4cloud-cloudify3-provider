@@ -21,10 +21,6 @@ import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.configuration.Flavor;
-import alien4cloud.paas.cloudify3.configuration.Image;
-import alien4cloud.paas.cloudify3.configuration.Subnet;
-import alien4cloud.paas.cloudify3.configuration.Volume;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
 import alien4cloud.paas.cloudify3.service.StorageTemplateMatcherService;
@@ -36,7 +32,6 @@ import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class AbstractTest {
 
@@ -54,9 +49,9 @@ public class AbstractTest {
 
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
-    private NetworkTemplate network = new NetworkTemplate("net-pub", 4, "", "");
+    private NetworkTemplate network = new NetworkTemplate("net-pub", 4, true, null, null);
 
-    private NetworkTemplate internalNetwork = new NetworkTemplate("internal-network", 4, "", "");
+    private NetworkTemplate internalNetwork = new NetworkTemplate("internal-network", 4, false, "192.168.1.0/24", "192.168.1.1");
 
     private StorageTemplate storageTemplate = new StorageTemplate("small", 1L, null, null);
 
@@ -85,13 +80,6 @@ public class AbstractTest {
     public void before() throws Exception {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
         cloudConfiguration.setUrl("http://129.185.67.107:8100");
-        cloudConfiguration.setImages(Lists.newArrayList(new Image("727df994-2e1b-404e-9276-b248223a835d", "Ubuntu Precise")));
-        cloudConfiguration.setFlavors(Lists.newArrayList(new Flavor("2", "Small")));
-        cloudConfiguration.setNetworks(Lists.newArrayList(
-                new alien4cloud.paas.cloudify3.configuration.Network("net-pub", "Public Network", true, null),
-                new alien4cloud.paas.cloudify3.configuration.Network("internal-network", "Internal Network", false, Sets.newHashSet(new Subnet(
-                        "internal-network-subnet", 4, "192.168.1.0/24")))));
-        cloudConfiguration.setVolumes(Lists.newArrayList(new Volume("small", "Small Volume", 1L, null, null, null)));
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
 
@@ -114,7 +102,7 @@ public class AbstractTest {
         storageMapping.put(storageTemplate, "small");
         matcherConfig.setStorageMapping(storageMapping);
 
-        computeTemplateMatcherService.configure(computeTemplateMatcherService.getComputeTemplateMapping(matcherConfig));
+        computeTemplateMatcherService.configure(matcherConfig.getImageMapping(), matcherConfig.getFlavorMapping());
         networkMatcherService.configure(matcherConfig.getNetworkMapping());
         storageTemplateMatcherService.configure(storageMapping);
         csarUtil.uploadAll();

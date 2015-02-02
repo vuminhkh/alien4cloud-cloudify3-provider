@@ -1,0 +1,68 @@
+## Compute nodes
+#foreach($matchedPaaSCompute in $deployment.computes)
+  $matchedPaaSCompute.paaSNodeTemplate.id:
+    type: $providerMapping.nativeTypes.computeType
+    properties:
+      server:
+        image: $matchedPaaSCompute.paaSComputeTemplate.image
+        flavor: $matchedPaaSCompute.paaSComputeTemplate.flavor
+    instances:
+      deploy: 1
+#set( $hasFloatingIp = $util.hasMatchedNetwork($matchedPaaSCompute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks) )
+#set( $hasInternalNetwork = $util.hasMatchedNetwork($matchedPaaSCompute.paaSNodeTemplate.networkNodes, $deployment.internalNetworks) )
+#if($hasFloatingIp || $hasInternalNetwork)
+    relationships:
+#if($hasInternalNetwork)
+#foreach($internalNetworkNode in $util.getInternalNetworks($matchedPaaSCompute.paaSNodeTemplate.networkNodes, $deployment.internalNetworks))
+#set( $network = $internalNetworkNode.paaSResourceTemplate )
+      - target: $internalNetworkNode.id
+        type: cloudify.relationships.connected_to
+      - target: ${internalNetworkNode.id}_subnet
+        type: cloudify.relationships.depends_on
+#end
+#end
+#if($hasFloatingIp)
+      - target: floatingip_$matchedPaaSCompute.paaSNodeTemplate.id
+        type: $providerMapping.nativeTypes.floatingIpRelationshipType
+  floatingip_$matchedPaaSCompute.paaSNodeTemplate.id:
+    type: $providerMapping.nativeTypes.floatingIpType
+    properties:
+      floatingip:
+        floating_network_name: $util.getExternalNetworkName($matchedPaaSCompute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks)
+#end
+#end
+#end
+
+## Network nodes
+#foreach($matchedNetwork in ${deployment.internalNetworks})
+#set( $network = ${matchedNetwork.paaSResourceTemplate} )
+  ${matchedNetwork.paaSNodeTemplate.id}:
+    type: ${providerMapping.nativeTypes.networkType}
+    properties:
+      resource_id: ${network.id}
+  ${matchedNetwork.paaSNodeTemplate.id}_subnet:
+    type: ${providerMapping.nativeTypes.subnetType}
+    properties:
+      resource_id: ${network.id}_subnet
+      subnet:
+        ip_version: ${network.ipVersion}
+        cidr: ${network.cidr}
+    relationships:
+      - target: ${matchedNetwork.paaSNodeTemplate.id}
+        type: cloudify.relationships.contained_in
+#end
+
+## volume nodes
+#foreach($matchedVolume in ${deployment.volumes})
+  ${matchedVolume.paaSNodeTemplate.id}:
+    type: ${providerMapping.nativeTypes.volumeType}
+    properties:
+#if(${matchedVolume.paaSResourceTemplate.device})
+      device_name: ${matchedVolume.paaSResourceTemplate.device}
+#end
+      volume:
+        size: ${matchedVolume.paaSResourceTemplate.size}
+    relationships:
+      - target: ${matchedVolume.paaSNodeTemplate.parent.id}
+        type: ${providerMapping.nativeTypes.volumeAttachRelationshipType}
+#end

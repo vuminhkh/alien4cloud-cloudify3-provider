@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import alien4cloud.model.cloud.NetworkTemplate;
+import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.paas.model.PaaSNodeTemplate;
@@ -22,13 +24,13 @@ public class CloudifyDeployment {
 
     private String recipeId;
 
-    private List<MatchedPaaSNativeComponentTemplate> computes;
+    private List<MatchedPaaSComputeTemplate> computes;
 
-    private List<MatchedPaaSNativeComponentTemplate> internalNetworks;
+    private List<MatchedPaaSTemplate<NetworkTemplate>> internalNetworks;
 
-    private List<MatchedPaaSNativeComponentTemplate> externalNetworks;
+    private List<MatchedPaaSTemplate<NetworkTemplate>> externalNetworks;
 
-    private List<MatchedPaaSNativeComponentTemplate> volumes;
+    private List<MatchedPaaSTemplate<StorageTemplate>> volumes;
 
     private List<PaaSNodeTemplate> nonNatives;
 

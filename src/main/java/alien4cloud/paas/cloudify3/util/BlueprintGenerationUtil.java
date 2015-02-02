@@ -13,11 +13,9 @@ import alien4cloud.model.components.IndexedArtifactToscaElement;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.ScalarPropertyValue;
-import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
-import alien4cloud.paas.cloudify3.configuration.Network;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
 import alien4cloud.paas.cloudify3.service.model.MappingConfiguration;
-import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
@@ -98,11 +96,6 @@ public class BlueprintGenerationUtil {
             }
         }
         return relationshipInterfaces;
-    }
-
-    public Network getNetwork(CloudConfiguration cloud, MatchedPaaSNativeComponentTemplate networkTemplate) {
-        String networkId = networkTemplate.getPaaSResourceId();
-        return cloud.getNetworkTemplates().get(networkId);
     }
 
     /**
@@ -246,7 +239,7 @@ public class BlueprintGenerationUtil {
         }
     }
 
-    public boolean hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSNativeComponentTemplate> externalMatchedNetworks) {
+    public boolean hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> externalMatchedNetworks) {
         if (allComputeNetworks == null || externalMatchedNetworks == null) {
             return false;
         }
@@ -258,9 +251,9 @@ public class BlueprintGenerationUtil {
         return false;
     }
 
-    public String getExternalNetworkName(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSNativeComponentTemplate> externalMatchedNetworks) {
+    public String getExternalNetworkName(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> externalMatchedNetworks) {
         for (PaaSNodeTemplate network : allComputeNetworks) {
-            MatchedPaaSNativeComponentTemplate externalMatchedNetwork = getMatchedNetwork(network, externalMatchedNetworks);
+            MatchedPaaSTemplate externalMatchedNetwork = getMatchedNetwork(network, externalMatchedNetworks);
             if (externalMatchedNetwork != null) {
                 return externalMatchedNetwork.getPaaSResourceId();
             }
@@ -268,11 +261,10 @@ public class BlueprintGenerationUtil {
         return null;
     }
 
-    public List<PaaSNodeTemplate> getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks,
-            List<MatchedPaaSNativeComponentTemplate> internalMatchedNetworks) {
+    public List<PaaSNodeTemplate> getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> internalMatchedNetworks) {
         List<PaaSNodeTemplate> internalNetworksNodes = Lists.newArrayList();
         for (PaaSNodeTemplate network : allComputeNetworks) {
-            MatchedPaaSNativeComponentTemplate internalMatchedNetwork = getMatchedNetwork(network, internalMatchedNetworks);
+            MatchedPaaSTemplate internalMatchedNetwork = getMatchedNetwork(network, internalMatchedNetworks);
             if (internalMatchedNetwork != null) {
                 internalNetworksNodes.add(network);
             }
@@ -280,8 +272,8 @@ public class BlueprintGenerationUtil {
         return internalNetworksNodes;
     }
 
-    private boolean isMatched(PaaSNodeTemplate network, List<MatchedPaaSNativeComponentTemplate> matchedNetworks) {
-        for (MatchedPaaSNativeComponentTemplate externalMatchedNetwork : matchedNetworks) {
+    private boolean isMatched(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
+        for (MatchedPaaSTemplate externalMatchedNetwork : matchedNetworks) {
             if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
                 return true;
             }
@@ -289,8 +281,8 @@ public class BlueprintGenerationUtil {
         return false;
     }
 
-    private MatchedPaaSNativeComponentTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSNativeComponentTemplate> matchedNetworks) {
-        for (MatchedPaaSNativeComponentTemplate externalMatchedNetwork : matchedNetworks) {
+    private MatchedPaaSTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
+        for (MatchedPaaSTemplate externalMatchedNetwork : matchedNetworks) {
             if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
                 return externalMatchedNetwork;
             }

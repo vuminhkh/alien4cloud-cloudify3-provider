@@ -13,8 +13,8 @@ imports:
   - $import
 #end
 
+#if($util.collectionHasElement($deployment.nonNativesTypes))
 node_types:
-#parse("$provider_types_file")
 #foreach($nonNativeType in ${deployment.nonNativesTypes})
     ${nonNativeType.elementId}:
     derived_from: $util.getDerivedFromType($nonNativeType.derivedFrom)
@@ -33,6 +33,7 @@ node_types:
         $util.tryToMapToCloudifyInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
             $operationEntry.key: $nonNativeType.archiveName/$nonNativeType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+#end
 #end
 #end
 #end
@@ -69,63 +70,9 @@ relationships:
 #end
 
 node_templates:
-#foreach($compute in $deployment.computes)
-  $compute.paaSNodeTemplate.id:
-    type: ${mapping.generatedTypePrefix}.computes.$compute.paaSResourceId
-    instances:
-      deploy: 1
-#set( $hasFloatingIp = $util.hasMatchedNetwork($compute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks) )
-#set( $hasInternalNetwork = $util.hasMatchedNetwork($compute.paaSNodeTemplate.networkNodes, $deployment.internalNetworks) )
-#if($hasFloatingIp || $hasInternalNetwork)
-    relationships:
-#if($hasInternalNetwork)
-#foreach($internalNetworkNode in $util.getInternalNetworks($compute.paaSNodeTemplate.networkNodes, $deployment.internalNetworks))
-#set( $network = $util.getNetwork($internalNetworkNode) )
-      - target: $internalNetworkNode.id
-        type: cloudify.relationships.connected_to
-#foreach($subnet in $network.subnets)
-      - target: ${internalNetworkNode.id}.subnets.${subnet.id}
-        type: cloudify.relationships.depends_on
-#end
-#end
-#end
-#if($hasFloatingIp)
-      - target: floatingip_$compute.paaSNodeTemplate.id
-        type: $providerMapping.nativeTypes.floatingIpRelationshipType
-  floatingip_$compute.paaSNodeTemplate.id:
-    type: $providerMapping.nativeTypes.floatingIpType
-    properties:
-      floatingip:
-        floating_network_name: $util.getExternalNetworkName($compute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks)
-#end
-#end
-#end
-#foreach($networkTemplate in $deployment.internalNetworks)
-#set( $network = $util.getNetwork($cloud, $networkTemplate) )
-  $networkTemplate.paaSNodeTemplate.id:
-    type: $providerMapping.nativeTypes.networkType
-    properties:
-      resource_id: $network.id
-#foreach($subnet in $network.subnets)
-  ${networkTemplate.paaSNodeTemplate.id}.subnets.${subnet.id}:
-    type: $providerMapping.nativeTypes.subnetType
-    properties:
-      resource_id: $subnet.id
-      subnet:
-        ip_version: $subnet.ipVersion
-        cidr: $subnet.cidr
-    relationships:
-      - target: ${networkTemplate.paaSNodeTemplate.id}
-        type: cloudify.relationships.contained_in
-#end
-#end
-#foreach($volume in ${deployment.volumes})
-  ${volume.paaSNodeTemplate.id}:
-    type: ${mapping.generatedTypePrefix}.volumes.${volume.paaSResourceId}
-    relationships:
-      - target: ${volume.paaSNodeTemplate.parent.id}
-        type: ${providerMapping.nativeTypes.volumeAttachRelationshipType}
-#end
+
+#parse("$provider_nodes_file")
+
 #foreach($nonNativeNode in $deployment.nonNatives)
   $nonNativeNode.id:
     type: $nonNativeNode.indexedNodeType.elementId

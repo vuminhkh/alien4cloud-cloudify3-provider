@@ -1,8 +1,5 @@
 package alien4cloud.paas.cloudify3.configuration;
 
-import java.util.List;
-import java.util.Map;
-
 import javax.validation.constraints.NotNull;
 
 import lombok.Getter;
@@ -11,14 +8,10 @@ import alien4cloud.ui.form.annotation.FormProperties;
 import alien4cloud.ui.form.annotation.FormPropertyConstraint;
 import alien4cloud.ui.form.annotation.FormValidValues;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
 @Getter
 @Setter
 @SuppressWarnings("PMD.UnusedPrivateField")
-@FormProperties({ "provider", "url", "images", "flavors", "networks", "volumes" })
+@FormProperties({ "provider", "url" })
 public class CloudConfiguration {
 
     /**
@@ -32,67 +25,4 @@ public class CloudConfiguration {
     @NotNull
     private String url = "http://yourManagerIP:8100";
 
-    private List<Image> images = Lists.newArrayList();
-
-    private List<Flavor> flavors = Lists.newArrayList();
-
-    private List<Network> networks = Lists.newArrayList();
-
-    private List<Volume> volumes = Lists.newArrayList();
-
-    /**
-     * The mapping for compute template id --> template configuration (image + flavor)
-     */
-    @JsonIgnore
-    public Map<String, CloudifyComputeTemplate> getComputeTemplates() {
-        Map<String, CloudifyComputeTemplate> computeTemplates = Maps.newHashMap();
-        if (images != null && flavors != null) {
-            for (Image image : images) {
-                for (Flavor flavor : flavors) {
-                    computeTemplates.put(flavor.getName().replaceAll(" ", "_") + "_" + image.getName().replaceAll(" ", "_"),
-                            new CloudifyComputeTemplate(image.getId(), flavor.getId()));
-                }
-            }
-        }
-        return computeTemplates;
-    }
-
-    /**
-     * The reverse mapping for compute template id --> template configuration (image + flavor)
-     */
-    @JsonIgnore
-    public Map<CloudifyComputeTemplate, String> getReverseComputeTemplatesMapping() {
-        Map<CloudifyComputeTemplate, String> computeTemplates = Maps.newHashMap();
-        if (images != null && flavors != null) {
-            for (Image image : images) {
-                for (Flavor flavor : flavors) {
-                    computeTemplates.put(new CloudifyComputeTemplate(image.getId(), flavor.getId()), flavor.getName().replaceAll(" ", "_") + "_"
-                            + image.getName().replaceAll(" ", "_"));
-                }
-            }
-        }
-        return computeTemplates;
-    }
-
-    @JsonIgnore
-    public Map<String, Network> getNetworkTemplates() {
-        Map<String, Network> networkTemplates = Maps.newHashMap();
-        if (networks != null) {
-            for (Network network : networks) {
-                networkTemplates.put(network.getId(), network);
-            }
-        }
-        return networkTemplates;
-    }
-
-    @JsonIgnore
-    public Map<String, Volume> getVolumeTemplates() {
-        Map<String, Volume> storageTemplates = Maps.newHashMap();
-        if (volumes != null) {
-            for (Volume volume : volumes) {
-                storageTemplates.put(volume.getId(), volume);
-            }
-        }
-        return storageTemplates;
-    }
 }

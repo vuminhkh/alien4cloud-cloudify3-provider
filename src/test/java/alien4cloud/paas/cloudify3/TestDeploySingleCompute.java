@@ -13,13 +13,9 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
-import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.paas.cloudify3.util.ApplicationUtil;
-import alien4cloud.paas.cloudify3.util.DeploymentUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceStatus;
@@ -40,21 +36,10 @@ public class TestDeploySingleCompute extends AbstractDeploymentTest {
     @Resource
     private EventService eventService;
 
-    @Resource
-    private ApplicationUtil applicationUtil;
-
-    @Resource
-    private DeploymentUtil deploymentUtil;
-
     @Test
     public void testDeploySingleCompute() throws Exception {
         Date beginTestTimestamp = new Date();
-        Topology topology = applicationUtil.createAlienApplication("testDeploySingleCompute", SINGLE_COMPUTE_TOPOLOGY);
-        CloudifyDeployment deployment = deploymentUtil.buildAlienDeployment("testDeploySingleCompute", "testDeploySingleCompute", topology,
-                generateDeploymentSetup(topology));
-        deploymentService.deploy(deployment).get();
-        log.info("Finished deploying {}", deployment.getDeploymentId());
-        Thread.sleep(1000L);
+        launchTest("testDeployNetwork", NETWORK_TOPOLOGY);
         AbstractMonitorEvent[] events = eventService.getEventsSince(beginTestTimestamp, Integer.MAX_VALUE).get();
         List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents = Lists.newArrayList();
         List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents = Lists.newArrayList();
@@ -79,6 +64,5 @@ public class TestDeploySingleCompute extends AbstractDeploymentTest {
         context.setDeploymentId("testDeploySingleCompute");
         context.setRecipeId("testDeploySingleCompute");
         deploymentService.undeploy(context).get();
-        log.info("Finished un-deploying {}", deployment.getDeploymentId());
     }
 }
