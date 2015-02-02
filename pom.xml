@@ -33,7 +33,7 @@
 
     <properties>
         <java.version>1.7</java.version>
-        <alien4cloud.version>1.0.0-SM20-SNAPSHOT</alien4cloud.version>
+        <alien4cloud.version>1.0.0-SM20</alien4cloud.version>
         <spring.version>4.0.7.RELEASE</spring.version>
         <lombok.version>0.12.0</lombok.version>
         <!-- Tests -->
