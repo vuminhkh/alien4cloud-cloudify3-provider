@@ -68,4 +68,10 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext("testGenerateFloatingIP",
                 NETWORK_TOPOLOGY)));
     }
+
+    @Test
+    public void testGenerateBlockStorage() {
+        blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext("testGenerateBlockStorage",
+                BLOCK_STORAGE_TOPOLOGY)));
+    }
 }

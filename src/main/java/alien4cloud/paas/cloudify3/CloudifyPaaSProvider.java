@@ -1,6 +1,7 @@
 package alien4cloud.paas.cloudify3;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,6 +20,7 @@ import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
+import alien4cloud.paas.cloudify3.configuration.IaaSResource;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
@@ -26,6 +28,7 @@ import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
 import alien4cloud.paas.cloudify3.service.StatusService;
+import alien4cloud.paas.cloudify3.service.StorageTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.paas.exception.OperationExecutionException;
@@ -37,6 +40,7 @@ import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -64,6 +68,9 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Resource(name = "cloudify-network-matcher-service")
     private NetworkMatcherService networkMatcherService;
+
+    @Resource(name = "cloudify-storage-matcher-service")
+    private StorageTemplateMatcherService storageMatcherService;
 
     @Resource(name = "cloudify-deployment-builder-service")
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
@@ -149,15 +156,29 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      * ********************************************************************************************************************
      */
 
+    private Set<String> getResourcesIds(List<? extends IaaSResource> iaaSResources) {
+        Set<String> ids = Sets.newHashSet();
+        for (IaaSResource resource : iaaSResources) {
+            ids.add(resource.getId());
+        }
+        return ids;
+    }
+
     @Override
     public String[] getAvailableResourceIds(CloudResourceType resourceType) {
         switch (resourceType) {
         case IMAGE:
-            Set<String> paaSResourceIds = cloudConfigurationHolder.getConfiguration().getComputeTemplates().keySet();
-            return paaSResourceIds.toArray(new String[paaSResourceIds.size()]);
+            Set<String> imagesResourcesId = getResourcesIds(cloudConfigurationHolder.getConfiguration().getImages());
+            return imagesResourcesId.toArray(new String[imagesResourcesId.size()]);
+        case FLAVOR:
+            Set<String> flavorsResourcesId = getResourcesIds(cloudConfigurationHolder.getConfiguration().getFlavors());
+            return flavorsResourcesId.toArray(new String[flavorsResourcesId.size()]);
         case NETWORK:
-            Set<String> networkIds = cloudConfigurationHolder.getConfiguration().getNetworkTemplates().keySet();
-            return networkIds.toArray(new String[networkIds.size()]);
+            Set<String> networkResourcesIds = getResourcesIds(cloudConfigurationHolder.getConfiguration().getNetworks());
+            return networkResourcesIds.toArray(new String[networkResourcesIds.size()]);
+        case VOLUME:
+            Set<String> storageResourcesIds = getResourcesIds(cloudConfigurationHolder.getConfiguration().getVolumes());
+            return storageResourcesIds.toArray(new String[storageResourcesIds.size()]);
         default:
             throw new OperationNotSupportedException("getAvailableResourceIds " + resourceType + " is not yet managed");
         }
@@ -172,6 +193,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
     public void updateMatcherConfig(CloudResourceMatcherConfig cloudResourceMatcherConfig) {
         computeTemplateMatcherService.configure(computeTemplateMatcherService.getComputeTemplateMapping(cloudResourceMatcherConfig));
         networkMatcherService.configure(cloudResourceMatcherConfig.getNetworkMapping());
+        storageMatcherService.configure(cloudResourceMatcherConfig.getStorageMapping());
     }
 
     /**

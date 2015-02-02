@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Subnet {
+public class Subnet implements IaaSResource {
 
     @NotNull
     private String id;

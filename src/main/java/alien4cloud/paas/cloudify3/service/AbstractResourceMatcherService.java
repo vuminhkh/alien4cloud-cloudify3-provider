@@ -38,6 +38,11 @@ public class AbstractResourceMatcherService<T> {
      * @return the list of matched resource
      */
     public List<MatchedPaaSNativeComponentTemplate> match(List<PaaSNodeTemplate> resources, Map<String, T> deploymentSetup) {
+        if (deploymentSetup == null) {
+            String error = "Deployment setup is null";
+            log.error(error);
+            throw new BadConfigurationException(error);
+        }
         List<MatchedPaaSNativeComponentTemplate> matchedResources = Lists.newArrayList();
         for (PaaSNodeTemplate resource : resources) {
             // Try to get the resource template this resource is matched to

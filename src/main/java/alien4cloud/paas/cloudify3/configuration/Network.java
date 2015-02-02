@@ -14,7 +14,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class Network {
+public class Network implements IaaSResource {
 
     @NotNull
     private String id;

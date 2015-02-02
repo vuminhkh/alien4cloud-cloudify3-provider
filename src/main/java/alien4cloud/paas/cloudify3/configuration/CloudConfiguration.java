@@ -12,12 +12,13 @@ import alien4cloud.ui.form.annotation.FormPropertyConstraint;
 import alien4cloud.ui.form.annotation.FormValidValues;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 @Getter
 @Setter
 @SuppressWarnings("PMD.UnusedPrivateField")
-@FormProperties({ "provider", "url", "images", "flavors", "networks" })
+@FormProperties({ "provider", "url", "images", "flavors", "networks", "volumes" })
 public class CloudConfiguration {
 
     /**
@@ -31,13 +32,13 @@ public class CloudConfiguration {
     @NotNull
     private String url = "http://yourManagerIP:8100";
 
-    private List<Image> images;
+    private List<Image> images = Lists.newArrayList();
 
-    private List<Flavor> flavors;
+    private List<Flavor> flavors = Lists.newArrayList();
 
-    private List<Network> networks;
+    private List<Network> networks = Lists.newArrayList();
 
-    private List<Volume> volumes;
+    private List<Volume> volumes = Lists.newArrayList();
 
     /**
      * The mapping for compute template id --> template configuration (image + flavor)

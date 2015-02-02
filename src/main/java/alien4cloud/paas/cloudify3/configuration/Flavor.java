@@ -12,7 +12,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class Flavor {
+public class Flavor implements IaaSResource {
 
     @NotNull
     private String id;

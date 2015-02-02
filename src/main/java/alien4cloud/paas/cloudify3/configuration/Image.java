@@ -12,7 +12,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class Image {
+public class Image implements IaaSResource {
 
     @NotNull
     private String id;

@@ -1,6 +1,5 @@
 package alien4cloud.paas.cloudify3.service.model;
 
-import java.util.Map;
 import java.util.Set;
 
 import lombok.Getter;
@@ -20,8 +19,9 @@ public class ProviderMappingConfiguration {
         private String computeType;
         private String networkType;
         private String subnetType;
-        private String blockStorageType;
+        private String volumeType;
         private String floatingIpType;
         private String floatingIpRelationshipType;
+        private String volumeAttachRelationshipType;
     }
 }

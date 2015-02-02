@@ -119,7 +119,13 @@ node_templates:
         type: cloudify.relationships.contained_in
 #end
 #end
-## TODO Volume
+#foreach($volume in ${deployment.volumes})
+  ${volume.paaSNodeTemplate.id}:
+    type: ${mapping.generatedTypePrefix}.volumes.${volume.paaSResourceId}
+    relationships:
+      - target: ${volume.paaSNodeTemplate.parent.id}
+        type: ${providerMapping.nativeTypes.volumeAttachRelationshipType}
+#end
 #foreach($nonNativeNode in $deployment.nonNatives)
   $nonNativeNode.id:
     type: $nonNativeNode.indexedNodeType.elementId
