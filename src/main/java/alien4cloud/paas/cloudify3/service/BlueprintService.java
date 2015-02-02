@@ -9,12 +9,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -27,8 +27,11 @@ import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.paas.IPaaSTemplate;
+import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
+import alien4cloud.paas.cloudify3.configuration.ICloudConfigurationChangeListener;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.cloudify3.service.model.MappingConfiguration;
 import alien4cloud.paas.cloudify3.service.model.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.util.BlueprintGenerationUtil;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
@@ -47,7 +50,7 @@ import com.google.common.collect.Sets;
  */
 @Component("cloudify-blueprint-service")
 @Slf4j
-public class BlueprintService implements InitializingBean {
+public class BlueprintService {
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -57,7 +60,29 @@ public class BlueprintService implements InitializingBean {
 
     private Path recipeDirectoryPath;
 
-    private ProviderMappingConfiguration mapping;
+    private MappingConfiguration mapping;
+
+    private ProviderMappingConfiguration providerMapping;
+
+    private ObjectMapper yamlObjectMapper = YamlParserUtil.createYamlObjectMapper();
+
+    @PostConstruct
+    public void postConstruct() throws Exception {
+        mapping = yamlObjectMapper.readValue(
+                new ClassPathResource("mapping/mapping.yaml", resourceLoaderService.getApplicationContextClassLoader()).getInputStream(),
+                MappingConfiguration.class);
+        cloudConfigurationHolder.registerListener(new ICloudConfigurationChangeListener() {
+            @Override
+            public void onConfigurationChange(CloudConfiguration newConfiguration) throws Exception {
+                loadProviderMapping();
+            }
+        });
+    }
+
+    private void loadProviderMapping() throws Exception {
+        providerMapping = yamlObjectMapper.readValue(new ClassPathResource("mapping/" + cloudConfigurationHolder.getConfiguration().getProvider() + ".yaml",
+                resourceLoaderService.getApplicationContextClassLoader()).getInputStream(), ProviderMappingConfiguration.class);
+    }
 
     /**
      * Generate blueprint from an alien deployment request
@@ -67,6 +92,9 @@ public class BlueprintService implements InitializingBean {
      */
     @SneakyThrows
     public Path generateBlueprint(CloudifyDeployment alienDeployment) {
+        if (providerMapping == null) {
+            loadProviderMapping();
+        }
         // Where the whole blueprint will be generated
         Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getRecipeId());
         // Where the main blueprint file will be generated
@@ -76,6 +104,7 @@ public class BlueprintService implements InitializingBean {
         Map<String, Object> context = Maps.newHashMap();
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
         context.put("mapping", mapping);
+        context.put("providerMapping", providerMapping);
         context.put("util", util);
         context.put("deployment", alienDeployment);
         context.put("newline", "\n");
@@ -90,14 +119,14 @@ public class BlueprintService implements InitializingBean {
         Set<String> processedRelationshipTypes = Sets.newHashSet();
         if (nonNatives != null) {
             for (PaaSNodeTemplate nonNative : nonNatives) {
-                IndexedNodeType nonNativeType = nonNative.getIndexedNodeType();
+                IndexedNodeType nonNativeType = nonNative.getIndexedToscaElement();
                 if (processedNodeTypes.add(nonNativeType.getElementId())) {
                     // Don't process a type more than once
                     copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative, nonNativeType);
                 }
                 List<PaaSRelationshipTemplate> relationships = nonNative.getRelationshipTemplates();
                 for (PaaSRelationshipTemplate relationship : relationships) {
-                    IndexedRelationshipType relationshipType = relationship.getIndexedRelationshipType();
+                    IndexedRelationshipType relationshipType = relationship.getIndexedToscaElement();
                     if (processedRelationshipTypes.add(relationshipType.getElementId())) {
                         copyImplementationArtifacts(generatedBlueprintDirectoryPath, relationship, relationshipType);
                     }
@@ -132,7 +161,7 @@ public class BlueprintService implements InitializingBean {
 
     /**
      * Find out where the blueprint of a deployment might/should be generated to
-     * 
+     *
      * @param recipeId the recipe's id
      * @return the path to the generated blueprint
      */
@@ -145,13 +174,5 @@ public class BlueprintService implements InitializingBean {
     public void setRecipeDirectoryPath(final String path) {
         log.debug("Setting temporary path to {}", path);
         recipeDirectoryPath = Paths.get(path).toAbsolutePath();
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        ObjectMapper yamlObjectMapper = YamlParserUtil.createYamlObjectMapper();
-        mapping = yamlObjectMapper.readValue(
-                new ClassPathResource("mapping/openstack.yaml", resourceLoaderService.getApplicationContextClassLoader()).getInputStream(),
-                ProviderMappingConfiguration.class);
     }
 }

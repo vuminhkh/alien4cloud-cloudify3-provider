@@ -4,7 +4,13 @@ node_templates:
     name: NetPub
     properties:
       network_name: net-pub
-      
+  
+  InternalNetwork:
+    type: tosca.nodes.Network
+    name: InternalNetwork
+    properties:
+      network_name: internal-network
+
   Compute:
     type: tosca.nodes.Compute
     name: DataBase
@@ -12,9 +18,12 @@ node_templates:
       os_arch: x86_64
       os_type: linux
     relationships:
-      connectivity:
+      public_internet:
         type: tosca.relationships.Network
         target: NetPub
+      internal_network:
+        type: tosca.relationships.Network
+        target: InternalNetwork
 
 dependencies:
   - name: tosca-normative-types

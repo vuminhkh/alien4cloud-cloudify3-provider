@@ -13,9 +13,11 @@ import alien4cloud.model.components.IndexedArtifactToscaElement;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.ScalarPropertyValue;
+import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
+import alien4cloud.paas.cloudify3.configuration.Network;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
+import alien4cloud.paas.cloudify3.service.model.MappingConfiguration;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
-import alien4cloud.paas.cloudify3.service.model.ProviderMappingConfiguration;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
@@ -26,7 +28,7 @@ import com.google.common.collect.Maps;
 
 /**
  * Some utilities method which help generating cloudify 3 blueprint
- * 
+ *
  * @author Minh Khang VU
  */
 @AllArgsConstructor
@@ -51,7 +53,7 @@ public class BlueprintGenerationUtil {
         ATTRIBUTE_MAPPING.put("ip_address", "ip");
     }
 
-    private ProviderMappingConfiguration mappingConfiguration;
+    private MappingConfiguration mapping;
 
     public boolean mapHasEntries(Map<?, ?> map) {
         return map != null && !map.isEmpty();
@@ -98,9 +100,14 @@ public class BlueprintGenerationUtil {
         return relationshipInterfaces;
     }
 
+    public Network getNetwork(CloudConfiguration cloud, MatchedPaaSNativeComponentTemplate networkTemplate) {
+        String networkId = networkTemplate.getPaaSResourceId();
+        return cloud.getNetworkTemplates().get(networkId);
+    }
+
     /**
      * Extract all operations, interfaces that has input or do not have input from the give type.
-     * 
+     *
      * @param type the tosca type
      * @param withParameter interfaces' operations with parameters
      * @return only interfaces' operations that have input or don't have input
@@ -198,12 +205,12 @@ public class BlueprintGenerationUtil {
     private String doGetNodeNameHasPropertyOrAttribute(PaaSNodeTemplate node, String attributeName, String functionName) {
         Set<String> propertiesOrAttributes = null;
         if ("get_property".equals(functionName)) {
-            if (node.getIndexedNodeType().getProperties() != null) {
-                propertiesOrAttributes = node.getIndexedNodeType().getProperties().keySet();
+            if (node.getIndexedToscaElement().getProperties() != null) {
+                propertiesOrAttributes = node.getIndexedToscaElement().getProperties().keySet();
             }
         } else {
-            if (node.getIndexedNodeType().getAttributes() != null) {
-                propertiesOrAttributes = node.getIndexedNodeType().getAttributes().keySet();
+            if (node.getIndexedToscaElement().getAttributes() != null) {
+                propertiesOrAttributes = node.getIndexedToscaElement().getAttributes().keySet();
             }
         }
         if (propertiesOrAttributes == null || !propertiesOrAttributes.contains(attributeName)) {
@@ -239,12 +246,12 @@ public class BlueprintGenerationUtil {
         }
     }
 
-    public boolean hasFloatingIp(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSNativeComponentTemplate> externalMatchedNetworks) {
+    public boolean hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSNativeComponentTemplate> externalMatchedNetworks) {
         if (allComputeNetworks == null || externalMatchedNetworks == null) {
             return false;
         }
         for (PaaSNodeTemplate network : allComputeNetworks) {
-            if (isExternal(network, externalMatchedNetworks)) {
+            if (isMatched(network, externalMatchedNetworks)) {
                 return true;
             }
         }
@@ -261,7 +268,19 @@ public class BlueprintGenerationUtil {
         return null;
     }
 
-    private boolean isExternal(PaaSNodeTemplate network, List<MatchedPaaSNativeComponentTemplate> matchedNetworks) {
+    public List<PaaSNodeTemplate> getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks,
+            List<MatchedPaaSNativeComponentTemplate> internalMatchedNetworks) {
+        List<PaaSNodeTemplate> internalNetworksNodes = Lists.newArrayList();
+        for (PaaSNodeTemplate network : allComputeNetworks) {
+            MatchedPaaSNativeComponentTemplate internalMatchedNetwork = getMatchedNetwork(network, internalMatchedNetworks);
+            if (internalMatchedNetwork != null) {
+                internalNetworksNodes.add(network);
+            }
+        }
+        return internalNetworksNodes;
+    }
+
+    private boolean isMatched(PaaSNodeTemplate network, List<MatchedPaaSNativeComponentTemplate> matchedNetworks) {
         for (MatchedPaaSNativeComponentTemplate externalMatchedNetwork : matchedNetworks) {
             if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
                 return true;
@@ -291,12 +310,12 @@ public class BlueprintGenerationUtil {
     }
 
     public String tryToMapToCloudifyType(String toscaType) {
-        String mappedType = mappingConfiguration.getNormativeTypes().get(toscaType);
+        String mappedType = mapping.getNormativeTypes().get(toscaType);
         return mappedType != null ? mappedType : toscaType;
     }
 
     public boolean typeMustBeMappedToCloudifyType(String toscaType) {
-        return mappingConfiguration.getNormativeTypes().containsKey(toscaType);
+        return mapping.getNormativeTypes().containsKey(toscaType);
     }
 
     public String tryToMapToCloudifyInterface(String interfaceName) {

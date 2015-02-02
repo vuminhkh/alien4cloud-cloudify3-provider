@@ -18,9 +18,11 @@ import alien4cloud.model.cloud.MatchedNetwork;
 import alien4cloud.model.cloud.Network;
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.Topology;
+import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.Flavor;
 import alien4cloud.paas.cloudify3.configuration.Image;
+import alien4cloud.paas.cloudify3.configuration.Subnet;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
@@ -46,7 +48,9 @@ public class AbstractTest {
 
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
-    private Network network = new Network(4, "126.27.23.1/24", "net-pub", "");
+    private Network network = new Network(4, "", "net-pub", "");
+
+    private Network internalNetwork = new Network(4, "", "internal-network", "");
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -68,14 +72,18 @@ public class AbstractTest {
 
     @Before
     public void before() throws Exception {
-        cloudConfigurationHolder.getConfiguration().setUrl("http://129.185.67.107:8100");
-        cloudConfigurationHolder.getConfiguration().setImages(Sets.newHashSet(new Image("727df994-2e1b-404e-9276-b248223a835d", "Ubuntu Precise")));
-        cloudConfigurationHolder.getConfiguration().setFlavors(Sets.newHashSet(new Flavor("3", "Medium")));
-        cloudConfigurationHolder.getConfiguration().setNetworks(
-                Sets.newHashSet(new alien4cloud.paas.cloudify3.configuration.Network("net-pub", "Public Network", true)));
+        CloudConfiguration cloudConfiguration = new CloudConfiguration();
+        cloudConfiguration.setUrl("http://129.185.67.107:8100");
+        cloudConfiguration.setImages(Sets.newHashSet(new Image("727df994-2e1b-404e-9276-b248223a835d", "Ubuntu Precise")));
+        cloudConfiguration.setFlavors(Sets.newHashSet(new Flavor("3", "Medium")));
+        cloudConfiguration.setNetworks(Sets.newHashSet(
+                new alien4cloud.paas.cloudify3.configuration.Network("net-pub", "Public Network", true, null),
+                new alien4cloud.paas.cloudify3.configuration.Network("internal-network", "Internal Network", false, Sets.newHashSet(new Subnet(
+                        "internal-network-subnet", "Internal Network Subnet", 4, "192.168.1.0/24")))));
+        cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
         matcherConfig.setMatchedComputeTemplates(Lists.newArrayList(new MatchedComputeTemplate(computeTemplate, "Medium_Ubuntu_Precise")));
-        matcherConfig.setMatchedNetworks(Lists.newArrayList(new MatchedNetwork(network, "net-pub")));
+        matcherConfig.setMatchedNetworks(Lists.newArrayList(new MatchedNetwork(network, "net-pub"), new MatchedNetwork(internalNetwork, "internal-network")));
         computeTemplateMatcherService.configure(matcherConfig.getComputeTemplateMapping());
         networkMatcherService.configure(matcherConfig.getNetworkMapping());
         csarUtil.uploadAll();
@@ -103,7 +111,17 @@ public class AbstractTest {
         Map<String, Network> networkMapping = Maps.newHashMap();
         deploymentSetup.setNetworkMapping(networkMapping);
         for (String networkId : networkIds) {
-            networkMapping.put(networkId, network);
+            switch (networkId) {
+            case "NetPub":
+                networkMapping.put(networkId, network);
+                break;
+            case "InternalNetwork":
+                networkMapping.put(networkId, internalNetwork);
+                break;
+            default:
+                throw new RuntimeException("Not configured " + networkId);
+            }
+
         }
 
         return deploymentSetup;

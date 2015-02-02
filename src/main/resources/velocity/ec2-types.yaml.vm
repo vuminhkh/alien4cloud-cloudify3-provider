@@ -5,7 +5,11 @@
     properties:
       server:
         default:
-          image: $computeTemplateEntry.value.image
-          flavor: $computeTemplateEntry.value.flavor
+          image_name: $computeTemplateEntry.value.image
+          size_name: $computeTemplateEntry.value.flavor
 #end
+## Floating IP
+  ${mapping.generatedTypePrefix}.floating_ip:
+    derived_from: $providerMapping.nativeTypes.floatingIpType
+## TODO Network
 ## TODO Volume

@@ -20,9 +20,7 @@ import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.dao.VersionDAO;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
-import alien4cloud.paas.cloudify3.model.Version;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
@@ -72,9 +70,6 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
     @Resource
-    private VersionDAO versionDAO;
-
-    @Resource
     private StatusService statusService;
 
     /**
@@ -102,7 +97,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public CloudConfiguration getDefaultConfiguration() {
-        return cloudConfigurationHolder.getConfiguration();
+        return cloudConfigurationHolder.getDefaultCloudConfiguration();
     }
 
     @Override
@@ -113,16 +108,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         if (newConfiguration.getUrl() == null) {
             throw new PluginConfigurationException("Url is null");
         }
-        CloudConfiguration oldConfiguration = cloudConfigurationHolder.getConfiguration();
         cloudConfigurationHolder.setConfiguration(newConfiguration);
-        try {
-            Version version = versionDAO.read();
-            statusService.init();
-            log.info("Configure PaaS provider for Cloudify version " + version.getVersion());
-        } catch (Exception e) {
-            cloudConfigurationHolder.setConfiguration(oldConfiguration);
-            throw new PluginConfigurationException("Url is not correct");
-        }
     }
 
     /**
@@ -170,6 +156,9 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         case COMPUTE:
             Set<String> paaSResourceIds = cloudConfigurationHolder.getConfiguration().getComputeTemplates().keySet();
             return paaSResourceIds.toArray(new String[paaSResourceIds.size()]);
+        case NETWORK:
+            Set<String> networkIds = cloudConfigurationHolder.getConfiguration().getNetworkTemplates().keySet();
+            return networkIds.toArray(new String[networkIds.size()]);
         default:
             throw new OperationNotSupportedException("getAvailableResourceIds " + resourceType + " is not yet managed");
         }

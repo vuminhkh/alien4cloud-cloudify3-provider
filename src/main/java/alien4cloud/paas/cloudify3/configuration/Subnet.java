@@ -1,7 +1,5 @@
 package alien4cloud.paas.cloudify3.configuration;
 
-import java.util.Set;
-
 import javax.validation.constraints.NotNull;
 
 import lombok.AllArgsConstructor;
@@ -11,10 +9,9 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-@SuppressWarnings("PMD.UnusedPrivateField")
-public class Network {
+@AllArgsConstructor
+public class Subnet {
 
     @NotNull
     private String id;
@@ -23,7 +20,8 @@ public class Network {
     private String name;
 
     @NotNull
-    private Boolean isExternal;
+    private Integer ipVersion;
 
-    private Set<Subnet> subnets;
+    @NotNull
+    private String cidr;
 }

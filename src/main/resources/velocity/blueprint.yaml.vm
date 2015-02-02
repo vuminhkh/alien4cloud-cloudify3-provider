@@ -8,11 +8,65 @@ This template is used to generate cloudify 3 recipe from alien model
 tosca_definitions_version: $mapping.dslVersion
 
 imports:
-#foreach($import in $mapping.imports)
+  - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+#foreach($import in $providerMapping.imports)
   - $import
 #end
 
+node_types:
 #parse("$provider_types_file")
+#foreach($nonNativeType in ${deployment.nonNativesTypes})
+    ${nonNativeType.elementId}:
+    derived_from: $util.getDerivedFromType($nonNativeType.derivedFrom)
+#if($util.mapHasEntries($nonNativeType.properties))
+    properties:
+#foreach($propertyEntry in ${nonNativeType.properties.entrySet()})
+        $propertyEntry.key:
+        type: string
+        default: "$propertyEntry.value.default"
+#end
+#end
+#set( $nodeTypeInterfacesWithoutParameters = $util.getInterfaces($nonNativeType, false) )
+#if($util.mapHasEntries($nodeTypeInterfacesWithoutParameters))
+    interfaces:
+#foreach($interfaceEntry in $nodeTypeInterfacesWithoutParameters.entrySet())
+        $util.tryToMapToCloudifyInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+            $operationEntry.key: $nonNativeType.archiveName/$nonNativeType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+#end
+#end
+#end
+#end
+#if($util.collectionHasElement($deployment.nonNativesRelationshipTypes))
+relationships:
+#foreach($nonNativeRelationshipType in ${deployment.nonNativesRelationshipTypes})
+    ${nonNativeRelationshipType.elementId}:
+    derived_from: $util.getDerivedFromType($nonNativeRelationshipType.derivedFrom)
+#set( $relationshipTypeInterfacesWithoutParameters = $util.getInterfaces($nonNativeRelationshipType, false) )
+#if($util.mapHasEntries($relationshipTypeInterfacesWithoutParameters))
+#set( $relationshipTypeSourceInterfacesWithoutParameters = $util.getRelationshipSourceInterfaces($relationshipTypeInterfacesWithoutParameters) )
+#if($util.mapHasEntries($relationshipTypeSourceInterfacesWithoutParameters))
+    source_interfaces:
+#foreach($interfaceEntry in $relationshipTypeSourceInterfacesWithoutParameters.entrySet())
+            $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+                $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+#end
+#end
+#end
+#set( $relationshipTypeTargetInterfacesWithoutParameters = $util.getRelationshipTargetInterfaces($relationshipTypeInterfacesWithoutParameters) )
+#if($util.mapHasEntries($relationshipTypeTargetInterfacesWithoutParameters))
+    target_interfaces:
+#foreach($interfaceEntry in $relationshipTypeTargetInterfacesWithoutParameters.entrySet())
+            $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+                $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+#end
+#end
+#end
+#end
+#end
+#end
 
 node_templates:
 #foreach($compute in $deployment.computes)
@@ -20,18 +74,51 @@ node_templates:
     type: ${mapping.generatedTypePrefix}.computes.$compute.paaSResourceId
     instances:
       deploy: 1
-#if($util.hasFloatingIp($compute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks))
+#set( $hasFloatingIp = $util.hasMatchedNetwork($compute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks) )
+#set( $hasInternalNetwork = $util.hasMatchedNetwork($compute.paaSNodeTemplate.networkNodes, $deployment.internalNetworks) )
+#if($hasFloatingIp || $hasInternalNetwork)
     relationships:
+#if($hasInternalNetwork)
+#foreach($internalNetworkNode in $util.getInternalNetworks($compute.paaSNodeTemplate.networkNodes, $deployment.internalNetworks))
+#set( $network = $util.getNetwork($internalNetworkNode) )
+      - target: $internalNetworkNode.id
+        type: cloudify.relationships.connected_to
+#foreach($subnet in $network.subnets)
+      - target: ${internalNetworkNode.id}.subnets.${subnet.id}
+        type: cloudify.relationships.depends_on
+#end
+#end
+#end
+#if($hasFloatingIp)
       - target: floatingip_$compute.paaSNodeTemplate.id
-        type: $mapping.nativeTypes.floatingIpRelationshipType
+        type: $providerMapping.nativeTypes.floatingIpRelationshipType
   floatingip_$compute.paaSNodeTemplate.id:
-    type: $mapping.nativeTypes.floatingIpType
+    type: $providerMapping.nativeTypes.floatingIpType
     properties:
       floatingip:
         floating_network_name: $util.getExternalNetworkName($compute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks)
 #end
 #end
-## TODO Internal Network
+#end
+#foreach($networkTemplate in $deployment.internalNetworks)
+#set( $network = $util.getNetwork($cloud, $networkTemplate) )
+  $networkTemplate.paaSNodeTemplate.id:
+    type: $providerMapping.nativeTypes.networkType
+    properties:
+      resource_id: $network.id
+#foreach($subnet in $network.subnets)
+  ${networkTemplate.paaSNodeTemplate.id}.subnets.${subnet.id}:
+    type: $providerMapping.nativeTypes.subnetType
+    properties:
+      resource_id: $subnet.id
+      subnet:
+        ip_version: $subnet.ipVersion
+        cidr: $subnet.cidr
+    relationships:
+      - target: ${networkTemplate.paaSNodeTemplate.id}
+        type: cloudify.relationships.contained_in
+#end
+#end
 ## TODO Volume
 #foreach($nonNativeNode in $deployment.nonNatives)
   $nonNativeNode.id:

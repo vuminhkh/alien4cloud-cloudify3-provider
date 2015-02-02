@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,9 @@ import org.springframework.stereotype.Component;
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IPaaSCallback;
+import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
+import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
+import alien4cloud.paas.cloudify3.configuration.ICloudConfigurationChangeListener;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
 import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
 import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
@@ -55,7 +59,20 @@ public class StatusService {
     @Resource
     private DeploymentDAO deploymentDAO;
 
-    public void init() throws Exception {
+    @Resource
+    private CloudConfigurationHolder cloudConfigurationHolder;
+
+    @PostConstruct
+    public void postConstruct() {
+        cloudConfigurationHolder.registerListener(new ICloudConfigurationChangeListener() {
+            @Override
+            public void onConfigurationChange(CloudConfiguration newConfiguration) throws Exception {
+                init();
+            }
+        });
+    }
+
+    private void init() throws Exception {
         Deployment[] deployments = deploymentDAO.list();
         List<String> deploymentIds = Lists.transform(Arrays.asList(deployments), new Function<Deployment, String>() {
 
@@ -203,21 +220,22 @@ public class StatusService {
 
     public InstanceStatus getInstanceStatusFromState(String state) {
         switch (state) {
-        case NodeInstanceStatus.STARTED:
-            return InstanceStatus.SUCCESS;
-        case NodeInstanceStatus.STOPPING:
-        case NodeInstanceStatus.STOPPED:
-        case NodeInstanceStatus.STARTING:
-        case NodeInstanceStatus.CONFIGURING:
-        case NodeInstanceStatus.CONFIGURED:
-        case NodeInstanceStatus.CREATING:
-        case NodeInstanceStatus.CREATED:
-        case NodeInstanceStatus.DELETING:
-            return InstanceStatus.PROCESSING;
-        case NodeInstanceStatus.DELETED:
-            return null;
-        default:
-            return InstanceStatus.FAILURE;
+            case NodeInstanceStatus.STARTED:
+                return InstanceStatus.SUCCESS;
+            case NodeInstanceStatus.UNINITIALIZED:
+            case NodeInstanceStatus.STOPPING:
+            case NodeInstanceStatus.STOPPED:
+            case NodeInstanceStatus.STARTING:
+            case NodeInstanceStatus.CONFIGURING:
+            case NodeInstanceStatus.CONFIGURED:
+            case NodeInstanceStatus.CREATING:
+            case NodeInstanceStatus.CREATED:
+            case NodeInstanceStatus.DELETING:
+                return InstanceStatus.PROCESSING;
+            case NodeInstanceStatus.DELETED:
+                return null;
+            default:
+                return InstanceStatus.FAILURE;
         }
     }
 }

@@ -1,25 +1,10 @@
-dsl_version: cloudify_dsl_1_0
-
 imports:
-  - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
   - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
-
-generated_type_prefix: alien4cloud
 
 native_types:
   floating_ip_type: cloudify.openstack.nodes.FloatingIP
   floating_ip_relationship_type: cloudify.openstack.server_connected_to_floating_ip
   compute_type: cloudify.openstack.nodes.Server
   network_type: cloudify.openstack.nodes.Network
+  subnet_type: cloudify.openstack.nodes.Subnet
   block_storage_type: cloudify.openstack.nodes.Volume
-
-normative_types:
-  tosca.nodes.Root: cloudify.nodes.Root
-  tosca.nodes.SoftwareComponent: cloudify.nodes.SoftwareComponent
-  tosca.nodes.WebServer: cloudify.nodes.WebServer
-  tosca.nodes.DBMS: cloudify.nodes.DBMS
-  tosca.nodes.Database: cloudify.nodes.Database
-  tosca.nodes.WebApplication: cloudify.nodes.ApplicationModule
-  tosca.relationships.DependsOn: cloudify.relationships.depends_on
-  tosca.relationships.HostedOn: cloudify.relationships.contained_in
-  tosca.relationships.ConnectsTo: cloudify.relationships.connected_to
