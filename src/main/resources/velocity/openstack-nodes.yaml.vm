@@ -1,34 +1,34 @@
 ## Compute nodes
-#foreach($matchedPaaSCompute in $deployment.computes)
-  $matchedPaaSCompute.paaSNodeTemplate.id:
-    type: $providerMapping.nativeTypes.computeType
+#foreach($matchedPaaSCompute in ${deployment.computes})
+  ${matchedPaaSCompute.paaSNodeTemplate.id}:
+    type: ${providerMapping.nativeTypes.computeType}
     properties:
       server:
-        image: $matchedPaaSCompute.paaSComputeTemplate.image
-        flavor: $matchedPaaSCompute.paaSComputeTemplate.flavor
+        image: ${matchedPaaSCompute.paaSComputeTemplate.image}
+        flavor: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
     instances:
       deploy: 1
-#set( $hasFloatingIp = $util.hasMatchedNetwork($matchedPaaSCompute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks) )
-#set( $hasInternalNetwork = $util.hasMatchedNetwork($matchedPaaSCompute.paaSNodeTemplate.networkNodes, $deployment.internalNetworks) )
+#set( $hasFloatingIp = ${util.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})} )
+#set( $hasInternalNetwork = ${util.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.internalNetworks})} )
 #if($hasFloatingIp || $hasInternalNetwork)
     relationships:
 #if($hasInternalNetwork)
-#foreach($internalNetworkNode in $util.getInternalNetworks($matchedPaaSCompute.paaSNodeTemplate.networkNodes, $deployment.internalNetworks))
-#set( $network = $internalNetworkNode.paaSResourceTemplate )
-      - target: $internalNetworkNode.id
+#foreach($internalNetworkNode in ${util.getInternalNetworks(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.internalNetworks})})
+#set( $network = ${internalNetworkNode.paaSResourceTemplate} )
+      - target: ${internalNetworkNode.id}
         type: cloudify.relationships.connected_to
       - target: ${internalNetworkNode.id}_subnet
         type: cloudify.relationships.depends_on
 #end
 #end
 #if($hasFloatingIp)
-      - target: floatingip_$matchedPaaSCompute.paaSNodeTemplate.id
-        type: $providerMapping.nativeTypes.floatingIpRelationshipType
-  floatingip_$matchedPaaSCompute.paaSNodeTemplate.id:
-    type: $providerMapping.nativeTypes.floatingIpType
+      - target: floatingip_${matchedPaaSCompute.paaSNodeTemplate.id}
+        type: ${providerMapping.nativeTypes.floatingIpRelationshipType}
+  floatingip_${matchedPaaSCompute.paaSNodeTemplate.id}:
+    type: ${providerMapping.nativeTypes.floatingIpType}
     properties:
       floatingip:
-        floating_network_name: $util.getExternalNetworkName($matchedPaaSCompute.paaSNodeTemplate.networkNodes, $deployment.externalNetworks)
+        floating_network_name: ${util.getExternalNetworkName(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})}
 #end
 #end
 #end
@@ -54,6 +54,22 @@
 
 ## volume nodes
 #foreach($matchedVolume in ${deployment.volumes})
+#if(${util.isConfiguredVolume(${matchedVolume.paaSNodeTemplate})})
+  ${matchedVolume.paaSNodeTemplate.id}_manager_data:
+    type: cloudify.nodes.FileSystem
+    properties:
+#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system})
+      fs_type: ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system}
+#end
+#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location})
+      fs_mount_path: ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location}
+#end
+    relationships:
+      - type: cloudify.relationships.file_system_depends_on_volume
+        target: ${matchedVolume.paaSNodeTemplate.id}
+      - type: cloudify.relationships.file_system_contained_in_compute
+        target: ${matchedVolume.paaSNodeTemplate.parent.id}
+#end
   ${matchedVolume.paaSNodeTemplate.id}:
     type: ${providerMapping.nativeTypes.volumeType}
     properties:

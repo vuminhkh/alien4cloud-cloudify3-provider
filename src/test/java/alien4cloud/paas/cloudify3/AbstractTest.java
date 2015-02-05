@@ -53,7 +53,7 @@ public class AbstractTest {
 
     private NetworkTemplate internalNetwork = new NetworkTemplate("internal-network", 4, false, "192.168.1.0/24", "192.168.1.1");
 
-    private StorageTemplate storageTemplate = new StorageTemplate("small", 1L, null, null);
+    private StorageTemplate storageTemplate = new StorageTemplate("small", 1L, "/dev/vdb");
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -79,7 +79,7 @@ public class AbstractTest {
     @Before
     public void before() throws Exception {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
-        cloudConfiguration.setUrl("http://129.185.67.107:8100");
+        cloudConfiguration.setUrl("http://129.185.67.48:8100");
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
 

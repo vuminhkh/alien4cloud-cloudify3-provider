@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
+import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.ImplementationArtifact;
 import alien4cloud.model.components.IndexedArtifactToscaElement;
 import alien4cloud.model.components.IndexedNodeType;
@@ -32,6 +33,7 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.ICloudConfigurationChangeListener;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MappingConfiguration;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.cloudify3.service.model.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.util.BlueprintGenerationUtil;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
@@ -130,6 +132,20 @@ public class BlueprintService {
                     if (processedRelationshipTypes.add(relationshipType.getElementId())) {
                         copyImplementationArtifacts(generatedBlueprintDirectoryPath, relationship, relationshipType);
                     }
+                }
+            }
+        }
+
+        if (alienDeployment.getVolumes() != null && !alienDeployment.getVolumes().isEmpty()) {
+            Path volumeScriptPath = generatedBlueprintDirectoryPath.resolve("cfy3_native/volume");
+            for (MatchedPaaSTemplate<StorageTemplate> volume : alienDeployment.getVolumes()) {
+                if (util.isConfiguredVolume(volume.getPaaSNodeTemplate())) {
+                    Files.createDirectories(volumeScriptPath);
+                    Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
+                    Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
+                    Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
+                    Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
+                    break;
                 }
             }
         }

@@ -7,6 +7,9 @@ import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.lang3.StringUtils;
+
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IOperationParameter;
 import alien4cloud.model.components.IndexedArtifactToscaElement;
@@ -20,6 +23,7 @@ import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
 import alien4cloud.paas.plan.ToscaRelationshipLifecycleConstants;
+import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -353,5 +357,28 @@ public class BlueprintGenerationUtil {
         }
         // This must never happens
         return allDerivedFromsTypes.get(0);
+    }
+
+    public boolean isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
+        Map<String, String> volumeProperties = volumeTemplate.getNodeTemplate().getProperties();
+        return volumeProperties != null
+                && (!StringUtils.isEmpty(volumeProperties.get(NormativeBlockStorageConstants.LOCATION)) || !StringUtils.isEmpty(volumeProperties
+                        .get(NormativeBlockStorageConstants.FILE_SYSTEM)));
+    }
+
+    public PaaSNodeTemplate getConfiguredAttachedVolume(PaaSNodeTemplate node) {
+        PaaSNodeTemplate host = node.getParent();
+        while (host.getParent() != null) {
+            host = host.getParent();
+        }
+        PaaSNodeTemplate volume = host.getAttachedNode();
+        if (volume == null) {
+            return null;
+        }
+        if (isConfiguredVolume(volume)) {
+            return volume;
+        } else {
+            return null;
+        }
     }
 }

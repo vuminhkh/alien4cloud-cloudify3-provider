@@ -7,11 +7,29 @@ node_templates:
   BlockStorage:
     type: tosca.nodes.BlockStorage
     properties:
-      size: 1024
+      file_system: ext4
+      location: /var/mysql
     relationships:
       attachedToCompute:
         type: tosca.relationships.AttachTo
         target: Compute
+
+  Mysql:
+    type: alien.nodes.Mysql
+    name: Mysql
+    properties:
+      bind_address: "true"
+      storage_path: /var/mysql
+      db_port: "3306"
+      db_name: wordpress
+      db_user: pass
+      db_password: pass
+    relationships:
+      hostedOnDataBase:
+        type: tosca.relationships.HostedOn
+        target: Compute
 dependencies:
   - name: tosca-normative-types
+    version: 1.0.0.wd03-SNAPSHOT
+  - name: mysql-type
     version: 1.0.0.wd03-SNAPSHOT
