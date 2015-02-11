@@ -1,5 +1,6 @@
-package alien4cloud.paas.cloudify3.service.model;
+package alien4cloud.paas.cloudify3.configuration;
 
+import java.util.Map;
 import java.util.Set;
 
 import lombok.Getter;
@@ -12,6 +13,8 @@ public class ProviderMappingConfiguration {
     private Set<String> imports;
 
     private ProviderNativeTypes nativeTypes;
+
+    private Map<String, Map<String, String>> attributes;
 
     @Getter
     @Setter

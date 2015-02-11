@@ -15,6 +15,7 @@ import alien4cloud.model.components.IndexedModelUtils;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.cloudify3.service.model.IMatchedPaaSTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
@@ -37,6 +38,14 @@ public class CloudifyDeploymentBuilderService {
 
     @Resource(name = "cloudify-storage-matcher-service")
     private StorageTemplateMatcherService storageMatcherService;
+
+    private <T extends IMatchedPaaSTemplate> Map<String, T> buildTemplateMap(List<T> matchedPaaSTemplates) {
+        Map<String, T> mapping = Maps.newHashMap();
+        for (T matchedPaaSTemplate : matchedPaaSTemplates) {
+            mapping.put(matchedPaaSTemplate.getPaaSNodeTemplate().getId(), matchedPaaSTemplate);
+        }
+        return mapping;
+    }
 
     public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
 
@@ -72,8 +81,9 @@ public class CloudifyDeploymentBuilderService {
             }
         }
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
-                matchedInternalNetworks, matchedExternalNetworks, matchedStorages, deploymentContext.getPaaSTopology().getNonNatives(),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
+                matchedInternalNetworks, matchedExternalNetworks, matchedStorages, buildTemplateMap(matchedComputes),
+                buildTemplateMap(matchedInternalNetworks), buildTemplateMap(matchedExternalNetworks), buildTemplateMap(matchedStorages), deploymentContext
+                        .getPaaSTopology().getNonNatives(), IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), deploymentContext.getPaaSTopology().getAllNodes());
         return deployment;
     }

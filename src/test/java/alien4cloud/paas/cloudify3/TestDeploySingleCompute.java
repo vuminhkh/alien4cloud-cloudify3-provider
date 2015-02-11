@@ -2,6 +2,7 @@ package alien4cloud.paas.cloudify3;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Resource;
 
@@ -36,13 +37,9 @@ public class TestDeploySingleCompute extends AbstractDeploymentTest {
     @Resource
     private EventService eventService;
 
-    @Test
-    public void testDeploySingleCompute() throws Exception {
-        Date beginTestTimestamp = new Date();
-        launchTest("testDeployNetwork", NETWORK_TOPOLOGY);
+    private void getEvents(Date beginTestTimestamp, List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents,
+            List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents) throws ExecutionException, InterruptedException {
         AbstractMonitorEvent[] events = eventService.getEventsSince(beginTestTimestamp, Integer.MAX_VALUE).get();
-        List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents = Lists.newArrayList();
-        List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents = Lists.newArrayList();
         for (AbstractMonitorEvent event : events) {
             if (event instanceof PaaSDeploymentStatusMonitorEvent) {
                 deploymentStatusEvents.add((PaaSDeploymentStatusMonitorEvent) event);
@@ -50,6 +47,19 @@ public class TestDeploySingleCompute extends AbstractDeploymentTest {
                 instanceStateMonitorEvents.add((PaaSInstanceStateMonitorEvent) event);
             }
         }
+    }
+
+    @Test
+    public void testDeploySingleCompute() throws Exception {
+        Date beginTestTimestamp = new Date();
+        launchTest("testDeploySingleCompute", SINGLE_COMPUTE_TOPOLOGY);
+
+        List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents = Lists.newArrayList();
+        List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents = Lists.newArrayList();
+
+        getEvents(beginTestTimestamp, deploymentStatusEvents, instanceStateMonitorEvents);
+        getEvents(beginTestTimestamp, deploymentStatusEvents, instanceStateMonitorEvents);
+
         // Check deployment status events
         Assert.assertEquals(2, deploymentStatusEvents.size());
         Assert.assertEquals(DeploymentStatus.DEPLOYMENT_IN_PROGRESS, deploymentStatusEvents.get(0).getDeploymentStatus());

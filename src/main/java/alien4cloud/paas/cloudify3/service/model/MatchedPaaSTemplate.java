@@ -12,7 +12,7 @@ import alien4cloud.paas.model.PaaSNodeTemplate;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class MatchedPaaSTemplate<T extends ICloudResourceTemplate> {
+public class MatchedPaaSTemplate<T extends ICloudResourceTemplate> implements IMatchedPaaSTemplate {
 
     private PaaSNodeTemplate paaSNodeTemplate;
 

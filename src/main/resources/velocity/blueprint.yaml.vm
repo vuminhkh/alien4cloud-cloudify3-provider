@@ -14,9 +14,12 @@ imports:
 #end
 
 node_types:
+
+#parse("$provider_types_file")
+
 ## TODO This is copied from http://www.getcloudify.org/spec/cloudify/3.2m4/types.yaml
 ## TODO We must remove this once we migrate to cloudify 3.2
-# A file system a volume should be formatted to
+#if($util.hasConfiguredVolume($deployment.volumes))
   cloudify.nodes.FileSystem:
     derived_from: cloudify.nodes.Root
     properties:
@@ -43,6 +46,7 @@ node_types:
       cloudify.interfaces.lifecycle:
         configure:
           implementation: cfy3_native/volume/mkfs.sh
+#end
 #if($util.collectionHasElement($deployment.nonNativesTypes))
 #foreach($nonNativeType in ${deployment.nonNativesTypes})
   ${nonNativeType.elementId}:
@@ -68,9 +72,11 @@ node_types:
 #end
 #end
 
+#if($util.hasConfiguredVolume($deployment.volumes) || $util.collectionHasElement($deployment.nonNativesRelationshipTypes))
 relationships:
 ## TODO This is copied from http://www.getcloudify.org/spec/cloudify/3.2m4/types.yaml
 ## TODO We must remove this once we migrate to cloudify 3.2
+#if($util.hasConfiguredVolume($deployment.volumes))
   cloudify.relationships.file_system_depends_on_volume:
     derived_from: cloudify.relationships.depends_on
     source_interfaces:
@@ -85,6 +91,7 @@ relationships:
           implementation: cfy3_native/volume/mount.sh
         unlink:
           implementation: cfy3_native/volume/unmount.sh
+#end
 #if($util.collectionHasElement($deployment.nonNativesRelationshipTypes))
 #foreach($nonNativeRelationshipType in ${deployment.nonNativesRelationshipTypes})
   ${nonNativeRelationshipType.elementId}:
@@ -108,6 +115,7 @@ relationships:
       $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
         $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+#end
 #end
 #end
 #end
@@ -142,7 +150,7 @@ node_templates:
                 process:
                   env:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
-                    $inputEntry.key: $util.formatNodeOperationInput($nonNativeNode, $inputEntry.value, $deployment.allNodes)
+                    $inputEntry.key: $util.formatNodeOperationInput($nonNativeNode, $inputEntry.value, $deployment)
 #end
 #end
 #end
@@ -152,7 +160,7 @@ node_templates:
 #if($util.collectionHasElement($relationshipTemplates) || $attachedVolume)
     relationships:
 #if($attachedVolume)
-      - target: ${attachedVolume.id}_manager_data
+      - target: ${mapping.generatedNodePrefix}_file_system_${attachedVolume.id}
         type: cloudify.relationships.depends_on
 #end
 #foreach($relationship in $relationshipTemplates)
@@ -172,7 +180,7 @@ node_templates:
                 process:
                   env:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
-                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, $deployment.allNodes)
+                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, $deployment)
 #end
 #end
 #end
@@ -189,7 +197,7 @@ node_templates:
                 process:
                   env:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
-                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, $deployment.allNodes)
+                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, $deployment)
 #end
 #end
 #end

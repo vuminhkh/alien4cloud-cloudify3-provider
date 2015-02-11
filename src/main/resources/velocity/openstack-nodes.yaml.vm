@@ -1,7 +1,7 @@
 ## Compute nodes
 #foreach($matchedPaaSCompute in ${deployment.computes})
   ${matchedPaaSCompute.paaSNodeTemplate.id}:
-    type: ${providerMapping.nativeTypes.computeType}
+    type: ${mapping.generatedTypePrefix}.openstack.Compute
     properties:
       server:
         image: ${matchedPaaSCompute.paaSComputeTemplate.image}
@@ -22,10 +22,10 @@
 #end
 #end
 #if($hasFloatingIp)
-      - target: floatingip_${matchedPaaSCompute.paaSNodeTemplate.id}
+      - target: ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}
         type: ${providerMapping.nativeTypes.floatingIpRelationshipType}
-  floatingip_${matchedPaaSCompute.paaSNodeTemplate.id}:
-    type: ${providerMapping.nativeTypes.floatingIpType}
+  ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}:
+    type: ${mapping.generatedTypePrefix}.openstack.FloatingIP
     properties:
       floatingip:
         floating_network_name: ${util.getExternalNetworkName(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})}
@@ -37,7 +37,7 @@
 #foreach($matchedNetwork in ${deployment.internalNetworks})
 #set( $network = ${matchedNetwork.paaSResourceTemplate} )
   ${matchedNetwork.paaSNodeTemplate.id}:
-    type: ${providerMapping.nativeTypes.networkType}
+    type: ${mapping.generatedTypePrefix}.openstack.Network
     properties:
       resource_id: ${network.id}
   ${matchedNetwork.paaSNodeTemplate.id}_subnet:
@@ -55,8 +55,8 @@
 ## volume nodes
 #foreach($matchedVolume in ${deployment.volumes})
 #if(${util.isConfiguredVolume(${matchedVolume.paaSNodeTemplate})})
-  ${matchedVolume.paaSNodeTemplate.id}_manager_data:
-    type: cloudify.nodes.FileSystem
+  ${mapping.generatedNodePrefix}_file_system_${matchedVolume.paaSNodeTemplate.id}:
+    type: ${mapping.generatedTypePrefix}.openstack.FileSystem
     properties:
 #if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system})
       fs_type: ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system}
@@ -71,13 +71,24 @@
         target: ${matchedVolume.paaSNodeTemplate.parent.id}
 #end
   ${matchedVolume.paaSNodeTemplate.id}:
-    type: ${providerMapping.nativeTypes.volumeType}
+#if(${util.isDeletableVolume(${matchedVolume.paaSNodeTemplate})})
+    type: ${mapping.generatedTypePrefix}.openstack.DeletableVolume
+#else
+    type: ${mapping.generatedTypePrefix}.openstack.Volume
+#end
     properties:
+#set($externalVolumeId = $util.getExternalVolumeId($matchedVolume))
+#if($externalVolumeId)
+      resource_id: $externalVolumeId
+      use_external_resource: true
+#end
 #if(${matchedVolume.paaSResourceTemplate.device})
       device_name: ${matchedVolume.paaSResourceTemplate.device}
 #end
+#if(${matchedVolume.paaSResourceTemplate.size})
       volume:
         size: ${matchedVolume.paaSResourceTemplate.size}
+#end
     relationships:
       - target: ${matchedVolume.paaSNodeTemplate.parent.id}
         type: ${providerMapping.nativeTypes.volumeAttachRelationshipType}

@@ -32,6 +32,14 @@ public class CloudifyDeployment {
 
     private List<MatchedPaaSTemplate<StorageTemplate>> volumes;
 
+    private Map<String, MatchedPaaSComputeTemplate> computesMap;
+
+    private Map<String, MatchedPaaSTemplate<NetworkTemplate>> internalNetworksMap;
+
+    private Map<String, MatchedPaaSTemplate<NetworkTemplate>> externalNetworksMap;
+
+    private Map<String, MatchedPaaSTemplate<StorageTemplate>> volumesMap;
+
     private List<PaaSNodeTemplate> nonNatives;
 
     private List<IndexedNodeType> nonNativesTypes;

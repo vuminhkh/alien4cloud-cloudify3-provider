@@ -10,19 +10,26 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
 
+import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IOperationParameter;
 import alien4cloud.model.components.IndexedArtifactToscaElement;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.ScalarPropertyValue;
+import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
+import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
+import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
-import alien4cloud.paas.cloudify3.service.model.MappingConfiguration;
+import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
+import alien4cloud.paas.cloudify3.service.model.NativeType;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
 import alien4cloud.paas.plan.ToscaRelationshipLifecycleConstants;
+import alien4cloud.tosca.ToscaUtils;
+import alien4cloud.tosca.normative.AlienCustomTypes;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 
 import com.google.common.collect.Lists;
@@ -37,25 +44,9 @@ import com.google.common.collect.Maps;
 @Slf4j
 public class BlueprintGenerationUtil {
 
-    private static final Map<String, String> REL_SOURCE_MAPPING = Maps.newHashMap();
-    private static final Map<String, String> REL_TARGET_MAPPING = Maps.newHashMap();
-    private static final Map<String, String> ATTRIBUTE_MAPPING = Maps.newHashMap();
+    private MappingConfiguration mappingConfiguration;
 
-    static {
-        REL_SOURCE_MAPPING.put(ToscaRelationshipLifecycleConstants.PRE_CONFIGURE_SOURCE, "preconfigure");
-        REL_SOURCE_MAPPING.put(ToscaRelationshipLifecycleConstants.POST_CONFIGURE_SOURCE, "postconfigure");
-        REL_SOURCE_MAPPING.put(ToscaRelationshipLifecycleConstants.ADD_TARGET, "establish");
-        REL_SOURCE_MAPPING.put(ToscaRelationshipLifecycleConstants.REMOVE_TARGET, "unlink");
-
-        REL_TARGET_MAPPING.put(ToscaRelationshipLifecycleConstants.PRE_CONFIGURE_TARGET, "preconfigure");
-        REL_TARGET_MAPPING.put(ToscaRelationshipLifecycleConstants.POST_CONFIGURE_TARGET, "postconfigure");
-        REL_TARGET_MAPPING.put(ToscaRelationshipLifecycleConstants.ADD_SOURCE, "establish");
-        REL_TARGET_MAPPING.put(ToscaRelationshipLifecycleConstants.REMOVE_SOURCE, "unlink");
-
-        ATTRIBUTE_MAPPING.put("ip_address", "ip");
-    }
-
-    private MappingConfiguration mapping;
+    private ProviderMappingConfiguration providerMappingConfiguration;
 
     public boolean mapHasEntries(Map<?, ?> map) {
         return map != null && !map.isEmpty();
@@ -77,17 +68,19 @@ public class BlueprintGenerationUtil {
         Map<String, Interface> relationshipInterfaces = Maps.newHashMap();
         for (Map.Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
             Map<String, Operation> operations = Maps.newHashMap();
+            Map<String, String> relationshipSourceMapping = mappingConfiguration.getRelationships().getLifeCycle().getSource();
+            Map<String, String> relationshipTargetMapping = mappingConfiguration.getRelationships().getLifeCycle().getTarget();
             for (Map.Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
-                if (!REL_SOURCE_MAPPING.containsKey(operationEntry.getKey()) && !REL_TARGET_MAPPING.containsKey(operationEntry.getKey())) {
+                if (!relationshipSourceMapping.containsKey(operationEntry.getKey()) && !relationshipTargetMapping.containsKey(operationEntry.getKey())) {
                     log.warn("Operation {} on relationship is not managed", operationEntry.getKey());
                     continue;
                 }
                 if (isSource) {
-                    if (REL_SOURCE_MAPPING.containsKey(operationEntry.getKey())) {
+                    if (relationshipSourceMapping.containsKey(operationEntry.getKey())) {
                         operations.put(operationEntry.getKey(), operationEntry.getValue());
                     }
                 } else {
-                    if (REL_TARGET_MAPPING.containsKey(operationEntry.getKey())) {
+                    if (relationshipTargetMapping.containsKey(operationEntry.getKey())) {
                         operations.put(operationEntry.getKey(), operationEntry.getValue());
                     }
                 }
@@ -137,7 +130,7 @@ public class BlueprintGenerationUtil {
         return interfaces;
     }
 
-    public String formatRelationshipOperationInput(PaaSRelationshipTemplate relationship, IOperationParameter input, Map<String, PaaSNodeTemplate> allNodes) {
+    public String formatRelationshipOperationInput(PaaSRelationshipTemplate relationship, IOperationParameter input, CloudifyDeployment cloudifyDeployment) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
             List<String> parameters = functionPropertyValue.getParameters();
@@ -148,15 +141,17 @@ public class BlueprintGenerationUtil {
             } else if ("TARGET".equals(nodeName)) {
                 nodeName = relationship.getRelationshipTemplate().getTarget();
             }
-            PaaSNodeTemplate node = allNodes.get(nodeName);
+            PaaSNodeTemplate node = cloudifyDeployment.getAllNodes().get(nodeName);
             String resolvedNodeName = getNodeNameHasPropertyOrAttribute(relationship.getSource(), node, attribute, functionPropertyValue.getFunction());
-            return formatNodeOperationResolvedInput(functionPropertyValue, resolvedNodeName);
+            return formatFunctionPropertyInputValue(nodeName, cloudifyDeployment, functionPropertyValue, resolvedNodeName);
+        } else if (input instanceof ScalarPropertyValue) {
+            return ((ScalarPropertyValue) input).getValue();
         } else {
-            return formatOperationInput(input);
+            throw new OperationNotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
         }
     }
 
-    public String formatNodeOperationInput(PaaSNodeTemplate node, IOperationParameter input, Map<String, PaaSNodeTemplate> allNodes) {
+    public String formatNodeOperationInput(PaaSNodeTemplate node, IOperationParameter input, CloudifyDeployment cloudifyDeployment) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
             List<String> parameters = functionPropertyValue.getParameters();
@@ -172,20 +167,14 @@ public class BlueprintGenerationUtil {
             } else if ("SELF".equals(nodeName)) {
                 nodeName = node.getId();
             }
-            String resolvedNodeName = getNodeNameHasPropertyOrAttribute(node.getId(), allNodes.get(nodeName), attribute, functionPropertyValue.getFunction());
-            return formatNodeOperationResolvedInput(functionPropertyValue, resolvedNodeName);
+            String resolvedNodeName = getNodeNameHasPropertyOrAttribute(node.getId(), cloudifyDeployment.getAllNodes().get(nodeName), attribute,
+                    functionPropertyValue.getFunction());
+            return formatFunctionPropertyInputValue(nodeName, cloudifyDeployment, functionPropertyValue, resolvedNodeName);
+        } else if (input instanceof ScalarPropertyValue) {
+            return ((ScalarPropertyValue) input).getValue();
         } else {
-            return formatOperationInput(input);
+            throw new OperationNotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
         }
-    }
-
-    private String formatNodeOperationResolvedInput(FunctionPropertyValue functionPropertyValue, String resolvedNodeName) {
-        FunctionPropertyValue filteredFunctionPropertyValue = new FunctionPropertyValue();
-        filteredFunctionPropertyValue.setFunction(functionPropertyValue.getFunction());
-        List<String> newParameters = Lists.newArrayList(functionPropertyValue.getParameters());
-        newParameters.set(0, resolvedNodeName);
-        filteredFunctionPropertyValue.setParameters(newParameters);
-        return formatOperationInput(filteredFunctionPropertyValue);
     }
 
     private String getNodeNameHasPropertyOrAttribute(String parentNodeName, PaaSNodeTemplate node, String attributeName, String functionName) {
@@ -221,25 +210,41 @@ public class BlueprintGenerationUtil {
         }
     }
 
-    public String formatOperationInput(IOperationParameter input) {
-        if (input instanceof FunctionPropertyValue) {
-            FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
-            StringBuilder formattedInput = new StringBuilder("{ ").append(functionPropertyValue.getFunction()).append(": [");
-            for (int i = 0; i < functionPropertyValue.getParameters().size(); i++) {
-                String attributeName = functionPropertyValue.getParameters().get(i);
-                if (ATTRIBUTE_MAPPING.containsKey(attributeName)) {
-                    attributeName = ATTRIBUTE_MAPPING.get(attributeName);
-                }
-                formattedInput.append(attributeName).append(", ");
+    private String formatFunctionPropertyInputValue(String nodeName, CloudifyDeployment cloudifyDeployment, FunctionPropertyValue functionPropertyValue,
+            String resolvedNodeName) {
+        FunctionPropertyValue filteredFunctionPropertyValue = new FunctionPropertyValue();
+        filteredFunctionPropertyValue.setFunction(functionPropertyValue.getFunction());
+        List<String> newParameters = Lists.newArrayList(functionPropertyValue.getParameters());
+        newParameters.set(0, resolvedNodeName);
+        filteredFunctionPropertyValue.setParameters(newParameters);
+        String nativeType = getNativeType(cloudifyDeployment, resolvedNodeName);
+        Map<String, String> attributeMapping = null;
+        if (nativeType != null) {
+            attributeMapping = providerMappingConfiguration.getAttributes().get(nativeType);
+        }
+        StringBuilder formattedInput = new StringBuilder("{ ").append(filteredFunctionPropertyValue.getFunction()).append(": [");
+        for (int i = 0; i < filteredFunctionPropertyValue.getParameters().size(); i++) {
+            String attributeName = filteredFunctionPropertyValue.getParameters().get(i);
+            if (attributeMapping != null && attributeMapping.containsKey(attributeName)) {
+                attributeName = attributeMapping.get(attributeName);
             }
-            // Remove the last ','
-            formattedInput.setLength(formattedInput.length() - 2);
-            formattedInput.append("] }");
-            return formattedInput.toString();
-        } else if (input instanceof ScalarPropertyValue) {
-            return ((ScalarPropertyValue) input).getValue();
+            formattedInput.append(attributeName).append(", ");
+        }
+        // Remove the last ','
+        formattedInput.setLength(formattedInput.length() - 2);
+        formattedInput.append("] }");
+        return formattedInput.toString();
+    }
+
+    private String getNativeType(CloudifyDeployment deployment, String id) {
+        if (deployment.getComputesMap().containsKey(id)) {
+            return NativeType.COMPUTE;
+        } else if (deployment.getVolumesMap().containsKey(id)) {
+            return NativeType.VOLUME;
+        } else if (deployment.getExternalNetworksMap().containsKey(id) || deployment.getInternalNetworksMap().containsKey(id)) {
+            return NativeType.NETWORK;
         } else {
-            throw new OperationNotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
+            return null;
         }
     }
 
@@ -259,7 +264,12 @@ public class BlueprintGenerationUtil {
         for (PaaSNodeTemplate network : allComputeNetworks) {
             MatchedPaaSTemplate externalMatchedNetwork = getMatchedNetwork(network, externalMatchedNetworks);
             if (externalMatchedNetwork != null) {
-                return externalMatchedNetwork.getPaaSResourceId();
+                String externalNetworkId = externalMatchedNetwork.getPaaSResourceId();
+                if (StringUtils.isEmpty(externalNetworkId)) {
+                    throw new BadConfigurationException("External network id must be configured");
+                } else {
+                    return externalNetworkId;
+                }
             }
         }
         return null;
@@ -306,12 +316,12 @@ public class BlueprintGenerationUtil {
     }
 
     public String tryToMapToCloudifyType(String toscaType) {
-        String mappedType = mapping.getNormativeTypes().get(toscaType);
+        String mappedType = mappingConfiguration.getNormativeTypes().get(toscaType);
         return mappedType != null ? mappedType : toscaType;
     }
 
-    public boolean typeMustBeMappedToCloudifyType(String toscaType) {
-        return mapping.getNormativeTypes().containsKey(toscaType);
+    private boolean typeMustBeMappedToCloudifyType(String toscaType) {
+        return mappingConfiguration.getNormativeTypes().containsKey(toscaType);
     }
 
     public String tryToMapToCloudifyInterface(String interfaceName) {
@@ -330,12 +340,12 @@ public class BlueprintGenerationUtil {
         }
     }
 
-    public String tryToMapToCloudifyRelationshipInterfaceOperation(String operationName, boolean isSource) {
+    private String tryToMapToCloudifyRelationshipInterfaceOperation(String operationName, boolean isSource) {
         Map<String, String> mapping;
         if (isSource) {
-            mapping = REL_SOURCE_MAPPING;
+            mapping = mappingConfiguration.getRelationships().getLifeCycle().getSource();
         } else {
-            mapping = REL_TARGET_MAPPING;
+            mapping = mappingConfiguration.getRelationships().getLifeCycle().getTarget();
         }
         String mappedName = mapping.get(operationName);
         return mappedName != null ? mappedName : operationName;
@@ -359,11 +369,41 @@ public class BlueprintGenerationUtil {
         return allDerivedFromsTypes.get(0);
     }
 
+    public boolean hasConfiguredVolume(List<MatchedPaaSTemplate<StorageTemplate>> volumes) {
+        if (volumes != null && !volumes.isEmpty()) {
+            for (MatchedPaaSTemplate<StorageTemplate> volume : volumes) {
+                if (isConfiguredVolume(volume.getPaaSNodeTemplate())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
         Map<String, String> volumeProperties = volumeTemplate.getNodeTemplate().getProperties();
         return volumeProperties != null
+                && StringUtils.isEmpty(volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID))
                 && (!StringUtils.isEmpty(volumeProperties.get(NormativeBlockStorageConstants.LOCATION)) || !StringUtils.isEmpty(volumeProperties
                         .get(NormativeBlockStorageConstants.FILE_SYSTEM)));
+    }
+
+    public boolean isDeletableVolume(PaaSNodeTemplate volumeTemplate) {
+        return ToscaUtils.isFromType(AlienCustomTypes.DELETABLE_BLOCKSTORAGE_TYPE, volumeTemplate.getIndexedToscaElement());
+    }
+
+    public String getExternalVolumeId(MatchedPaaSTemplate<StorageTemplate> matchedVolumeTemplate) {
+        String volumeId = matchedVolumeTemplate.getPaaSResourceId();
+        if (!StringUtils.isEmpty(volumeId)) {
+            return volumeId;
+        } else {
+            Map<String, String> volumeProperties = matchedVolumeTemplate.getPaaSNodeTemplate().getNodeTemplate().getProperties();
+            if (volumeProperties != null) {
+                return volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID);
+            } else {
+                return null;
+            }
+        }
     }
 
     public PaaSNodeTemplate getConfiguredAttachedVolume(PaaSNodeTemplate node) {
