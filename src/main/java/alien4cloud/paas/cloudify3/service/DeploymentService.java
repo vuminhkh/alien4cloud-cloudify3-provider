@@ -112,7 +112,7 @@ public class DeploymentService {
         ListenableFuture deletedDeployment = Futures.transform(startUninstall, deleteDeploymentFunction);
         // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of blueprint 2 seconds after the delete of
         // deployment
-        AsyncFunction<?, ?> deleteBlueprintFunction = new AsyncFunction() {
+        AsyncFunction deleteBlueprintFunction = new AsyncFunction() {
             @Override
             public ListenableFuture<?> apply(Object input) throws Exception {
                 ListenableFuture<?> scheduledDeleteBlueprint = Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
