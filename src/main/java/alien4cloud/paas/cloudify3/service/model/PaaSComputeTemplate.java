@@ -1,6 +1,7 @@
-package alien4cloud.paas.cloudify3.configuration;
+package alien4cloud.paas.cloudify3.service.model;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -8,9 +9,10 @@ import lombok.Setter;
 @SuppressWarnings("PMD.UnusedPrivateField")
 @Getter
 @Setter
+@EqualsAndHashCode
 @AllArgsConstructor
 @NoArgsConstructor
-public class CloudifyComputeTemplate {
+public class PaaSComputeTemplate {
 
     private String image;
 

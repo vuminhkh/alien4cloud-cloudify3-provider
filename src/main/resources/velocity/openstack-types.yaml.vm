@@ -1,11 +1,40 @@
-## Compute templates
-#foreach($computeTemplateEntry in $cloud.computeTemplates.entrySet())
-  ${mapping.generatedTypePrefix}.computes.${computeTemplateEntry.key}:
-    derived_from: $providerMapping.nativeTypes.computeType
+  ${mapping.generatedTypePrefix}.openstack.Compute:
+    derived_from: ${providerMapping.nativeTypes.computeType}
     properties:
-      server:
-        default:
-          image: $computeTemplateEntry.value.image
-          flavor: $computeTemplateEntry.value.flavor
+      ${mapping.nativeTypePropertyName}:
+        default: compute
+
+  ${mapping.generatedTypePrefix}.openstack.FloatingIP:
+    derived_from: ${providerMapping.nativeTypes.floatingIpType}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: floating_ip
+  
+  ${mapping.generatedTypePrefix}.openstack.DeletableVolume:
+    derived_from: ${providerMapping.nativeTypes.volumeType}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: volume
+
+  ${mapping.generatedTypePrefix}.openstack.Volume:
+    derived_from: ${providerMapping.nativeTypes.volumeType}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: volume
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        delete: {}
+
+  ${mapping.generatedTypePrefix}.openstack.Network:
+    derived_from: ${providerMapping.nativeTypes.networkType}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: network
+
+#if($util.hasConfiguredVolume($deployment.volumes))
+  ${mapping.generatedTypePrefix}.openstack.FileSystem:
+    derived_from: cloudify.nodes.FileSystem
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: file_system
 #end
-## TODO Volume

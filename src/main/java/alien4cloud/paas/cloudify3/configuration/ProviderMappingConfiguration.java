@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.service.model;
+package alien4cloud.paas.cloudify3.configuration;
 
 import java.util.Map;
 import java.util.Set;
@@ -14,14 +14,17 @@ public class ProviderMappingConfiguration {
 
     private ProviderNativeTypes nativeTypes;
 
+    private Map<String, Map<String, String>> attributes;
+
     @Getter
     @Setter
     public static class ProviderNativeTypes {
         private String computeType;
         private String networkType;
         private String subnetType;
-        private String blockStorageType;
+        private String volumeType;
         private String floatingIpType;
         private String floatingIpRelationshipType;
+        private String volumeAttachRelationshipType;
     }
 }

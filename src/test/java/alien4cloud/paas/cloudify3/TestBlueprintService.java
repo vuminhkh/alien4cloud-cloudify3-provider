@@ -15,12 +15,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.Assert;
 
-import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
-import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.paas.cloudify3.util.ApplicationUtil;
-import alien4cloud.paas.cloudify3.util.DeploymentUtil;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
@@ -33,18 +29,10 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
-    @Resource
-    private ApplicationUtil applicationUtil;
-
-    @Resource
-    private DeploymentUtil deploymentUtil;
-
     @Test
     public void testGenerateSingleCompute() {
-        Topology topology = applicationUtil.createAlienApplication("testGenerateSingleCompute", SINGLE_COMPUTE_TOPOLOGY);
-        CloudifyDeployment alienDeployment = deploymentUtil.buildAlienDeployment("testGenerateSingleCompute", "testGenerateSingleCompute", topology,
-                generateDeploymentSetup(topology));
-        Path generated = blueprintService.generateBlueprint(alienDeployment);
+        Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext(
+                "testGenerateLamp", SINGLE_COMPUTE_TOPOLOGY)));
         FileAssert.assertEquals(new File("src/test/resources/outputs/blueprints/single_compute.yaml"), generated.toFile());
     }
 
@@ -67,5 +55,11 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     public void testGenerateFloatingIP() {
         blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext("testGenerateFloatingIP",
                 NETWORK_TOPOLOGY)));
+    }
+
+    @Test
+    public void testGenerateBlockStorage() {
+        blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext("testGenerateBlockStorage",
+                BLOCK_STORAGE_TOPOLOGY)));
     }
 }

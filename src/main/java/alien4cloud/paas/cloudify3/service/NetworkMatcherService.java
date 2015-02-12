@@ -2,7 +2,7 @@ package alien4cloud.paas.cloudify3.service;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.model.cloud.Network;
+import alien4cloud.model.cloud.NetworkTemplate;
 
 /**
  * Handle network matching
@@ -10,6 +10,6 @@ import alien4cloud.model.cloud.Network;
  * @author Minh Khang VU
  */
 @Component("cloudify-network-matcher-service")
-public class NetworkMatcherService extends AbstractResourceMatcherService<Network> {
+public class NetworkMatcherService extends AbstractResourceMatcherService<NetworkTemplate> {
 
 }
