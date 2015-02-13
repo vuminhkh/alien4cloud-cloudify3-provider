@@ -79,7 +79,7 @@ public class AbstractTest {
     @Before
     public void before() throws Exception {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
-        cloudConfiguration.setUrl("http://129.185.67.48:8100");
+        cloudConfiguration.setUrl("http://129.185.67.33:8100");
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
 
