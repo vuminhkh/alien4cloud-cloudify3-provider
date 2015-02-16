@@ -16,7 +16,11 @@ public class MapUtil {
         for (Map.Entry<String, Object> stringObjectEntry : stringObjectMap.entrySet()) {
             try {
                 if (stringObjectEntry.getValue() != null) {
-                    stringStringMap.put(stringObjectEntry.getKey(), JsonUtil.toString(stringObjectEntry.getValue()));
+                    if (stringObjectEntry.getValue() instanceof String) {
+                        stringStringMap.put(stringObjectEntry.getKey(), (String) stringObjectEntry.getValue());
+                    } else {
+                        stringStringMap.put(stringObjectEntry.getKey(), JsonUtil.toString(stringObjectEntry.getValue()));
+                    }
                 } else {
                     stringStringMap.put(stringObjectEntry.getKey(), null);
                 }

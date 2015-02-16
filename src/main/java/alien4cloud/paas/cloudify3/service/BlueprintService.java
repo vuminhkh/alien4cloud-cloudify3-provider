@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
 import lombok.SneakyThrows;
@@ -17,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.components.ImplementationArtifact;
@@ -27,19 +25,14 @@ import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.paas.IPaaSTemplate;
-import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.configuration.ICloudConfigurationChangeListener;
+import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.paas.cloudify3.service.model.MappingConfiguration;
-import alien4cloud.paas.cloudify3.service.model.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.util.BlueprintGenerationUtil;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
-import alien4cloud.utils.YamlParserUtil;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -56,33 +49,12 @@ public class BlueprintService {
     private CloudConfigurationHolder cloudConfigurationHolder;
 
     @Resource
+    private MappingConfigurationHolder mappingConfigurationHolder;
+
+    @Resource
     private ClasspathResourceLoaderService resourceLoaderService;
 
     private Path recipeDirectoryPath;
-
-    private MappingConfiguration mapping;
-
-    private ProviderMappingConfiguration providerMapping;
-
-    private ObjectMapper yamlObjectMapper = YamlParserUtil.createYamlObjectMapper();
-
-    @PostConstruct
-    public void postConstruct() throws Exception {
-        mapping = yamlObjectMapper.readValue(
-                new ClassPathResource("mapping/mapping.yaml", resourceLoaderService.getApplicationContextClassLoader()).getInputStream(),
-                MappingConfiguration.class);
-        cloudConfigurationHolder.registerListener(new ICloudConfigurationChangeListener() {
-            @Override
-            public void onConfigurationChange(CloudConfiguration newConfiguration) throws Exception {
-                loadProviderMapping();
-            }
-        });
-    }
-
-    private void loadProviderMapping() throws Exception {
-        providerMapping = yamlObjectMapper.readValue(new ClassPathResource("mapping/" + cloudConfigurationHolder.getConfiguration().getProvider() + ".yaml",
-                resourceLoaderService.getApplicationContextClassLoader()).getInputStream(), ProviderMappingConfiguration.class);
-    }
 
     /**
      * Generate blueprint from an alien deployment request
@@ -92,22 +64,23 @@ public class BlueprintService {
      */
     @SneakyThrows
     public Path generateBlueprint(CloudifyDeployment alienDeployment) {
-        if (providerMapping == null) {
-            loadProviderMapping();
-        }
         // Where the whole blueprint will be generated
         Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getRecipeId());
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
-        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mapping);
+        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(),
+                mappingConfigurationHolder.getProviderMappingConfiguration());
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
-        context.put("mapping", mapping);
-        context.put("providerMapping", providerMapping);
+        context.put("mapping", mappingConfigurationHolder.getMappingConfiguration());
+        context.put("providerMapping", mappingConfigurationHolder.getProviderMappingConfiguration());
         context.put("util", util);
         context.put("deployment", alienDeployment);
         context.put("newline", "\n");
+        context.put("provider_nodes_file",
+                resourceLoaderService.loadResourceFromClasspath("velocity/" + cloudConfigurationHolder.getConfiguration().getProvider() + "-nodes.yaml.vm")
+                        .getFileName().toString());
         context.put("provider_types_file",
                 resourceLoaderService.loadResourceFromClasspath("velocity/" + cloudConfigurationHolder.getConfiguration().getProvider() + "-types.yaml.vm")
                         .getFileName().toString());
@@ -132,6 +105,15 @@ public class BlueprintService {
                     }
                 }
             }
+        }
+
+        if (util.hasConfiguredVolume(alienDeployment.getVolumes())) {
+            Path volumeScriptPath = generatedBlueprintDirectoryPath.resolve("cfy3_native/volume");
+            Files.createDirectories(volumeScriptPath);
+            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
+            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
+            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
+            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
         }
         return generatedBlueprintFilePath;
     }

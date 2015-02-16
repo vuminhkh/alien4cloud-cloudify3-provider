@@ -1,6 +1,10 @@
 dsl_version: cloudify_dsl_1_0
 
-generated_type_prefix: alien4cloud
+generated_type_prefix: _a4c_generated_type
+
+generated_node_prefix: _a4c_generated_node
+
+native_type_property_name: _a4c_native_type
 
 normative_types:
   tosca.nodes.Root: cloudify.nodes.Root
@@ -12,3 +16,16 @@ normative_types:
   tosca.relationships.DependsOn: cloudify.relationships.depends_on
   tosca.relationships.HostedOn: cloudify.relationships.contained_in
   tosca.relationships.ConnectsTo: cloudify.relationships.connected_to
+  
+relationships:
+  life_cycle:
+    source:
+      pre_configure_source: preconfigure
+      post_configure_source: postconfigure
+      add_target: establish
+      remove_target: unlink
+    target:
+      pre_configure_target: preconfigure
+      post_configure_target: postconfigure
+      add_source: establish
+      remove_source: unlink

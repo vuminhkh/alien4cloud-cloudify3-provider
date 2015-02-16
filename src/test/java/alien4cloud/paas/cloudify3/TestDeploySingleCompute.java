@@ -2,6 +2,7 @@ package alien4cloud.paas.cloudify3;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Resource;
 
@@ -13,13 +14,9 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
-import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.paas.cloudify3.util.ApplicationUtil;
-import alien4cloud.paas.cloudify3.util.DeploymentUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceStatus;
@@ -40,24 +37,9 @@ public class TestDeploySingleCompute extends AbstractDeploymentTest {
     @Resource
     private EventService eventService;
 
-    @Resource
-    private ApplicationUtil applicationUtil;
-
-    @Resource
-    private DeploymentUtil deploymentUtil;
-
-    @Test
-    public void testDeploySingleCompute() throws Exception {
-        Date beginTestTimestamp = new Date();
-        Topology topology = applicationUtil.createAlienApplication("testDeploySingleCompute", SINGLE_COMPUTE_TOPOLOGY);
-        CloudifyDeployment deployment = deploymentUtil.buildAlienDeployment("testDeploySingleCompute", "testDeploySingleCompute", topology,
-                generateDeploymentSetup(topology));
-        deploymentService.deploy(deployment).get();
-        log.info("Finished deploying {}", deployment.getDeploymentId());
-        Thread.sleep(1000L);
+    private void getEvents(Date beginTestTimestamp, List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents,
+            List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents) throws ExecutionException, InterruptedException {
         AbstractMonitorEvent[] events = eventService.getEventsSince(beginTestTimestamp, Integer.MAX_VALUE).get();
-        List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents = Lists.newArrayList();
-        List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents = Lists.newArrayList();
         for (AbstractMonitorEvent event : events) {
             if (event instanceof PaaSDeploymentStatusMonitorEvent) {
                 deploymentStatusEvents.add((PaaSDeploymentStatusMonitorEvent) event);
@@ -65,6 +47,19 @@ public class TestDeploySingleCompute extends AbstractDeploymentTest {
                 instanceStateMonitorEvents.add((PaaSInstanceStateMonitorEvent) event);
             }
         }
+    }
+
+    @Test
+    public void testDeploySingleCompute() throws Exception {
+        Date beginTestTimestamp = new Date();
+        launchTest("testDeploySingleCompute", SINGLE_COMPUTE_TOPOLOGY);
+
+        List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents = Lists.newArrayList();
+        List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents = Lists.newArrayList();
+
+        getEvents(beginTestTimestamp, deploymentStatusEvents, instanceStateMonitorEvents);
+        getEvents(beginTestTimestamp, deploymentStatusEvents, instanceStateMonitorEvents);
+
         // Check deployment status events
         Assert.assertEquals(2, deploymentStatusEvents.size());
         Assert.assertEquals(DeploymentStatus.DEPLOYMENT_IN_PROGRESS, deploymentStatusEvents.get(0).getDeploymentStatus());
@@ -79,6 +74,5 @@ public class TestDeploySingleCompute extends AbstractDeploymentTest {
         context.setDeploymentId("testDeploySingleCompute");
         context.setRecipeId("testDeploySingleCompute");
         deploymentService.undeploy(context).get();
-        log.info("Finished un-deploying {}", deployment.getDeploymentId());
     }
 }

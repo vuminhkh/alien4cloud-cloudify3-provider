@@ -1,6 +1,7 @@
 package alien4cloud.paas.cloudify3.service;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -17,12 +18,16 @@ import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.ICloudConfigurationChangeListener;
+import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
 import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
+import alien4cloud.paas.cloudify3.dao.NodeDAO;
 import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
+import alien4cloud.paas.cloudify3.model.AbstractCloudifyModel;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
+import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
@@ -57,10 +62,16 @@ public class StatusService {
     private NodeInstanceDAO nodeInstanceDAO;
 
     @Resource
+    private NodeDAO nodeDAO;
+
+    @Resource
     private DeploymentDAO deploymentDAO;
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
+
+    @Resource
+    private MappingConfigurationHolder mappingConfigurationHolder;
 
     @PostConstruct
     public void postConstruct() {
@@ -172,9 +183,17 @@ public class StatusService {
             return;
         }
         ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(deploymentId);
-        Futures.addCallback(instancesFuture, new FutureCallback<NodeInstance[]>() {
+        ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(deploymentId, null);
+        ListenableFuture<List<AbstractCloudifyModel[]>> combinedFutures = Futures.allAsList(instancesFuture, nodesFuture);
+        Futures.addCallback(combinedFutures, new FutureCallback<List<AbstractCloudifyModel[]>>() {
             @Override
-            public void onSuccess(NodeInstance[] instances) {
+            public void onSuccess(List<AbstractCloudifyModel[]> nodeAndNodeInstances) {
+                NodeInstance[] instances = (NodeInstance[]) nodeAndNodeInstances.get(0);
+                Node[] nodes = (Node[]) nodeAndNodeInstances.get(1);
+                Map<String, Node> nodeMap = Maps.newHashMap();
+                for (Node node : nodes) {
+                    nodeMap.put(node.getId(), node);
+                }
                 Map<String, Map<String, InstanceInformation>> information = Maps.newHashMap();
                 for (NodeInstance instance : instances) {
                     NodeTemplate nodeTemplate = topology.getNodeTemplates().get(instance.getNodeId());
@@ -196,9 +215,17 @@ public class StatusService {
                     } else {
                         instanceInformation.setInstanceStatus(instanceStatus);
                     }
-                    instanceInformation.setRuntimeProperties(MapUtil.toString(instance.getRuntimeProperties()));
+                    Map<String, String> runtimeProperties = MapUtil.toString(instance.getRuntimeProperties());
+                    instanceInformation.setRuntimeProperties(runtimeProperties);
+                    Node node = nodeMap.get(instance.getNodeId());
                     instanceInformation.setProperties(nodeTemplate.getProperties());
-                    instanceInformation.setAttributes(nodeTemplate.getAttributes());
+                    if (node != null && node.getProperties() != null) {
+                        String nativeType = getNativeType(node);
+                        if (nativeType != null && runtimeProperties != null) {
+                            Map<String, String> attributes = getAttributesFromRuntimeProperties(nativeType, runtimeProperties);
+                            instanceInformation.setAttributes(attributes);
+                        }
+                    }
                     nodeInformation.put(instanceId, instanceInformation);
                 }
                 callback.onSuccess(information);
@@ -220,22 +247,43 @@ public class StatusService {
 
     public InstanceStatus getInstanceStatusFromState(String state) {
         switch (state) {
-            case NodeInstanceStatus.STARTED:
-                return InstanceStatus.SUCCESS;
-            case NodeInstanceStatus.UNINITIALIZED:
-            case NodeInstanceStatus.STOPPING:
-            case NodeInstanceStatus.STOPPED:
-            case NodeInstanceStatus.STARTING:
-            case NodeInstanceStatus.CONFIGURING:
-            case NodeInstanceStatus.CONFIGURED:
-            case NodeInstanceStatus.CREATING:
-            case NodeInstanceStatus.CREATED:
-            case NodeInstanceStatus.DELETING:
-                return InstanceStatus.PROCESSING;
-            case NodeInstanceStatus.DELETED:
-                return null;
-            default:
-                return InstanceStatus.FAILURE;
+        case NodeInstanceStatus.STARTED:
+            return InstanceStatus.SUCCESS;
+        case NodeInstanceStatus.UNINITIALIZED:
+        case NodeInstanceStatus.STOPPING:
+        case NodeInstanceStatus.STOPPED:
+        case NodeInstanceStatus.STARTING:
+        case NodeInstanceStatus.CONFIGURING:
+        case NodeInstanceStatus.CONFIGURED:
+        case NodeInstanceStatus.CREATING:
+        case NodeInstanceStatus.CREATED:
+        case NodeInstanceStatus.DELETING:
+            return InstanceStatus.PROCESSING;
+        case NodeInstanceStatus.DELETED:
+            return null;
+        default:
+            return InstanceStatus.FAILURE;
         }
+    }
+
+    public Map<String, String> getAttributesFromRuntimeProperties(String type, Map<String, String> runtimeProperties) {
+        Map<String, String> attributes = Maps.newHashMap();
+        Map<String, String> mapping = mappingConfigurationHolder.getProviderMappingConfiguration().getAttributes().get(type);
+        if (mapping != null) {
+            Map<String, String> attributesMapping = alien4cloud.utils.MapUtil.revert(mapping);
+            Iterator<Map.Entry<String, String>> runtimePropertyIterator = runtimeProperties.entrySet().iterator();
+            while (runtimePropertyIterator.hasNext()) {
+                Map.Entry<String, String> runtimePropertyEntry = runtimePropertyIterator.next();
+                String attributeKey = attributesMapping.get(runtimePropertyEntry.getKey());
+                if (attributeKey != null) {
+                    attributes.put(attributeKey, runtimePropertyEntry.getValue());
+                }
+            }
+        }
+        return attributes;
+    }
+
+    public String getNativeType(Node node) {
+        return (String) node.getProperties().get(mappingConfigurationHolder.getMappingConfiguration().getNativeTypePropertyName());
     }
 }

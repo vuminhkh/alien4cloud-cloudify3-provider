@@ -11,28 +11,27 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import alien4cloud.model.application.DeploymentSetup;
+import alien4cloud.model.cloud.CloudImage;
+import alien4cloud.model.cloud.CloudImageFlavor;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.ComputeTemplate;
-import alien4cloud.model.cloud.MatchedComputeTemplate;
-import alien4cloud.model.cloud.MatchedNetwork;
-import alien4cloud.model.cloud.Network;
+import alien4cloud.model.cloud.NetworkTemplate;
+import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.configuration.Flavor;
-import alien4cloud.paas.cloudify3.configuration.Image;
-import alien4cloud.paas.cloudify3.configuration.Subnet;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
+import alien4cloud.paas.cloudify3.service.StorageTemplateMatcherService;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
+import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 import alien4cloud.tosca.normative.NormativeComputeConstants;
 import alien4cloud.tosca.normative.NormativeNetworkConstants;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class AbstractTest {
 
@@ -46,11 +45,15 @@ public class AbstractTest {
 
     public static final String NETWORK_TOPOLOGY = "network";
 
+    public static final String BLOCK_STORAGE_TOPOLOGY = "block_storage";
+
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
-    private Network network = new Network(4, "", "net-pub", "");
+    private NetworkTemplate network = new NetworkTemplate("net-pub", 4, true, null, null);
 
-    private Network internalNetwork = new Network(4, "", "internal-network", "");
+    private NetworkTemplate internalNetwork = new NetworkTemplate("internal-network", 4, false, "192.168.1.0/24", "192.168.1.1");
+
+    private StorageTemplate storageTemplate = new StorageTemplate("small", 1L, "/dev/vdb");
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -60,6 +63,9 @@ public class AbstractTest {
 
     @Resource
     private NetworkMatcherService networkMatcherService;
+
+    @Resource
+    private StorageTemplateMatcherService storageTemplateMatcherService;
 
     @Resource
     private CSARUtil csarUtil;
@@ -73,31 +79,48 @@ public class AbstractTest {
     @Before
     public void before() throws Exception {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
-        cloudConfiguration.setUrl("http://129.185.67.107:8100");
-        cloudConfiguration.setImages(Sets.newHashSet(new Image("727df994-2e1b-404e-9276-b248223a835d", "Ubuntu Precise")));
-        cloudConfiguration.setFlavors(Sets.newHashSet(new Flavor("3", "Medium")));
-        cloudConfiguration.setNetworks(Sets.newHashSet(
-                new alien4cloud.paas.cloudify3.configuration.Network("net-pub", "Public Network", true, null),
-                new alien4cloud.paas.cloudify3.configuration.Network("internal-network", "Internal Network", false, Sets.newHashSet(new Subnet(
-                        "internal-network-subnet", "Internal Network Subnet", 4, "192.168.1.0/24")))));
+        cloudConfiguration.setUrl("http://129.185.67.33:8100");
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
-        matcherConfig.setMatchedComputeTemplates(Lists.newArrayList(new MatchedComputeTemplate(computeTemplate, "Medium_Ubuntu_Precise")));
-        matcherConfig.setMatchedNetworks(Lists.newArrayList(new MatchedNetwork(network, "net-pub"), new MatchedNetwork(internalNetwork, "internal-network")));
-        computeTemplateMatcherService.configure(matcherConfig.getComputeTemplateMapping());
+
+        Map<CloudImage, String> imageMapping = Maps.newHashMap();
+        CloudImage cloudImage = new CloudImage();
+        cloudImage.setId("alien_image");
+        imageMapping.put(cloudImage, "727df994-2e1b-404e-9276-b248223a835d");
+        matcherConfig.setImageMapping(imageMapping);
+
+        Map<CloudImageFlavor, String> flavorMapping = Maps.newHashMap();
+        flavorMapping.put(new CloudImageFlavor("alien_flavor", 1, 2L, 3L), "2");
+        matcherConfig.setFlavorMapping(flavorMapping);
+
+        Map<NetworkTemplate, String> networkMapping = Maps.newHashMap();
+        networkMapping.put(network, "net-pub");
+        networkMapping.put(internalNetwork, "internal-network");
+        matcherConfig.setNetworkMapping(networkMapping);
+
+        Map<StorageTemplate, String> storageMapping = Maps.newHashMap();
+        storageMapping.put(storageTemplate, "small");
+        matcherConfig.setStorageMapping(storageMapping);
+
+        computeTemplateMatcherService.configure(matcherConfig.getImageMapping(), matcherConfig.getFlavorMapping());
         networkMatcherService.configure(matcherConfig.getNetworkMapping());
+        storageTemplateMatcherService.configure(storageMapping);
         csarUtil.uploadAll();
     }
 
     protected DeploymentSetup generateDeploymentSetup(Topology topology) {
         List<String> nodeIds = Lists.newArrayList();
         List<String> networkIds = Lists.newArrayList();
+        List<String> blockStorageIds = Lists.newArrayList();
         for (Map.Entry<String, NodeTemplate> nodeTemplateEntry : topology.getNodeTemplates().entrySet()) {
             if (NormativeComputeConstants.COMPUTE_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
                 nodeIds.add(nodeTemplateEntry.getKey());
             }
             if (NormativeNetworkConstants.NETWORK_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
                 networkIds.add(nodeTemplateEntry.getKey());
+            }
+            if (NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
+                blockStorageIds.add(nodeTemplateEntry.getKey());
             }
         }
         DeploymentSetup deploymentSetup = new DeploymentSetup();
@@ -108,7 +131,7 @@ public class AbstractTest {
             resourcesMapping.put(nodeId, computeTemplate);
         }
 
-        Map<String, Network> networkMapping = Maps.newHashMap();
+        Map<String, NetworkTemplate> networkMapping = Maps.newHashMap();
         deploymentSetup.setNetworkMapping(networkMapping);
         for (String networkId : networkIds) {
             switch (networkId) {
@@ -121,9 +144,13 @@ public class AbstractTest {
             default:
                 throw new RuntimeException("Not configured " + networkId);
             }
-
         }
 
+        Map<String, StorageTemplate> storageMapping = Maps.newHashMap();
+        for (String storageId : blockStorageIds) {
+            storageMapping.put(storageId, storageTemplate);
+        }
+        deploymentSetup.setStorageMapping(storageMapping);
         return deploymentSetup;
     }
 }

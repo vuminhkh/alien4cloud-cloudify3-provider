@@ -11,9 +11,9 @@ import alien4cloud.paas.model.PaaSNodeTemplate;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class MatchedPaaSNativeComponentTemplate {
+public class MatchedPaaSComputeTemplate implements IMatchedPaaSTemplate {
 
     private PaaSNodeTemplate paaSNodeTemplate;
 
-    private String paaSResourceId;
+    private PaaSComputeTemplate paaSComputeTemplate;
 }

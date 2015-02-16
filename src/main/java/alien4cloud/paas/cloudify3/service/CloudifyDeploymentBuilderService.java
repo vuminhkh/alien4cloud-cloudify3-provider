@@ -9,12 +9,15 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
+import alien4cloud.model.cloud.NetworkTemplate;
+import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.IndexedModelUtils;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
-import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.paas.cloudify3.service.model.MatchedPaaSNativeComponentTemplate;
+import alien4cloud.paas.cloudify3.service.model.IMatchedPaaSTemplate;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
@@ -33,15 +36,25 @@ public class CloudifyDeploymentBuilderService {
     @Resource(name = "cloudify-network-matcher-service")
     private NetworkMatcherService networkMatcherService;
 
-    @Resource(name = "cloudify-configuration-holder")
-    private CloudConfigurationHolder cloudConfigurationHolder;
+    @Resource(name = "cloudify-storage-matcher-service")
+    private StorageTemplateMatcherService storageMatcherService;
+
+    private <T extends IMatchedPaaSTemplate> Map<String, T> buildTemplateMap(List<T> matchedPaaSTemplates) {
+        Map<String, T> mapping = Maps.newHashMap();
+        for (T matchedPaaSTemplate : matchedPaaSTemplates) {
+            mapping.put(matchedPaaSTemplate.getPaaSNodeTemplate().getId(), matchedPaaSTemplate);
+        }
+        return mapping;
+    }
 
     public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
 
-        List<MatchedPaaSNativeComponentTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
+        List<MatchedPaaSComputeTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
                 deploymentContext.getDeploymentSetup().getCloudResourcesMapping());
-        List<MatchedPaaSNativeComponentTemplate> matchedNetworks = networkMatcherService.match(deploymentContext.getPaaSTopology().getNetworks(),
+        List<MatchedPaaSTemplate<NetworkTemplate>> matchedNetworks = networkMatcherService.match(deploymentContext.getPaaSTopology().getNetworks(),
                 deploymentContext.getDeploymentSetup().getNetworkMapping());
+        List<MatchedPaaSTemplate<StorageTemplate>> matchedStorages = storageMatcherService.match(deploymentContext.getPaaSTopology().getVolumes(),
+                deploymentContext.getDeploymentSetup().getStorageMapping());
 
         Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
         Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
@@ -57,19 +70,20 @@ public class CloudifyDeploymentBuilderService {
             }
         }
 
-        List<MatchedPaaSNativeComponentTemplate> matchedInternalNetworks = Lists.newArrayList();
-        List<MatchedPaaSNativeComponentTemplate> matchedExternalNetworks = Lists.newArrayList();
+        List<MatchedPaaSTemplate<NetworkTemplate>> matchedInternalNetworks = Lists.newArrayList();
+        List<MatchedPaaSTemplate<NetworkTemplate>> matchedExternalNetworks = Lists.newArrayList();
 
-        for (MatchedPaaSNativeComponentTemplate matchedNetwork : matchedNetworks) {
-            if (cloudConfigurationHolder.getConfiguration().getNetworkTemplates().get(matchedNetwork.getPaaSResourceId()).getIsExternal()) {
+        for (MatchedPaaSTemplate<NetworkTemplate> matchedNetwork : matchedNetworks) {
+            if (matchedNetwork.getPaaSResourceTemplate().getIsExternal()) {
                 matchedExternalNetworks.add(matchedNetwork);
             } else {
                 matchedInternalNetworks.add(matchedNetwork);
             }
         }
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
-                matchedInternalNetworks, matchedExternalNetworks, deploymentContext.getPaaSTopology().getNonNatives(),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
+                matchedInternalNetworks, matchedExternalNetworks, matchedStorages, buildTemplateMap(matchedComputes),
+                buildTemplateMap(matchedInternalNetworks), buildTemplateMap(matchedExternalNetworks), buildTemplateMap(matchedStorages), deploymentContext
+                        .getPaaSTopology().getNonNatives(), IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), deploymentContext.getPaaSTopology().getAllNodes());
         return deployment;
     }
