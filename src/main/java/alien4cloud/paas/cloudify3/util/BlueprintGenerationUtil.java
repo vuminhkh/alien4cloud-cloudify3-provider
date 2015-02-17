@@ -383,7 +383,6 @@ public class BlueprintGenerationUtil {
     public boolean isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
         Map<String, String> volumeProperties = volumeTemplate.getNodeTemplate().getProperties();
         return volumeProperties != null
-                && StringUtils.isEmpty(volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID))
                 && (!StringUtils.isEmpty(volumeProperties.get(NormativeBlockStorageConstants.LOCATION)) || !StringUtils.isEmpty(volumeProperties
                         .get(NormativeBlockStorageConstants.FILE_SYSTEM)));
     }

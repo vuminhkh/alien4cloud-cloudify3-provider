@@ -33,7 +33,7 @@
 
 #if($util.hasConfiguredVolume($deployment.volumes))
   ${mapping.generatedTypePrefix}.openstack.FileSystem:
-    derived_from: cloudify.nodes.FileSystem
+    derived_from: ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem
     properties:
       ${mapping.nativeTypePropertyName}:
         default: file_system

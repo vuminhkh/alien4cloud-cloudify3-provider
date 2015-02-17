@@ -20,7 +20,7 @@ node_types:
 ## TODO This is copied from http://www.getcloudify.org/spec/cloudify/3.2m4/types.yaml
 ## TODO We must remove this once we migrate to cloudify 3.2
 #if($util.hasConfiguredVolume($deployment.volumes))
-  cloudify.nodes.FileSystem:
+  ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem:
     derived_from: cloudify.nodes.Root
     properties:
       use_external_resource:
@@ -77,13 +77,13 @@ relationships:
 ## TODO This is copied from http://www.getcloudify.org/spec/cloudify/3.2m4/types.yaml
 ## TODO We must remove this once we migrate to cloudify 3.2
 #if($util.hasConfiguredVolume($deployment.volumes))
-  cloudify.relationships.file_system_depends_on_volume:
+  ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_depends_on_volume:
     derived_from: cloudify.relationships.depends_on
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         preconfigure:
           implementation: cfy3_native/volume/fdisk.sh
-  cloudify.relationships.file_system_contained_in_compute:
+  ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_contained_in_compute:
     derived_from: cloudify.relationships.contained_in
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
