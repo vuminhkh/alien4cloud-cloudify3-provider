@@ -93,6 +93,9 @@ public class EventService {
             public void onSuccess(AbstractMonitorEvent[] result) {
                 for (final AbstractMonitorEvent event : result) {
                     if (event instanceof PaaSDeploymentStatusMonitorEvent) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Send event {} to Alien", event);
+                        }
                         DeploymentStatus deploymentStatus = ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus();
                         statusService.registerDeploymentEvent(event.getDeploymentId(), deploymentStatus);
                         if (DeploymentStatus.DEPLOYED.equals(deploymentStatus)) {
@@ -203,11 +206,6 @@ public class EventService {
                         }
                     }
                 }
-                if (log.isDebugEnabled()) {
-                    for (AbstractMonitorEvent event : alienEvents) {
-                        log.debug("Send event {} to Alien", event);
-                    }
-                }
                 return alienEvents.toArray(new AbstractMonitorEvent[alienEvents.size()]);
             }
         };
@@ -224,6 +222,11 @@ public class EventService {
             toBeReturned = internalProviderEventsQueue.subList(0, batchSize);
         }
         try {
+            if (log.isDebugEnabled()) {
+                for (AbstractMonitorEvent event : toBeReturned) {
+                    log.debug("Send event {} to Alien", event);
+                }
+            }
             return Futures.immediateFuture(toBeReturned.toArray(new AbstractMonitorEvent[toBeReturned.size()]));
         } finally {
             if (toBeReturned == internalProviderEventsQueue) {

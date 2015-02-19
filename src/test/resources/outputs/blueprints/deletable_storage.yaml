@@ -1,0 +1,176 @@
+
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
+
+node_types:
+
+  _a4c_generated_type.openstack.Compute:
+    derived_from: cloudify.openstack.nodes.Server
+    properties:
+      _a4c_native_type:
+        default: compute
+
+  _a4c_generated_type.openstack.FloatingIP:
+    derived_from: cloudify.openstack.nodes.FloatingIP
+    properties:
+      _a4c_native_type:
+        default: floating_ip
+  
+  _a4c_generated_type.openstack.DeletableVolume:
+    derived_from: cloudify.openstack.nodes.Volume
+    properties:
+      _a4c_native_type:
+        default: volume
+
+  _a4c_generated_type.openstack.Volume:
+    derived_from: cloudify.openstack.nodes.Volume
+    properties:
+      _a4c_native_type:
+        default: volume
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        delete: {}
+
+  _a4c_generated_type.openstack.Network:
+    derived_from: cloudify.openstack.nodes.Network
+    properties:
+      _a4c_native_type:
+        default: network
+
+  _a4c_generated_type.openstack.FileSystem:
+    derived_from: _a4c_generated_type.cloudify.nodes.FileSystem
+    properties:
+      _a4c_native_type:
+        default: file_system
+
+  _a4c_generated_type.cloudify.nodes.FileSystem:
+    derived_from: cloudify.nodes.Root
+    properties:
+      use_external_resource:
+        description: >
+          Enables the use of already formatted volumes.
+        type: boolean
+        default: false
+      partition_type:
+        description: >
+          The partition type. 83 is a Linux Native Partition.
+        type: integer
+        default: 83
+      fs_type:
+        description: >
+          The type of the File System.
+          Supported types are [ext2, ext3, ext4, fat, ntfs, swap]
+        type: string
+      fs_mount_path:
+        description: >
+          The path of the mount point.
+        type: string
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        configure:
+          implementation: cfy3_native/volume/mkfs.sh
+  alien.nodes.Mysql:
+    derived_from: cloudify.nodes.Database
+    properties:
+      db_port:
+        type: string
+        default: "3306"
+      db_name:
+        type: string
+        default: "wordpress"
+      db_user:
+        type: string
+        default: "pass"
+      db_password:
+        type: string
+        default: "pass"
+      bind_address:
+        type: string
+        default: "true"
+      storage_path:
+        type: string
+        default: "/mountedStorage"
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: mysql-type/alien.nodes.Mysql/scripts/install_mysql.sh
+
+relationships:
+  _a4c_generated_type.cloudify.relationships.file_system_depends_on_volume:
+    derived_from: cloudify.relationships.depends_on
+    source_interfaces:
+      cloudify.interfaces.relationship_lifecycle:
+        preconfigure:
+          implementation: cfy3_native/volume/fdisk.sh
+  _a4c_generated_type.cloudify.relationships.file_system_contained_in_compute:
+    derived_from: cloudify.relationships.contained_in
+    source_interfaces:
+      cloudify.interfaces.relationship_lifecycle:
+        establish:
+          implementation: cfy3_native/volume/mount.sh
+        unlink:
+          implementation: cfy3_native/volume/unmount.sh
+
+node_templates:
+
+  Compute:
+    type: _a4c_generated_type.openstack.Compute
+    properties:
+      server:
+        image: 727df994-2e1b-404e-9276-b248223a835d
+        flavor: 2
+    instances:
+      deploy: 1
+
+
+  _a4c_generated_node_file_system_BlockStorage:
+    type: _a4c_generated_type.openstack.FileSystem
+    properties:
+      fs_type: ext4
+      fs_mount_path: /var/mysql
+    relationships:
+      - type: _a4c_generated_type.cloudify.relationships.file_system_depends_on_volume
+        target: BlockStorage
+      - type: _a4c_generated_type.cloudify.relationships.file_system_contained_in_compute
+        target: Compute
+  BlockStorage:
+    type: _a4c_generated_type.openstack.DeletableVolume
+    properties:
+      device_name: /dev/vdb
+      volume:
+        size: 1
+    relationships:
+      - target: Compute
+        type: cloudify.openstack.volume_attached_to_server
+
+  Mysql:
+    type: alien.nodes.Mysql
+    instances:
+      deploy: 1
+    properties:
+      bind_address: "true"
+      storage_path: "/var/mysql"
+      db_port: "3306"
+      db_name: "wordpress"
+      db_user: "pass"
+      db_password: "pass"
+    interfaces:
+        cloudify.interfaces.lifecycle:
+            start:
+              implementation: mysql-type/alien.nodes.Mysql/scripts/start_mysql.sh
+              inputs:
+                process:
+                  env:
+                    VOLUME_HOME: { get_property: [Mysql, storage_path] }
+                    PORT: { get_property: [Mysql, db_port] }
+                    DB_NAME: { get_property: [Mysql, db_name] }
+                    DB_USER: { get_property: [Mysql, db_user] }
+                    DB_PASSWORD: { get_property: [Mysql, db_password] }
+                    BIND_ADRESS: { get_property: [Mysql, bind_address] }
+    relationships:
+      - target: _a4c_generated_node_file_system_BlockStorage
+        type: cloudify.relationships.depends_on
+      - target: Compute
+        type: cloudify.relationships.contained_in

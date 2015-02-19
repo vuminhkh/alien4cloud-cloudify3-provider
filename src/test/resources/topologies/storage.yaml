@@ -1,4 +1,5 @@
 node_templates:
+
   Compute:
     type: tosca.nodes.Compute
     properties:
@@ -34,4 +35,4 @@ dependencies:
   - name: tosca-normative-types
     version: 1.0.0.wd03-SNAPSHOT
   - name: mysql-type
-    version: 1.0.0.wd03-SNAPSHOT
+    version: 2.0.0-SNAPSHOT

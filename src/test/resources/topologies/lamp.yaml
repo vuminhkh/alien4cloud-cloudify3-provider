@@ -35,7 +35,7 @@ node_templates:
         target: InternalNetwork
 
   DataBaseStorage:
-    type: tosca.nodes.BlockStorage
+    type: alien.nodes.DeletableBlockStorage
     properties:
       file_system: ext4
       location: /var/mysql
@@ -111,3 +111,5 @@ dependencies:
     version: 2.0.0-SNAPSHOT
   - name: mysql-type
     version: 2.0.0-SNAPSHOT
+  - name: alien-extended-storage-types
+    version: 1.0-SNAPSHOT

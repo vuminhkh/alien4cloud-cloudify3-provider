@@ -45,7 +45,7 @@ node_types:
 
 node_templates:
 
-  compute:
+  Compute:
     type: _a4c_generated_type.openstack.Compute
     properties:
       server:
@@ -53,6 +53,32 @@ node_templates:
         flavor: 2
     instances:
       deploy: 1
+    relationships:
+      - target: InternalNetwork
+        type: cloudify.relationships.connected_to
+      - target: InternalNetwork_subnet
+        type: cloudify.relationships.depends_on
+      - target: _a4c_generated_node_floating_ip_Compute
+        type: cloudify.openstack.server_connected_to_floating_ip
+  _a4c_generated_node_floating_ip_Compute:
+    type: _a4c_generated_type.openstack.FloatingIP
+    properties:
+      floatingip:
+        floating_network_name: net-pub
 
+  InternalNetwork:
+    type: _a4c_generated_type.openstack.Network
+    properties:
+      resource_id: internal-network
+  InternalNetwork_subnet:
+    type: cloudify.openstack.nodes.Subnet
+    properties:
+      resource_id: internal-network_subnet
+      subnet:
+        ip_version: 4
+        cidr: 192.168.1.0/24
+    relationships:
+      - target: InternalNetwork
+        type: cloudify.relationships.contained_in
 
 

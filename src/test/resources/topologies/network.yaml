@@ -3,7 +3,7 @@ node_templates:
     type: tosca.nodes.Network
     properties:
       network_name: net-pub
-  
+
   InternalNetwork:
     type: tosca.nodes.Network
     properties:
