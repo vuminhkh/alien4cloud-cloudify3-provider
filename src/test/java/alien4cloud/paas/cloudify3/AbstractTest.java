@@ -84,7 +84,11 @@ public class AbstractTest {
             return;
         }
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
-        cloudConfiguration.setUrl("http://129.185.67.114:8100");
+        String cloudifyURL = System.getenv("CLOUDIFY_URL");
+        if (cloudifyURL == null) {
+            cloudifyURL = "http://129.185.67.114:8100";
+        }
+        cloudConfiguration.setUrl(cloudifyURL);
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
 

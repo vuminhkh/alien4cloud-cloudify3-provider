@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Resource;
 
+import org.junit.After;
 import org.junit.Before;
 
 import alien4cloud.model.topology.Topology;
@@ -51,16 +52,21 @@ public class AbstractDeploymentTest extends AbstractTest {
                 context.setRecipeId(deployment.getBlueprintId());
                 deploymentService.undeploy(context).get();
             }
+            Thread.sleep(1000L);
+            // Clean internal events queue
+            eventService.getEventsSince(now, Integer.MAX_VALUE).get();
         }
-        Thread.sleep(1000L);
-        // Clean internal events queue
-        eventService.getEventsSince(now, Integer.MAX_VALUE);
     }
 
     @Override
     @Before
     public void before() throws Exception {
         super.before();
+        cleanDeployments();
+    }
+
+    @After
+    public void after() throws Exception {
         cleanDeployments();
     }
 
