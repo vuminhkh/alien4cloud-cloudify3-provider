@@ -181,7 +181,7 @@ public class BlueprintGenerationUtil {
         String nodeName = doGetNodeNameHasPropertyOrAttribute(node, attributeName, functionName);
         if (nodeName == null) {
             // Not found just take the initial value and emit warning
-            log.warn("Node {} ask for attribute of node {} but it's not found", parentNodeName, node.getId(), attributeName);
+            log.warn("Node {} ask for property/attribute {} of node {} but it's not found", parentNodeName, attributeName, node.getId());
             return node.getId();
         } else {
             return nodeName;

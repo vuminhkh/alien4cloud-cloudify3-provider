@@ -77,8 +77,10 @@ public class TestDeploymentService extends AbstractDeploymentTest {
             }
         });
         String deploymentId = launchTest(SINGLE_COMPUTE_TOPOLOGY);
+        
         // Sleep a little bit so that we are sure that events are all well generated
         Thread.sleep(2000L);
+        
         List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents = Lists.newArrayList();
         List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents = Lists.newArrayList();
 
@@ -100,6 +102,9 @@ public class TestDeploymentService extends AbstractDeploymentTest {
         instanceStateMonitorEvents.clear();
         beginTestTimestamp = new Date();
 
+        // Sleep a little bit so that we are sure that events are all well generated
+        Thread.sleep(2000L);
+        
         // Retrieve fictive event for instance state runtime properties
         getEvents(beginTestTimestamp, deploymentStatusEvents, instanceStateMonitorEvents);
         Assert.assertEquals(0, deploymentStatusEvents.size());
