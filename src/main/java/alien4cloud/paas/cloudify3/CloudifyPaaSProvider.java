@@ -15,7 +15,6 @@ import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IConfigurablePaaSProvider;
 import alien4cloud.paas.IPaaSCallback;
-import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
@@ -48,7 +47,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  */
 @Slf4j
 @Component("cloudify-paas-provider-bean")
-public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration>, IPaaSProvider {
+public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration> {
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
@@ -96,11 +95,6 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      * *****************************************************Configurations*************************************************
      * ********************************************************************************************************************
      */
-
-    @Override
-    public CloudConfiguration getDefaultConfiguration() {
-        return cloudConfigurationHolder.getDefaultCloudConfiguration();
-    }
 
     @Override
     public void setConfiguration(CloudConfiguration newConfiguration) throws PluginConfigurationException {
