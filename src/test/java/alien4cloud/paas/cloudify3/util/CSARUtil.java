@@ -8,9 +8,13 @@ import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.git.RepositoryManager;
+import alien4cloud.security.Role;
 import alien4cloud.tosca.ArchiveUploadService;
 import alien4cloud.utils.FileUtil;
 
@@ -44,6 +48,8 @@ public class CSARUtil {
     public void uploadCSAR(Path path) throws Exception {
         Path zipPath = Files.createTempFile("csar", ".zip");
         FileUtil.zip(path, zipPath);
+        Authentication auth = new TestingAuthenticationToken(Role.ADMIN, "", Role.ADMIN.name());
+        SecurityContextHolder.getContext().setAuthentication(auth);
         archiveUploadService.upload(zipPath);
     }
 
