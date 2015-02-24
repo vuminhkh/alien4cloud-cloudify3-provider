@@ -9,9 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.paas.cloudify3.dao.VersionDAO;
+import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.model.Version;
 import alien4cloud.paas.exception.PluginConfigurationException;
-import alien4cloud.paas.exception.PluginNotConfiguredException;
 
 import com.google.common.collect.Lists;
 
@@ -38,14 +38,10 @@ public class CloudConfigurationHolder {
 
     public CloudConfiguration getConfiguration() {
         if (configuration == null) {
-            throw new PluginNotConfiguredException("Plugin is not properly configured");
+            throw new BadConfigurationException("Plugin is not properly configured");
         } else {
             return configuration;
         }
-    }
-
-    public CloudConfiguration getDefaultCloudConfiguration() {
-        return new CloudConfiguration();
     }
 
     public synchronized void setConfiguration(CloudConfiguration configuration) throws PluginConfigurationException {
