@@ -25,7 +25,7 @@ public class CSARUtil {
     public static final String TOSCA_NORMATIVE_TYPES_NAME = "tosca-normative-types";
 
     public static final String URL_FOR_SAMPLES = "https://github.com/alien4cloud/samples.git";
-    public static final String BRANCH_FOR_SAMPLES = "cloudify3";
+    public static final String BRANCH_FOR_SAMPLES = "master";
     public static final String SAMPLES_TYPES_NAME = "samples";
     public static final String APACHE_TYPE_PATH = SAMPLES_TYPES_NAME + "/apache";
     public static final String MYSQL_TYPE_PATH = SAMPLES_TYPES_NAME + "/mysql";
