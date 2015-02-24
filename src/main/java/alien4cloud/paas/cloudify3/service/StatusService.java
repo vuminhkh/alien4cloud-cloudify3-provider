@@ -156,7 +156,7 @@ public class StatusService {
         }
     }
 
-    private DeploymentStatus getStatusFromCache(String deploymentId) {
+    public DeploymentStatus getStatus(String deploymentId) {
         if (!statusCache.containsKey(deploymentId)) {
             return DeploymentStatus.UNDEPLOYED;
         } else {
@@ -165,13 +165,13 @@ public class StatusService {
     }
 
     public void getStatus(String deploymentId, IPaaSCallback<DeploymentStatus> callback) {
-        callback.onSuccess(getStatusFromCache(deploymentId));
+        callback.onSuccess(getStatus(deploymentId));
     }
 
     public void getStatuses(String[] deploymentIds, IPaaSCallback<DeploymentStatus[]> callback) {
         List<DeploymentStatus> deploymentStatuses = Lists.newArrayList();
         for (String deploymentId : deploymentIds) {
-            deploymentStatuses.add(getStatusFromCache(deploymentId));
+            deploymentStatuses.add(getStatus(deploymentId));
         }
         callback.onSuccess(deploymentStatuses.toArray(new DeploymentStatus[deploymentStatuses.size()]));
     }

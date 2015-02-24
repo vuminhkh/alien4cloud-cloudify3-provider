@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -11,7 +12,6 @@ import java.util.Set;
 
 import javax.annotation.Resource;
 
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Required;
@@ -62,8 +62,7 @@ public class BlueprintService {
      * @param alienDeployment the alien deployment's configuration
      * @return the generated blueprint
      */
-    @SneakyThrows
-    public Path generateBlueprint(CloudifyDeployment alienDeployment) {
+    public Path generateBlueprint(CloudifyDeployment alienDeployment) throws IOException {
         // Where the whole blueprint will be generated
         Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getRecipeId());
         // Where the main blueprint file will be generated
@@ -118,8 +117,8 @@ public class BlueprintService {
         return generatedBlueprintFilePath;
     }
 
-    @SneakyThrows
-    private void copyImplementationArtifacts(Path generatedBlueprintDirectoryPath, IPaaSTemplate<?> nonNative, IndexedArtifactToscaElement nonNativeType) {
+    private void copyImplementationArtifacts(Path generatedBlueprintDirectoryPath, IPaaSTemplate<?> nonNative, IndexedArtifactToscaElement nonNativeType)
+            throws IOException {
         Map<String, Interface> interfaces = nonNativeType.getInterfaces();
         // Copy implementation artifacts
         for (Map.Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {

@@ -20,10 +20,10 @@ import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
-import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.cloudify3.service.model.NativeType;
+import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
@@ -147,7 +147,7 @@ public class BlueprintGenerationUtil {
         } else if (input instanceof ScalarPropertyValue) {
             return ((ScalarPropertyValue) input).getValue();
         } else {
-            throw new OperationNotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
+            throw new NotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
         }
     }
 
@@ -173,7 +173,7 @@ public class BlueprintGenerationUtil {
         } else if (input instanceof ScalarPropertyValue) {
             return ((ScalarPropertyValue) input).getValue();
         } else {
-            throw new OperationNotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
+            throw new NotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
         }
     }
 
