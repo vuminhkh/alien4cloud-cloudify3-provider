@@ -292,6 +292,7 @@ node_templates:
                 process:
                   env:
                     DB_IP: { get_attribute: [DataBase, ip] }
+                    DB_PORT: { get_property: [Mysql, db_port] }
                     DB_NAME: { get_property: [Mysql, db_name] }
                     DB_USER: { get_property: [Mysql, db_user] }
                     DB_PASSWORD: { get_property: [Mysql, db_password] }
