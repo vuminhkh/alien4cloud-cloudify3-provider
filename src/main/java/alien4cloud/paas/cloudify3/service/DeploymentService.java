@@ -70,7 +70,7 @@ public class DeploymentService {
         } catch (IOException e) {
             log.error("Unable to generate the blueprint from recipe {} with deployment id {}", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
             eventService.registerDeploymentEvent(alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
-            return Futures.immediateFuture(null);
+            return Futures.immediateFailedFuture(e);
         }
         ListenableFuture<Blueprint> createdBlueprint = blueprintDAO.asyncCreate(alienDeployment.getRecipeId(), blueprintPath.toString());
         AsyncFunction<Blueprint, Deployment> createDeploymentFunction = new AsyncFunction<Blueprint, Deployment>() {
