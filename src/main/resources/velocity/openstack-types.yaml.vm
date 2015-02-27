@@ -13,12 +13,16 @@
   ${mapping.generatedTypePrefix}.openstack.DeletableVolume:
     derived_from: ${providerMapping.nativeTypes.volumeType}
     properties:
+      device:
+        default: ""
       ${mapping.nativeTypePropertyName}:
         default: volume
 
   ${mapping.generatedTypePrefix}.openstack.Volume:
     derived_from: ${providerMapping.nativeTypes.volumeType}
     properties:
+      device:
+        default: ""
       ${mapping.nativeTypePropertyName}:
         default: volume
     interfaces:

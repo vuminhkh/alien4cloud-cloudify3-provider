@@ -87,6 +87,7 @@
 #end
 #if(${matchedVolume.paaSResourceTemplate.device})
       device_name: ${matchedVolume.paaSResourceTemplate.device}
+      device: ${matchedVolume.paaSResourceTemplate.device}
 #end
 #if(${matchedVolume.paaSResourceTemplate.size})
       volume:
