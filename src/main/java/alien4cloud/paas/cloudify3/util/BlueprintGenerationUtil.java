@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import alien4cloud.model.cloud.StorageTemplate;
+import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IOperationParameter;
 import alien4cloud.model.components.IndexedArtifactToscaElement;
@@ -47,6 +48,8 @@ public class BlueprintGenerationUtil {
     private MappingConfiguration mappingConfiguration;
 
     private ProviderMappingConfiguration providerMappingConfiguration;
+
+    private CloudifyDeployment alienDeployment;
 
     public boolean mapHasEntries(Map<?, ?> map) {
         return map != null && !map.isEmpty();
@@ -130,7 +133,7 @@ public class BlueprintGenerationUtil {
         return interfaces;
     }
 
-    public String formatRelationshipOperationInput(PaaSRelationshipTemplate relationship, IOperationParameter input, CloudifyDeployment cloudifyDeployment) {
+    public String formatRelationshipOperationInput(PaaSRelationshipTemplate relationship, IOperationParameter input) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
             List<String> parameters = functionPropertyValue.getParameters();
@@ -141,9 +144,9 @@ public class BlueprintGenerationUtil {
             } else if ("TARGET".equals(nodeName)) {
                 nodeName = relationship.getRelationshipTemplate().getTarget();
             }
-            PaaSNodeTemplate node = cloudifyDeployment.getAllNodes().get(nodeName);
+            PaaSNodeTemplate node = alienDeployment.getAllNodes().get(nodeName);
             String resolvedNodeName = getNodeNameHasPropertyOrAttribute(relationship.getSource(), node, attribute, functionPropertyValue.getFunction());
-            return formatFunctionPropertyInputValue(nodeName, cloudifyDeployment, functionPropertyValue, resolvedNodeName);
+            return formatFunctionPropertyInputValue(functionPropertyValue, resolvedNodeName);
         } else if (input instanceof ScalarPropertyValue) {
             return ((ScalarPropertyValue) input).getValue();
         } else {
@@ -151,7 +154,14 @@ public class BlueprintGenerationUtil {
         }
     }
 
-    public String formatNodeOperationInput(PaaSNodeTemplate node, IOperationParameter input, CloudifyDeployment cloudifyDeployment) {
+    /**
+     * Format operation parameter of a particular node
+     * 
+     * @param node the node
+     * @param input the input which can be a function or a scalar
+     * @return the formatted parameter understandable by Cloudify 3
+     */
+    public String formatNodeOperationInput(PaaSNodeTemplate node, IOperationParameter input) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
             List<String> parameters = functionPropertyValue.getParameters();
@@ -159,7 +169,7 @@ public class BlueprintGenerationUtil {
             String attribute = parameters.get(parameters.size() - 1);
             if ("HOST".equals(nodeName)) {
                 // Resolve HOST
-                PaaSNodeTemplate host = node.getParent();
+                PaaSNodeTemplate host = node;
                 while (host.getParent() != null) {
                     host = host.getParent();
                 }
@@ -167,9 +177,9 @@ public class BlueprintGenerationUtil {
             } else if ("SELF".equals(nodeName)) {
                 nodeName = node.getId();
             }
-            String resolvedNodeName = getNodeNameHasPropertyOrAttribute(node.getId(), cloudifyDeployment.getAllNodes().get(nodeName), attribute,
+            String resolvedNodeName = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(nodeName), attribute,
                     functionPropertyValue.getFunction());
-            return formatFunctionPropertyInputValue(nodeName, cloudifyDeployment, functionPropertyValue, resolvedNodeName);
+            return formatFunctionPropertyInputValue(functionPropertyValue, resolvedNodeName);
         } else if (input instanceof ScalarPropertyValue) {
             return ((ScalarPropertyValue) input).getValue();
         } else {
@@ -210,14 +220,13 @@ public class BlueprintGenerationUtil {
         }
     }
 
-    private String formatFunctionPropertyInputValue(String nodeName, CloudifyDeployment cloudifyDeployment, FunctionPropertyValue functionPropertyValue,
-            String resolvedNodeName) {
+    private String formatFunctionPropertyInputValue(FunctionPropertyValue functionPropertyValue, String resolvedNodeName) {
         FunctionPropertyValue filteredFunctionPropertyValue = new FunctionPropertyValue();
         filteredFunctionPropertyValue.setFunction(functionPropertyValue.getFunction());
         List<String> newParameters = Lists.newArrayList(functionPropertyValue.getParameters());
         newParameters.set(0, resolvedNodeName);
         filteredFunctionPropertyValue.setParameters(newParameters);
-        String nativeType = getNativeType(cloudifyDeployment, resolvedNodeName);
+        String nativeType = getNativeType(resolvedNodeName);
         Map<String, String> attributeMapping = null;
         if (nativeType != null) {
             attributeMapping = providerMappingConfiguration.getAttributes().get(nativeType);
@@ -236,12 +245,12 @@ public class BlueprintGenerationUtil {
         return formattedInput.toString();
     }
 
-    private String getNativeType(CloudifyDeployment deployment, String id) {
-        if (deployment.getComputesMap().containsKey(id)) {
+    private String getNativeType(String id) {
+        if (alienDeployment.getComputesMap().containsKey(id)) {
             return NativeType.COMPUTE;
-        } else if (deployment.getVolumesMap().containsKey(id)) {
+        } else if (alienDeployment.getVolumesMap().containsKey(id)) {
             return NativeType.VOLUME;
-        } else if (deployment.getExternalNetworksMap().containsKey(id) || deployment.getInternalNetworksMap().containsKey(id)) {
+        } else if (alienDeployment.getExternalNetworksMap().containsKey(id) || alienDeployment.getInternalNetworksMap().containsKey(id)) {
             return NativeType.NETWORK;
         } else {
             return null;
@@ -381,10 +390,10 @@ public class BlueprintGenerationUtil {
     }
 
     public boolean isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
-        Map<String, String> volumeProperties = volumeTemplate.getNodeTemplate().getProperties();
+        Map<String, AbstractPropertyValue> volumeProperties = volumeTemplate.getNodeTemplate().getProperties();
         return volumeProperties != null
-                && (!StringUtils.isEmpty(volumeProperties.get(NormativeBlockStorageConstants.LOCATION)) || !StringUtils.isEmpty(volumeProperties
-                        .get(NormativeBlockStorageConstants.FILE_SYSTEM)));
+                && (volumeProperties.containsKey(NormativeBlockStorageConstants.LOCATION) || volumeProperties
+                        .containsKey(NormativeBlockStorageConstants.FILE_SYSTEM));
     }
 
     public boolean isDeletableVolume(PaaSNodeTemplate volumeTemplate) {
@@ -396,9 +405,9 @@ public class BlueprintGenerationUtil {
         if (!StringUtils.isEmpty(volumeId)) {
             return volumeId;
         } else {
-            Map<String, String> volumeProperties = matchedVolumeTemplate.getPaaSNodeTemplate().getNodeTemplate().getProperties();
+            Map<String, AbstractPropertyValue> volumeProperties = matchedVolumeTemplate.getPaaSNodeTemplate().getNodeTemplate().getProperties();
             if (volumeProperties != null) {
-                return volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID);
+                return formatNodeOperationInput(matchedVolumeTemplate.getPaaSNodeTemplate(), volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID));
             } else {
                 return null;
             }

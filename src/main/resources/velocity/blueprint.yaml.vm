@@ -150,7 +150,7 @@ node_templates:
                 process:
                   env:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
-                    $inputEntry.key: $util.formatNodeOperationInput($nonNativeNode, $inputEntry.value, $deployment)
+                    $inputEntry.key: $util.formatNodeOperationInput($nonNativeNode, $inputEntry.value)
 #end
 #end
 #end
@@ -180,7 +180,7 @@ node_templates:
                 process:
                   env:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
-                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, $deployment)
+                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value)
 #end
 #end
 #end
@@ -197,7 +197,7 @@ node_templates:
                 process:
                   env:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
-                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, $deployment)
+                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value)
 #end
 #end
 #end
