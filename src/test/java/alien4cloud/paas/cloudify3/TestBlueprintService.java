@@ -1,21 +1,26 @@
 package alien4cloud.paas.cloudify3;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 import javax.annotation.Resource;
 
 import junitx.framework.FileAssert;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
+import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 
@@ -28,7 +33,24 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     private BlueprintService blueprintService;
 
     @Resource
+    private BlueprintDAO blueprintDAO;
+
+    @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
+
+    private boolean record = false;
+
+    @Override
+    @Before
+    public void before() throws Exception {
+        super.before();
+        Thread.sleep(1000L);
+        Blueprint[] blueprints = blueprintDAO.list();
+        for (Blueprint blueprint : blueprints) {
+            blueprintDAO.delete(blueprint.getId());
+        }
+        Thread.sleep(1000L);
+    }
 
     private void checkVolumeScript(Path generated) {
         Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/fdisk.sh")));
@@ -37,17 +59,20 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/unmount.sh")));
     }
 
+    @SneakyThrows
     private Path testGeneratedBlueprintFile(String topology) {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        Path generated = null;
-        try {
-            generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext(
-                    stackTraceElements[2].getMethodName(), topology)));
-        } catch (IOException e) {
-            log.error("Unable to generate blueprint", e);
-            Assert.fail("Unable to generate blueprint");
+        Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext(
+                stackTraceElements[2].getMethodName(), topology)));
+        String recordedFile = "src/test/resources/outputs/blueprints/" + topology + ".yaml";
+        if (record) {
+            Files.copy(generated, Paths.get(recordedFile), StandardCopyOption.REPLACE_EXISTING);
+        } else {
+            FileAssert.assertEquals(new File(recordedFile), generated.toFile());
         }
-        FileAssert.assertEquals(new File("src/test/resources/outputs/blueprints/" + topology + ".yaml"), generated.toFile());
+        // Check if cloudify accept the blueprint
+        blueprintDAO.create(topology, generated.toString());
+        blueprintDAO.delete(topology);
         return generated;
     }
 

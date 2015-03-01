@@ -1,44 +1,53 @@
-  ${mapping.generatedTypePrefix}.openstack.Compute:
-    derived_from: ${providerMapping.nativeTypes.computeType}
+## Compute types
+#if($util.collectionHasElement(${deployment.computeTypes}))
+#foreach($computeType in ${deployment.computeTypes})
+  ${util.tryToMapComputeType($computeType, "${mapping.generatedTypePrefix}.openstack.Compute")}:
+    derived_from: ${util.tryToMapComputeTypeDerivedFrom($computeType)}
     properties:
+#if($util.mapHasEntries(${computeType.properties}))
+      ${mapping.nativePropertyParent}:
+        default: {}
+#end
       ${mapping.nativeTypePropertyName}:
         default: compute
+#end
+#end
 
+## Floating IP types
+#if($util.collectionHasElement(${deployment.externalNetworks}))
   ${mapping.generatedTypePrefix}.openstack.FloatingIP:
     derived_from: ${providerMapping.nativeTypes.floatingIpType}
     properties:
       ${mapping.nativeTypePropertyName}:
         default: floating_ip
-  
-  ${mapping.generatedTypePrefix}.openstack.DeletableVolume:
-    derived_from: ${providerMapping.nativeTypes.volumeType}
+#end
+
+## Volume types
+#if($util.collectionHasElement(${deployment.volumeTypes}))
+#foreach($volumeType in ${deployment.volumeTypes})
+  ${util.tryToMapVolumeType($volumeType, "${mapping.generatedTypePrefix}.openstack.Volume")}:
+    derived_from: ${util.tryToMapVolumeTypeDerivedFrom($volumeType)}
     properties:
-      device:
-        default: ""
+#if($util.mapHasEntries(${volumeType.properties}))
+      ${mapping.nativePropertyParent}:
+        default: {}
+#end
       ${mapping.nativeTypePropertyName}:
         default: volume
+#end
+#end
 
-  ${mapping.generatedTypePrefix}.openstack.Volume:
-    derived_from: ${providerMapping.nativeTypes.volumeType}
+## Network types
+#if($util.collectionHasElement(${deployment.networkTypes}))
+#foreach($networkType in ${deployment.networkTypes})
+  ${util.tryToMapNetworkType($networkType, "${mapping.generatedTypePrefix}.openstack.Network")}:
+    derived_from: ${util.tryToMapNetworkTypeDerivedFrom($networkType)}
     properties:
-      device:
-        default: ""
-      ${mapping.nativeTypePropertyName}:
-        default: volume
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        delete: {}
-
-  ${mapping.generatedTypePrefix}.openstack.Network:
-    derived_from: ${providerMapping.nativeTypes.networkType}
-    properties:
+#if($util.mapHasEntries(${networkType.properties}))
+      ${mapping.nativePropertyParent}:
+        default: {}
+#end
       ${mapping.nativeTypePropertyName}:
         default: network
-
-#if($util.hasConfiguredVolume($deployment.volumes))
-  ${mapping.generatedTypePrefix}.openstack.FileSystem:
-    derived_from: ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem
-    properties:
-      ${mapping.nativeTypePropertyName}:
-        default: file_system
+#end
 #end

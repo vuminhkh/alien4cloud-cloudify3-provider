@@ -10,35 +10,12 @@ node_types:
   _a4c_generated_type.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
+      _a4c_native_property:
+        default: {}
       _a4c_native_type:
         default: compute
 
-  _a4c_generated_type.openstack.FloatingIP:
-    derived_from: cloudify.openstack.nodes.FloatingIP
-    properties:
-      _a4c_native_type:
-        default: floating_ip
-  
-  _a4c_generated_type.openstack.DeletableVolume:
-    derived_from: cloudify.openstack.nodes.Volume
-    properties:
-      _a4c_native_type:
-        default: volume
 
-  _a4c_generated_type.openstack.Volume:
-    derived_from: cloudify.openstack.nodes.Volume
-    properties:
-      _a4c_native_type:
-        default: volume
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        delete: {}
-
-  _a4c_generated_type.openstack.Network:
-    derived_from: cloudify.openstack.nodes.Network
-    properties:
-      _a4c_native_type:
-        default: network
 
 
 
@@ -48,6 +25,9 @@ node_templates:
   compute:
     type: _a4c_generated_type.openstack.Compute
     properties:
+      _a4c_native_property:
+        os_arch: "x86_64"
+        os_type: "linux"
       server:
         image: 727df994-2e1b-404e-9276-b248223a835d
         flavor: 2

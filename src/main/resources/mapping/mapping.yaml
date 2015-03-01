@@ -6,6 +6,8 @@ generated_node_prefix: _a4c_generated_node
 
 native_type_property_name: _a4c_native_type
 
+native_property_parent: _a4c_native_property
+
 normative_types:
   tosca.nodes.Root: cloudify.nodes.Root
   tosca.nodes.SoftwareComponent: cloudify.nodes.SoftwareComponent
@@ -16,7 +18,7 @@ normative_types:
   tosca.relationships.DependsOn: cloudify.relationships.depends_on
   tosca.relationships.HostedOn: cloudify.relationships.contained_in
   tosca.relationships.ConnectsTo: cloudify.relationships.connected_to
-  
+
 relationships:
   life_cycle:
     source:

@@ -46,6 +46,12 @@ public class CloudifyDeployment {
 
     private List<IndexedRelationshipType> nonNativesRelationshipTypes;
 
+    private List<IndexedNodeType> computeTypes;
+
+    private List<IndexedNodeType> networkTypes;
+
+    private List<IndexedNodeType> volumeTypes;
+
     private Map<String, PaaSNodeTemplate> allNodes;
 
 }

@@ -56,7 +56,11 @@ node_types:
 #foreach($propertyEntry in ${nonNativeType.properties.entrySet()})
       $propertyEntry.key:
         type: string
+#if ($propertyEntry.value.default)
         default: "$propertyEntry.value.default"
+#else
+        default: ""
+#end
 #end
 #end
 #set( $nodeTypeInterfacesWithoutParameters = $util.getInterfaces($nonNativeType, false) )
@@ -135,22 +139,24 @@ node_templates:
 #if($util.mapHasEntries($nonNativeNode.nodeTemplate.properties))
     properties:
 #foreach($property in $nonNativeNode.nodeTemplate.properties.entrySet())
-      $property.getKey(): "$property.getValue()"
+#if($property.getValue())
+      $property.getKey(): "$util.formatNodeOperationInput($nonNativeNode, $property.getValue())"
+#end
 #end
 #end
 #set( $relationshipInterfacesWithParameters = $util.getInterfaces($nonNativeNode.indexedToscaElement, true) )
 #if($util.mapHasEntries($relationshipInterfacesWithParameters))
     interfaces:
 #foreach($interfaceEntry in $relationshipInterfacesWithParameters.entrySet())
-        $util.tryToMapToCloudifyInterface($interfaceEntry.key):
+      $util.tryToMapToCloudifyInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-            $operationEntry.key:
-              implementation: $nonNativeNode.indexedToscaElement.archiveName/$nonNativeNode.indexedToscaElement.elementId/$operationEntry.value.implementationArtifact.artifactRef
-              inputs:
-                process:
-                  env:
+        $operationEntry.key:
+          implementation: $nonNativeNode.indexedToscaElement.archiveName/$nonNativeNode.indexedToscaElement.elementId/$operationEntry.value.implementationArtifact.artifactRef
+          inputs:
+            process:
+              env:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
-                    $inputEntry.key: $util.formatNodeOperationInput($nonNativeNode, $inputEntry.value)
+                $inputEntry.key: $util.formatNodeOperationInput($nonNativeNode, $inputEntry.value)
 #end
 #end
 #end

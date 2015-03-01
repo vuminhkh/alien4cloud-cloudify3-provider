@@ -15,6 +15,7 @@ import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IOperationParameter;
 import alien4cloud.model.components.IndexedArtifactToscaElement;
+import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.ScalarPropertyValue;
@@ -32,6 +33,9 @@ import alien4cloud.paas.plan.ToscaRelationshipLifecycleConstants;
 import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.AlienCustomTypes;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
+import alien4cloud.tosca.normative.NormativeComputeConstants;
+import alien4cloud.tosca.normative.NormativeNetworkConstants;
+import alien4cloud.tosca.normative.ToscaFunctionConstants;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -139,9 +143,9 @@ public class BlueprintGenerationUtil {
             List<String> parameters = functionPropertyValue.getParameters();
             String nodeName = parameters.get(0);
             String attribute = parameters.get(parameters.size() - 1);
-            if ("SOURCE".equals(nodeName)) {
+            if (ToscaFunctionConstants.SOURCE.equals(nodeName)) {
                 nodeName = relationship.getSource();
-            } else if ("TARGET".equals(nodeName)) {
+            } else if (ToscaFunctionConstants.TARGET.equals(nodeName)) {
                 nodeName = relationship.getRelationshipTemplate().getTarget();
             }
             PaaSNodeTemplate node = alienDeployment.getAllNodes().get(nodeName);
@@ -167,14 +171,14 @@ public class BlueprintGenerationUtil {
             List<String> parameters = functionPropertyValue.getParameters();
             String nodeName = parameters.get(0);
             String attribute = parameters.get(parameters.size() - 1);
-            if ("HOST".equals(nodeName)) {
+            if (ToscaFunctionConstants.HOST.equals(nodeName)) {
                 // Resolve HOST
                 PaaSNodeTemplate host = node;
                 while (host.getParent() != null) {
                     host = host.getParent();
                 }
                 nodeName = host.getId();
-            } else if ("SELF".equals(nodeName)) {
+            } else if (ToscaFunctionConstants.SELF.equals(nodeName)) {
                 nodeName = node.getId();
             }
             String resolvedNodeName = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(nodeName), attribute,
@@ -200,11 +204,11 @@ public class BlueprintGenerationUtil {
 
     private String doGetNodeNameHasPropertyOrAttribute(PaaSNodeTemplate node, String attributeName, String functionName) {
         Set<String> propertiesOrAttributes = null;
-        if ("get_property".equals(functionName)) {
+        if (ToscaFunctionConstants.GET_PROPERTY.equals(functionName)) {
             if (node.getIndexedToscaElement().getProperties() != null) {
                 propertiesOrAttributes = node.getIndexedToscaElement().getProperties().keySet();
             }
-        } else {
+        } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(functionName)) {
             if (node.getIndexedToscaElement().getAttributes() != null) {
                 propertiesOrAttributes = node.getIndexedToscaElement().getAttributes().keySet();
             }
@@ -227,22 +231,41 @@ public class BlueprintGenerationUtil {
         newParameters.set(0, resolvedNodeName);
         filteredFunctionPropertyValue.setParameters(newParameters);
         String nativeType = getNativeType(resolvedNodeName);
-        Map<String, String> attributeMapping = null;
-        if (nativeType != null) {
-            attributeMapping = providerMappingConfiguration.getAttributes().get(nativeType);
-        }
         StringBuilder formattedInput = new StringBuilder("{ ").append(filteredFunctionPropertyValue.getFunction()).append(": [");
         for (int i = 0; i < filteredFunctionPropertyValue.getParameters().size(); i++) {
             String attributeName = filteredFunctionPropertyValue.getParameters().get(i);
-            if (attributeMapping != null && attributeMapping.containsKey(attributeName)) {
-                attributeName = attributeMapping.get(attributeName);
-            }
+            attributeName = mapPropAttName(functionPropertyValue.getFunction(), attributeName, nativeType);
             formattedInput.append(attributeName).append(", ");
         }
         // Remove the last ','
         formattedInput.setLength(formattedInput.length() - 2);
         formattedInput.append("] }");
         return formattedInput.toString();
+    }
+
+    private String mapPropAttName(String function, String propAttName, String nativeType) {
+        if (nativeType == null) {
+            // Non native type do not have property or attribute name mapping as it's not cloudify dependent
+            return propAttName;
+        } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function)) {
+            // Get attribute mapping from provider configuration
+            Map<String, String> attributeMapping = providerMappingConfiguration.getAttributes().get(nativeType);
+            if (attributeMapping != null) {
+                String mappedAttributeName = attributeMapping.get(propAttName);
+                if (mappedAttributeName != null) {
+                    return mappedAttributeName;
+                } else {
+                    return propAttName;
+                }
+            } else {
+                return propAttName;
+            }
+        } else if (ToscaFunctionConstants.GET_PROPERTY.equals(function)) {
+            // property for native type is prefixed
+            return mappingConfiguration.getNativePropertyParent() + "." + propAttName;
+        } else {
+            return propAttName;
+        }
     }
 
     private String getNativeType(String id) {
@@ -396,8 +419,8 @@ public class BlueprintGenerationUtil {
                         .containsKey(NormativeBlockStorageConstants.FILE_SYSTEM));
     }
 
-    public boolean isDeletableVolume(PaaSNodeTemplate volumeTemplate) {
-        return ToscaUtils.isFromType(AlienCustomTypes.DELETABLE_BLOCKSTORAGE_TYPE, volumeTemplate.getIndexedToscaElement());
+    public boolean isDeletableVolumeType(IndexedNodeType volumeType) {
+        return ToscaUtils.isFromType(AlienCustomTypes.DELETABLE_BLOCKSTORAGE_TYPE, volumeType);
     }
 
     public String getExternalVolumeId(MatchedPaaSTemplate<StorageTemplate> matchedVolumeTemplate) {
@@ -407,7 +430,12 @@ public class BlueprintGenerationUtil {
         } else {
             Map<String, AbstractPropertyValue> volumeProperties = matchedVolumeTemplate.getPaaSNodeTemplate().getNodeTemplate().getProperties();
             if (volumeProperties != null) {
-                return formatNodeOperationInput(matchedVolumeTemplate.getPaaSNodeTemplate(), volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID));
+                AbstractPropertyValue volumeIdValue = volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID);
+                if (volumeIdValue != null) {
+                    return formatNodeOperationInput(matchedVolumeTemplate.getPaaSNodeTemplate(), volumeIdValue);
+                } else {
+                    return null;
+                }
             } else {
                 return null;
             }
@@ -428,5 +456,74 @@ public class BlueprintGenerationUtil {
         } else {
             return null;
         }
+    }
+
+    public String tryToMapComputeType(IndexedNodeType type, String defaultType) {
+        return getMappedNativeType(type, NormativeComputeConstants.COMPUTE_TYPE, providerMappingConfiguration.getNativeTypes().getComputeType(),
+                alienDeployment.getComputeTypes(), defaultType);
+    }
+
+    public String tryToMapComputeTypeDerivedFrom(IndexedNodeType type) {
+        return getMappedNativeDerivedFromType(type, NormativeComputeConstants.COMPUTE_TYPE, providerMappingConfiguration.getNativeTypes().getComputeType(),
+                alienDeployment.getComputeTypes());
+    }
+
+    public String tryToMapVolumeType(IndexedNodeType type, String defaultType) {
+        return getMappedNativeType(type, NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE, providerMappingConfiguration.getNativeTypes().getVolumeType(),
+                alienDeployment.getVolumeTypes(), defaultType);
+    }
+
+    public String tryToMapVolumeTypeDerivedFrom(IndexedNodeType type) {
+        return getMappedNativeDerivedFromType(type, NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE, providerMappingConfiguration.getNativeTypes()
+                .getVolumeType(),
+                alienDeployment.getVolumeTypes());
+    }
+
+    public String tryToMapNetworkType(IndexedNodeType type, String defaultType) {
+        return getMappedNativeType(type, NormativeNetworkConstants.NETWORK_TYPE, providerMappingConfiguration.getNativeTypes().getNetworkType(),
+                alienDeployment.getNetworkTypes(), defaultType);
+    }
+
+    public String tryToMapNetworkTypeDerivedFrom(IndexedNodeType type) {
+        return getMappedNativeDerivedFromType(type, NormativeNetworkConstants.NETWORK_TYPE, providerMappingConfiguration.getNativeTypes().getNetworkType(),
+                alienDeployment.getNetworkTypes());
+    }
+
+    private String getMappedNativeType(IndexedNodeType type, String alienBaseType, String providerBaseType, List<IndexedNodeType> allDeploymentNativeTypes,
+            String defaultType) {
+        String nativeDerivedFrom = getMappedNativeDerivedFromType(type, alienBaseType, providerBaseType, allDeploymentNativeTypes);
+        // If the native derive from is the provider base type, it means we should get the given default type
+        if (providerBaseType.equals(nativeDerivedFrom)) {
+            return defaultType;
+        } else {
+            return type.getElementId();
+        }
+    }
+
+    private String getMappedNativeDerivedFromType(IndexedNodeType typeToMap, String alienBaseType, String providerBaseType,
+            List<IndexedNodeType> allDeploymentNativeTypes) {
+        if (alienBaseType.equals(typeToMap.getElementId())) {
+            return providerBaseType;
+        }
+        List<String> derivedFroms = typeToMap.getDerivedFrom();
+        for (String derivedFrom : derivedFroms) {
+            if (alienBaseType.equals(derivedFrom)) {
+                return providerBaseType;
+            }
+            IndexedNodeType mostSuitableType = getTypeFromName(derivedFrom, allDeploymentNativeTypes);
+            if (mostSuitableType != null) {
+                return mostSuitableType.getElementId();
+            }
+        }
+        return typeToMap.getElementId();
+    }
+
+    private IndexedNodeType getTypeFromName(String name, List<IndexedNodeType> types) {
+        for (IndexedNodeType type : types) {
+            if (name.equals(type.getId())) {
+                return type;
+            }
+        }
+        return null;
     }
 }
