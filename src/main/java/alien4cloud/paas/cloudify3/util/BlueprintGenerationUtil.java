@@ -174,7 +174,7 @@ public class BlueprintGenerationUtil {
             if (ToscaFunctionConstants.HOST.equals(nodeName)) {
                 // Resolve HOST
                 PaaSNodeTemplate host = node;
-                while (host.getParent() != null) {
+                if (host.getParent() != null) {
                     host = host.getParent();
                 }
                 nodeName = host.getId();
@@ -475,8 +475,7 @@ public class BlueprintGenerationUtil {
 
     public String tryToMapVolumeTypeDerivedFrom(IndexedNodeType type) {
         return getMappedNativeDerivedFromType(type, NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE, providerMappingConfiguration.getNativeTypes()
-                .getVolumeType(),
-                alienDeployment.getVolumeTypes());
+                .getVolumeType(), alienDeployment.getVolumeTypes());
     }
 
     public String tryToMapNetworkType(IndexedNodeType type, String defaultType) {
