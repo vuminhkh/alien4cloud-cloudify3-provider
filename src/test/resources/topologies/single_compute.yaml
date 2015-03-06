@@ -2,8 +2,10 @@ node_templates:
   compute:
     type: tosca.nodes.Compute
     properties:
-      os_arch: x86_64
-      os_type: linux
+      os_arch:
+        value: x86_64
+      os_type:
+        value: linux
 
 dependencies:
   - name: tosca-normative-types

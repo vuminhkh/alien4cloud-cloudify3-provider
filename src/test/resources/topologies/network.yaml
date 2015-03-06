@@ -2,18 +2,22 @@ node_templates:
   NetPub:
     type: tosca.nodes.Network
     properties:
-      network_name: net-pub
+      network_name:
+        value: net-pub
 
   InternalNetwork:
     type: tosca.nodes.Network
     properties:
-      network_name: internal-network
+      network_name:
+        value: internal-network
 
   Compute:
     type: tosca.nodes.Compute
     properties:
-      os_arch: x86_64
-      os_type: linux
+      os_arch:
+        value: x86_64
+      os_type:
+        value: linux
     relationships:
       public_internet:
         type: tosca.relationships.Network

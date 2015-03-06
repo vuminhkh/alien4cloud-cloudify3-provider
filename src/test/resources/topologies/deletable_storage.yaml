@@ -3,14 +3,18 @@ node_templates:
   Compute:
     type: tosca.nodes.Compute
     properties:
-      os_arch: x86_64
-      os_type: linux
+      os_arch:
+        value: x86_64
+      os_type:
+        value: linux
 
   BlockStorage:
     type: alien.nodes.DeletableBlockStorage
     properties:
-      file_system: ext4
-      location: /var/mysql
+      file_system:
+        value: ext4
+      location:
+        value: /var/mysql
     relationships:
       attachedToCompute:
         type: tosca.relationships.AttachTo
@@ -20,12 +24,18 @@ node_templates:
     type: alien.nodes.Mysql
     name: Mysql
     properties:
-      bind_address: "true"
-      storage_path: /var/mysql
-      db_port: "3306"
-      db_name: wordpress
-      db_user: pass
-      db_password: pass
+      bind_address:
+        value: "true"
+      storage_path:
+        value: /var/mysql
+      db_port:
+        value: "3306"
+      db_name:
+        value: wordpress
+      db_user:
+        value: pass
+      db_password:
+        value: pass
     relationships:
       hostedOnDataBase:
         type: tosca.relationships.HostedOn
