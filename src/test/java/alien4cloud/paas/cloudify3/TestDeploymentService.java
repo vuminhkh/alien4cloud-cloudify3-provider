@@ -137,7 +137,7 @@ public class TestDeploymentService extends AbstractDeploymentTest {
             }
         }
         Assert.assertNotNull(ipServerLamp);
-        httpUtil.checkUrl("http://" + ipServerLamp + "/wordpress/wp-admin/install.php", 120000L);
+        httpUtil.checkUrl("http://" + ipServerLamp + "/wp-admin/install.php", 120000L);
     }
 
     @org.junit.Test

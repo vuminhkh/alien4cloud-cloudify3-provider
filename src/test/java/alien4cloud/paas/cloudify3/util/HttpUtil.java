@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 public class HttpUtil {
 
     public void checkUrl(String url, long timeout) {
+        log.info("Checking url {}", url);
         long before = System.currentTimeMillis();
         CloseableHttpClient httpClient = HttpClients.custom().build();
         while (true) {
