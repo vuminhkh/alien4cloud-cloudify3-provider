@@ -55,6 +55,7 @@ node_types:
           The type of the File System.
           Supported types are [ext2, ext3, ext4, fat, ntfs, swap]
         type: string
+        default: ext4
       fs_mount_path:
         description: >
           The path of the mount point.
