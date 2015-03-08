@@ -3,7 +3,7 @@ name: Cloudify 3 PaaS provider
 version: ${project.version}
 description: >
   Plugin that contains the PaaS Provider for cloudify v3.
-configuration_class: alien4cloud.paas.cloudify3.PluginContextConfiguration
+configuration_class: alien4cloud.paas.cloudify3.PluginFactoryConfiguration
 component_descriptors:
   - bean_name: cloudify-paas-provider
     name: Cloudify 3 PaaS Provider

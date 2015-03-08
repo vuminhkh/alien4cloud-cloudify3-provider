@@ -11,14 +11,11 @@ import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.CloudResourceType;
-import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IConfigurablePaaSProvider;
 import alien4cloud.paas.IPaaSCallback;
-import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.error.OperationNotSupportedException;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
@@ -28,6 +25,7 @@ import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.StorageTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
+import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.exception.PluginConfigurationException;
 import alien4cloud.paas.model.AbstractMonitorEvent;
@@ -48,7 +46,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  */
 @Slf4j
 @Component("cloudify-paas-provider-bean")
-public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration>, IPaaSProvider {
+public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration> {
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
@@ -96,11 +94,6 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      * *****************************************************Configurations*************************************************
      * ********************************************************************************************************************
      */
-
-    @Override
-    public CloudConfiguration getDefaultConfiguration() {
-        return cloudConfigurationHolder.getDefaultCloudConfiguration();
-    }
 
     @Override
     public void setConfiguration(CloudConfiguration newConfiguration) throws PluginConfigurationException {
@@ -177,17 +170,12 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public void scale(PaaSDeploymentContext deploymentContext, String nodeTemplateId, int instances, IPaaSCallback<?> callback) {
-        throw new OperationNotSupportedException("scale is not supported yet");
+        throw new NotSupportedException("scale is not supported yet");
     }
 
     @Override
     public void executeOperation(PaaSDeploymentContext deploymentContext, NodeOperationExecRequest nodeOperationExecRequest,
             IPaaSCallback<Map<String, String>> callback) throws OperationExecutionException {
-        throw new OperationNotSupportedException("executeOperation is not supported yet");
-    }
-
-    @Override
-    public Map<String, PropertyDefinition> getDeploymentPropertyMap() {
-        return null;
+        throw new NotSupportedException("executeOperation is not supported yet");
     }
 }

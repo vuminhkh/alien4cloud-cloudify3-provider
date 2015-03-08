@@ -47,6 +47,14 @@ public class CloudifyDeploymentBuilderService {
         return mapping;
     }
 
+    private List<IndexedNodeType> getTypesOrderedByDerivedFromHierarchy(List<PaaSNodeTemplate> nodes) {
+        Map<String, IndexedNodeType> nodeTypeMap = Maps.newHashMap();
+        for (PaaSNodeTemplate node : nodes) {
+            nodeTypeMap.put(node.getIndexedToscaElement().getElementId(), node.getIndexedToscaElement());
+        }
+        return IndexedModelUtils.orderByDerivedFromHierarchy(nodeTypeMap);
+    }
+
     public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
 
         List<MatchedPaaSComputeTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
@@ -84,7 +92,11 @@ public class CloudifyDeploymentBuilderService {
                 matchedInternalNetworks, matchedExternalNetworks, matchedStorages, buildTemplateMap(matchedComputes),
                 buildTemplateMap(matchedInternalNetworks), buildTemplateMap(matchedExternalNetworks), buildTemplateMap(matchedStorages), deploymentContext
                         .getPaaSTopology().getNonNatives(), IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), deploymentContext.getPaaSTopology().getAllNodes());
+                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap),
+                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getComputes()),
+                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()),
+                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()),
+                deploymentContext.getPaaSTopology().getAllNodes());
         return deployment;
     }
 }

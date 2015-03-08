@@ -58,7 +58,7 @@ public class MappingConfigurationHolder {
                     + cloudConfigurationHolder.getConfiguration().getProvider() + ".yaml", resourceLoaderService.getApplicationContextClassLoader())
                     .getInputStream(), ProviderMappingConfiguration.class);
         } catch (IOException e) {
-            throw new BadConfigurationException("Bad configuration, unable to parse provider mapping configuration");
+            throw new BadConfigurationException("Bad configuration, unable to parse provider mapping configuration", e);
         }
     }
 }

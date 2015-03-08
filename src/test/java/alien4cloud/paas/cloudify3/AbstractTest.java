@@ -25,6 +25,7 @@ import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
 import alien4cloud.paas.cloudify3.service.StorageTemplateMatcherService;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
+import alien4cloud.tosca.normative.AlienCustomTypes;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 import alien4cloud.tosca.normative.NormativeComputeConstants;
 import alien4cloud.tosca.normative.NormativeNetworkConstants;
@@ -37,15 +38,13 @@ public class AbstractTest {
 
     public static final String SINGLE_COMPUTE_TOPOLOGY = "single_compute";
 
-    public static final String SINGLE_COMPUTE_TOPOLOGY_WITH_APACHE = "single_compute_with_apache";
-
-    public static final String SINGLE_COMPUTE_TOPOLOGY_WITH_MYSQL = "single_compute_with_mysql";
-
     public static final String LAMP_TOPOLOGY = "lamp";
 
     public static final String NETWORK_TOPOLOGY = "network";
 
-    public static final String BLOCK_STORAGE_TOPOLOGY = "block_storage";
+    public static final String STORAGE_TOPOLOGY = "storage";
+
+    public static final String DELETABLE_STORAGE_TOPOLOGY = "deletable_storage";
 
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
@@ -67,19 +66,29 @@ public class AbstractTest {
     @Resource
     private StorageTemplateMatcherService storageTemplateMatcherService;
 
+    private static boolean isInitialized = false;
+
     @Resource
     private CSARUtil csarUtil;
 
     @BeforeClass
     public static void cleanup() throws IOException {
         FileUtil.delete(CSARUtil.ARTIFACTS_DIRECTORY);
-        FileUtil.delete(Paths.get("target/alien"));
     }
 
     @Before
     public void before() throws Exception {
+        if (!isInitialized) {
+            isInitialized = true;
+        } else {
+            return;
+        }
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
-        cloudConfiguration.setUrl("http://129.185.67.33:8100");
+        String cloudifyURL = System.getenv("CLOUDIFY_URL");
+        if (cloudifyURL == null) {
+            cloudifyURL = "http://129.185.67.114:8100";
+        }
+        cloudConfiguration.setUrl(cloudifyURL);
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
 
@@ -99,7 +108,7 @@ public class AbstractTest {
         matcherConfig.setNetworkMapping(networkMapping);
 
         Map<StorageTemplate, String> storageMapping = Maps.newHashMap();
-        storageMapping.put(storageTemplate, "small");
+        storageMapping.put(storageTemplate, null);
         matcherConfig.setStorageMapping(storageMapping);
 
         computeTemplateMatcherService.configure(matcherConfig.getImageMapping(), matcherConfig.getFlavorMapping());
@@ -119,7 +128,8 @@ public class AbstractTest {
             if (NormativeNetworkConstants.NETWORK_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
                 networkIds.add(nodeTemplateEntry.getKey());
             }
-            if (NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
+            if (NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())
+                    || AlienCustomTypes.DELETABLE_BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
                 blockStorageIds.add(nodeTemplateEntry.getKey());
             }
         }

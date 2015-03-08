@@ -17,6 +17,8 @@ public class MappingConfiguration {
 
     private String nativeTypePropertyName;
 
+    private String nativePropertyParent;
+
     private Map<String, String> normativeTypes;
 
     private Relationships relationships;

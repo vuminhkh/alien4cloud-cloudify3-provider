@@ -64,7 +64,14 @@ public class DeploymentService {
         // Cloudify 3 will use recipe id to identify a blueprint and a deployment instead of deployment id
         log.info("Deploying recipe {} with deployment id {}", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
         eventService.registerDeploymentEvent(alienDeployment.getDeploymentId(), DeploymentStatus.DEPLOYMENT_IN_PROGRESS);
-        Path blueprintPath = blueprintService.generateBlueprint(alienDeployment);
+        Path blueprintPath;
+        try {
+            blueprintPath = blueprintService.generateBlueprint(alienDeployment);
+        } catch (IOException e) {
+            log.error("Unable to generate the blueprint from recipe {} with deployment id {}", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
+            eventService.registerDeploymentEvent(alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
+            return Futures.immediateFailedFuture(e);
+        }
         ListenableFuture<Blueprint> createdBlueprint = blueprintDAO.asyncCreate(alienDeployment.getRecipeId(), blueprintPath.toString());
         AsyncFunction<Blueprint, Deployment> createDeploymentFunction = new AsyncFunction<Blueprint, Deployment>() {
             @Override
@@ -93,11 +100,11 @@ public class DeploymentService {
         } catch (IOException e) {
             log.warn("Unable to delete generated blueprint for recipe " + deploymentContext.getRecipeId(), e);
         }
-        ListenableFuture<Execution> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentId(), Workflow.UNINSTALL,
-                null, false, false));
+        ListenableFuture<?> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentId(), Workflow.UNINSTALL, null,
+                false, false));
         AsyncFunction deleteDeploymentFunction = new AsyncFunction() {
             @Override
-            public ListenableFuture apply(Object input) throws Exception {
+            public ListenableFuture<?> apply(Object input) throws Exception {
                 // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of deployment 2 seconds after the
                 // end of uninstall operation
                 ListenableFuture<?> scheduledDeleteDeployment = Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
@@ -109,7 +116,7 @@ public class DeploymentService {
                 return scheduledDeleteDeployment;
             }
         };
-        ListenableFuture deletedDeployment = Futures.transform(startUninstall, deleteDeploymentFunction);
+        ListenableFuture<?> deletedDeployment = Futures.transform(startUninstall, deleteDeploymentFunction);
         // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of blueprint 2 seconds after the delete of
         // deployment
         AsyncFunction deleteBlueprintFunction = new AsyncFunction() {

@@ -1,0 +1,50 @@
+node_templates:
+
+  Compute:
+    type: tosca.nodes.Compute
+    properties:
+      os_arch:
+        value: x86_64
+      os_type:
+        value: linux
+
+  BlockStorage:
+    type: alien.nodes.DeletableBlockStorage
+    properties:
+      file_system:
+        value: ext4
+      location:
+        value: /var/mysql
+    relationships:
+      attachedToCompute:
+        type: tosca.relationships.AttachTo
+        target: Compute
+
+  Mysql:
+    type: alien.nodes.Mysql
+    name: Mysql
+    properties:
+      bind_address:
+        value: "true"
+      storage_path:
+        value: /var/mysql
+      db_port:
+        value: "3306"
+      db_name:
+        value: wordpress
+      db_user:
+        value: pass
+      db_password:
+        value: pass
+    relationships:
+      hostedOnDataBase:
+        type: tosca.relationships.HostedOn
+        target: Compute
+
+dependencies:
+  - name: tosca-normative-types
+    version: 1.0.0.wd03-SNAPSHOT
+  - name: alien-extended-storage-types
+    version: 1.0-SNAPSHOT
+  - name: mysql-type
+    version: 2.0.0-SNAPSHOT

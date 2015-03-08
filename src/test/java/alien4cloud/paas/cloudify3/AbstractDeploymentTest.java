@@ -1,18 +1,19 @@
 package alien4cloud.paas.cloudify3;
 
+import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Resource;
 
+import org.junit.After;
 import org.junit.Before;
 
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IPaaSCallback;
-import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
-import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
+import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
@@ -23,7 +24,7 @@ import com.google.common.util.concurrent.SettableFuture;
 public class AbstractDeploymentTest extends AbstractTest {
 
     @Resource
-    private BlueprintDAO blueprintDAO;
+    private EventService eventService;
 
     @Resource
     private DeploymentDAO deploymentDAO;
@@ -40,11 +41,8 @@ public class AbstractDeploymentTest extends AbstractTest {
     @Resource
     private CloudifyPaaSProvider cloudifyPaaSProvider;
 
-    @Override
-    @Before
-    public void before() throws Exception {
-        super.before();
-
+    private void cleanDeployments() throws Exception {
+        Date now = new Date();
         // Clean deployment
         Deployment[] deployments = deploymentDAO.list();
         if (deployments.length > 0) {
@@ -54,16 +52,22 @@ public class AbstractDeploymentTest extends AbstractTest {
                 context.setRecipeId(deployment.getBlueprintId());
                 deploymentService.undeploy(context).get();
             }
+            Thread.sleep(1000L);
+            // Clean internal events queue
+            eventService.getEventsSince(now, Integer.MAX_VALUE).get();
         }
-        Thread.sleep(1000L);
-        // Clean blueprint
-        Blueprint[] blueprints = blueprintDAO.list();
-        if (blueprints.length > 0) {
-            for (Blueprint blueprint : blueprints) {
-                blueprintDAO.delete(blueprint.getId());
-            }
-        }
-        Thread.sleep(1000L);
+    }
+
+    @Override
+    @Before
+    public void before() throws Exception {
+        super.before();
+        cleanDeployments();
+    }
+
+    @After
+    public void after() throws Exception {
+        cleanDeployments();
     }
 
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName) {
@@ -77,9 +81,12 @@ public class AbstractDeploymentTest extends AbstractTest {
         return deploymentContext;
     }
 
-    protected void launchTest(String appName, String topologyName) throws ExecutionException, InterruptedException {
+    protected String launchTest(String topologyName) throws ExecutionException, InterruptedException {
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        String deploymentId = stackTraceElements[2].getMethodName();
         final SettableFuture<Object> future = SettableFuture.create();
-        cloudifyPaaSProvider.deploy(buildPaaSDeploymentContext(appName, topologyName), new IPaaSCallback<Object>() {
+        cloudifyPaaSProvider.deploy(buildPaaSDeploymentContext(deploymentId, topologyName), new IPaaSCallback<Object>() {
+
             @Override
             public void onSuccess(Object data) {
                 future.set(data);
@@ -91,5 +98,6 @@ public class AbstractDeploymentTest extends AbstractTest {
             }
         });
         future.get();
+        return deploymentId;
     }
 }

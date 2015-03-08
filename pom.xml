@@ -3,7 +3,7 @@
 
     <groupId>alien4cloud</groupId>
     <artifactId>alien4cloud-cloudify3-provider</artifactId>
-    <version>0.0.3</version>
+    <version>1.0.0-SM22</version>
 
     <name>Cloudify 3.x PaaS Provider for Alien 4 Cloud</name>
 
@@ -32,7 +32,7 @@
 
     <properties>
         <java.version>1.7</java.version>
-        <alien4cloud.version>1.0.0-SM21-SNAPSHOT</alien4cloud.version>
+        <alien4cloud.version>${project.version}</alien4cloud.version>
         <spring.version>4.1.4.RELEASE</spring.version>
         <lombok.version>0.12.0</lombok.version>
         <!-- Tests -->
@@ -42,6 +42,7 @@
         <!-- Java coverage configuration -->
         <sonar.jacoco.reportPath>${project.basedir}/target/jacoco.exec</sonar.jacoco.reportPath>
         <maven.compiler.version>2.3.2</maven.compiler.version>
+        <httpclient.version>4.3.2</httpclient.version>
     </properties>
 
     <dependencies>
@@ -110,6 +111,18 @@
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <scope>test</scope>
+            <version>${httpclient.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpmime</artifactId>
+            <scope>test</scope>
+            <version>${httpclient.version}</version>
         </dependency>
     </dependencies>
 

@@ -33,6 +33,7 @@ import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.util.DateUtil;
 import alien4cloud.paas.cloudify3.util.MapUtil;
+import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.InstanceStatus;
@@ -156,7 +157,7 @@ public class StatusService {
         }
     }
 
-    private DeploymentStatus getStatusFromCache(String deploymentId) {
+    public DeploymentStatus getStatus(String deploymentId) {
         if (!statusCache.containsKey(deploymentId)) {
             return DeploymentStatus.UNDEPLOYED;
         } else {
@@ -165,13 +166,13 @@ public class StatusService {
     }
 
     public void getStatus(String deploymentId, IPaaSCallback<DeploymentStatus> callback) {
-        callback.onSuccess(getStatusFromCache(deploymentId));
+        callback.onSuccess(getStatus(deploymentId));
     }
 
     public void getStatuses(String[] deploymentIds, IPaaSCallback<DeploymentStatus[]> callback) {
         List<DeploymentStatus> deploymentStatuses = Lists.newArrayList();
         for (String deploymentId : deploymentIds) {
-            deploymentStatuses.add(getStatusFromCache(deploymentId));
+            deploymentStatuses.add(getStatus(deploymentId));
         }
         callback.onSuccess(deploymentStatuses.toArray(new DeploymentStatus[deploymentStatuses.size()]));
     }
@@ -218,7 +219,9 @@ public class StatusService {
                     Map<String, String> runtimeProperties = MapUtil.toString(instance.getRuntimeProperties());
                     instanceInformation.setRuntimeProperties(runtimeProperties);
                     Node node = nodeMap.get(instance.getNodeId());
-                    instanceInformation.setProperties(nodeTemplate.getProperties());
+                    if (nodeTemplate.getProperties() != null) {
+                        instanceInformation.setProperties(FunctionEvaluator.getScalarValues(nodeTemplate.getProperties()));
+                    }
                     if (node != null && node.getProperties() != null) {
                         String nativeType = getNativeType(node);
                         if (nativeType != null && runtimeProperties != null) {

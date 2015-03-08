@@ -1,8 +1,16 @@
 ## Compute nodes
 #foreach($matchedPaaSCompute in ${deployment.computes})
   ${matchedPaaSCompute.paaSNodeTemplate.id}:
-    type: ${mapping.generatedTypePrefix}.openstack.Compute
+    type: ${util.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.openstack.Compute")}
     properties:
+#if(${util.mapHasEntries(${matchedPaaSCompute.paaSNodeTemplate.nodeTemplate.properties})})
+      ${mapping.nativePropertyParent}:
+#foreach($property in ${matchedPaaSCompute.paaSNodeTemplate.nodeTemplate.properties.entrySet()})
+#if($property.getValue())
+        $property.getKey(): "$util.formatNodeOperationInput($matchedPaaSCompute.paaSNodeTemplate, $property.getValue())"
+#end
+#end
+#end
       server:
         image: ${matchedPaaSCompute.paaSComputeTemplate.image}
         flavor: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
@@ -37,9 +45,17 @@
 #foreach($matchedNetwork in ${deployment.internalNetworks})
 #set( $network = ${matchedNetwork.paaSResourceTemplate} )
   ${matchedNetwork.paaSNodeTemplate.id}:
-    type: ${mapping.generatedTypePrefix}.openstack.Network
+    type: ${util.tryToMapNetworkType($matchedNetwork.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.openstack.Network")}
     properties:
       resource_id: ${network.id}
+#if(${util.mapHasEntries(${matchedNetwork.paaSNodeTemplate.nodeTemplate.properties})})
+      ${mapping.nativePropertyParent}:
+#foreach($property in ${matchedNetwork.paaSNodeTemplate.nodeTemplate.properties.entrySet()})
+#if($property.getValue())
+        $property.getKey(): "$util.formatNodeOperationInput($matchedNetwork.paaSNodeTemplate, $property.getValue())"
+#end
+#end
+#end
   ${matchedNetwork.paaSNodeTemplate.id}_subnet:
     type: ${providerMapping.nativeTypes.subnetType}
     properties:
@@ -54,30 +70,37 @@
 
 ## volume nodes
 #foreach($matchedVolume in ${deployment.volumes})
+#set($externalVolumeId = $util.getExternalVolumeId($matchedVolume))
 #if(${util.isConfiguredVolume(${matchedVolume.paaSNodeTemplate})})
   ${mapping.generatedNodePrefix}_file_system_${matchedVolume.paaSNodeTemplate.id}:
-    type: ${mapping.generatedTypePrefix}.openstack.FileSystem
+    type: ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem
     properties:
+#if($externalVolumeId)
+      use_external_resource: true
+#end
 #if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system})
-      fs_type: ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system}
+      fs_type: ${util.formatNodeOperationInput($matchedVolume.paaSNodeTemplate, ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system})}
 #end
 #if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location})
-      fs_mount_path: ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location}
+      fs_mount_path: ${util.formatNodeOperationInput($matchedVolume.paaSNodeTemplate, ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location})}
 #end
     relationships:
-      - type: cloudify.relationships.file_system_depends_on_volume
+      - type: ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_depends_on_volume
         target: ${matchedVolume.paaSNodeTemplate.id}
-      - type: cloudify.relationships.file_system_contained_in_compute
+      - type: ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_contained_in_compute
         target: ${matchedVolume.paaSNodeTemplate.parent.id}
 #end
   ${matchedVolume.paaSNodeTemplate.id}:
-#if(${util.isDeletableVolume(${matchedVolume.paaSNodeTemplate})})
-    type: ${mapping.generatedTypePrefix}.openstack.DeletableVolume
-#else
-    type: ${mapping.generatedTypePrefix}.openstack.Volume
-#end
+    type: ${util.tryToMapVolumeType($matchedVolume.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.openstack.Volume")}
     properties:
-#set($externalVolumeId = $util.getExternalVolumeId($matchedVolume))
+#if(${util.mapHasEntries(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties})})
+      ${mapping.nativePropertyParent}:
+#foreach($property in ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.entrySet()})
+#if($property.getValue())
+        $property.getKey(): "$util.formatNodeOperationInput($matchedVolume.paaSNodeTemplate, $property.getValue())"
+#end
+#end
+#end
 #if($externalVolumeId)
       resource_id: $externalVolumeId
       use_external_resource: true
@@ -88,6 +111,11 @@
 #if(${matchedVolume.paaSResourceTemplate.size})
       volume:
         size: ${matchedVolume.paaSResourceTemplate.size}
+#end
+#if(!${util.isDeletableVolumeType(${matchedVolume.paaSNodeTemplate.indexedToscaElement})})
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        delete: {}
 #end
     relationships:
       - target: ${matchedVolume.paaSNodeTemplate.parent.id}

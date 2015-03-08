@@ -6,16 +6,33 @@ imports:
   - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
 
 node_types:
-  alien4cloud.computes.Medium_Ubuntu_Precise:
+
+  _a4c_generated_type.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
-      server:
-        default:
-          image: 6fb17427-05d8-4638-8369-10d99fa7fef0
-          flavor: 3
+      _a4c_native_property:
+        default: {}
+      _a4c_native_type:
+        default: compute
+
+
+
+
+
 
 node_templates:
+
   compute:
-    type: alien4cloud.computes.Medium_Ubuntu_Precise
+    type: _a4c_generated_type.openstack.Compute
+    properties:
+      _a4c_native_property:
+        os_arch: "x86_64"
+        os_type: "linux"
+      server:
+        image: 727df994-2e1b-404e-9276-b248223a835d
+        flavor: 2
     instances:
       deploy: 1
+
+
+
