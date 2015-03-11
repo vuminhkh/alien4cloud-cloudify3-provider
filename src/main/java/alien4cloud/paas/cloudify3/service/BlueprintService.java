@@ -18,6 +18,8 @@ import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import alien4cloud.model.components.DeploymentArtifact;
+import alien4cloud.model.components.IArtifact;
 import alien4cloud.model.components.ImplementationArtifact;
 import alien4cloud.model.components.IndexedArtifactToscaElement;
 import alien4cloud.model.components.IndexedNodeType;
@@ -94,12 +96,14 @@ public class BlueprintService {
                 IndexedNodeType nonNativeType = nonNative.getIndexedToscaElement();
                 if (processedNodeTypes.add(nonNativeType.getElementId())) {
                     // Don't process a type more than once
+                    copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative, nonNativeType);
                     copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative, nonNativeType);
                 }
                 List<PaaSRelationshipTemplate> relationships = nonNative.getRelationshipTemplates();
                 for (PaaSRelationshipTemplate relationship : relationships) {
                     IndexedRelationshipType relationshipType = relationship.getIndexedToscaElement();
                     if (processedRelationshipTypes.add(relationshipType.getElementId())) {
+                        copyDeploymentArtifacts(generatedBlueprintDirectoryPath, relationship, relationshipType);
                         copyImplementationArtifacts(generatedBlueprintDirectoryPath, relationship, relationshipType);
                     }
                 }
@@ -117,24 +121,43 @@ public class BlueprintService {
         return generatedBlueprintFilePath;
     }
 
+    private void copyArtifact(Path generatedBlueprintDirectoryPath, Path csarPath, IArtifact artifact, IndexedArtifactToscaElement nonNativeType)
+            throws IOException {
+        String artifactRelativePathName = artifact.getArtifactRef();
+        FileSystem csarFS = FileSystems.newFileSystem(csarPath, null);
+        Path artifactPath = csarFS.getPath(artifactRelativePathName);
+        Path copiedArtifactDirectory = generatedBlueprintDirectoryPath.resolve(nonNativeType.getArchiveName()).resolve(nonNativeType.getElementId());
+        Files.createDirectories(copiedArtifactDirectory);
+        Path artifactCopiedPath = copiedArtifactDirectory.resolve(artifactRelativePathName);
+        Files.createDirectories(artifactCopiedPath.getParent());
+        Files.copy(artifactPath, artifactCopiedPath);
+    }
+
+    private void copyDeploymentArtifacts(Path generatedBlueprintDirectoryPath, IPaaSTemplate<?> nonNative, IndexedArtifactToscaElement nonNativeType)
+            throws IOException {
+        Map<String, DeploymentArtifact> artifacts = nonNativeType.getArtifacts();
+        if (artifacts == null || artifacts.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, DeploymentArtifact> artifactEntry : artifacts.entrySet()) {
+            DeploymentArtifact artifact = artifactEntry.getValue();
+            copyArtifact(generatedBlueprintDirectoryPath, nonNative.getCsarPath(), artifact, nonNativeType);
+        }
+    }
+
     private void copyImplementationArtifacts(Path generatedBlueprintDirectoryPath, IPaaSTemplate<?> nonNative, IndexedArtifactToscaElement nonNativeType)
             throws IOException {
         Map<String, Interface> interfaces = nonNativeType.getInterfaces();
+        if (interfaces == null || interfaces.isEmpty()) {
+            return;
+        }
         // Copy implementation artifacts
         for (Map.Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
             Map<String, Operation> operations = interfaceEntry.getValue().getOperations();
             for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
                 ImplementationArtifact artifact = operationEntry.getValue().getImplementationArtifact();
                 if (artifact != null) {
-                    String artifactRelativePathName = artifact.getArtifactRef();
-                    FileSystem csarFS = FileSystems.newFileSystem(nonNative.getCsarPath(), null);
-                    Path artifactPath = csarFS.getPath(artifactRelativePathName);
-                    Path copiedArtifactDirectory = generatedBlueprintDirectoryPath.resolve(nonNativeType.getArchiveName())
-                            .resolve(nonNativeType.getElementId());
-                    Files.createDirectories(copiedArtifactDirectory);
-                    Path artifactCopiedPath = copiedArtifactDirectory.resolve(artifactRelativePathName);
-                    Files.createDirectories(artifactCopiedPath.getParent());
-                    Files.copy(artifactPath, artifactCopiedPath);
+                    copyArtifact(generatedBlueprintDirectoryPath, nonNative.getCsarPath(), artifact, nonNativeType);
                 }
             }
         }

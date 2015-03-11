@@ -113,4 +113,9 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     public void testGenerateDeletableBlockStorage() {
         testGeneratedBlueprintFile(DELETABLE_STORAGE_TOPOLOGY);
     }
+
+    @Test
+    public void testGenerateTomcat() {
+        testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
+    }
 }

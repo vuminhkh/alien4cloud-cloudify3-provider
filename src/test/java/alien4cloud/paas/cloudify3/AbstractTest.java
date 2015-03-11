@@ -1,7 +1,6 @@
 package alien4cloud.paas.cloudify3;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +44,8 @@ public class AbstractTest {
     public static final String STORAGE_TOPOLOGY = "storage";
 
     public static final String DELETABLE_STORAGE_TOPOLOGY = "deletable_storage";
+
+    public static final String TOMCAT_TOPOLOGY = "tomcat";
 
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 

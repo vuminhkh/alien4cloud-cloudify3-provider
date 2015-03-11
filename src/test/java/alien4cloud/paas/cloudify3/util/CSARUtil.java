@@ -39,6 +39,7 @@ public class CSARUtil {
     public static final String URL_FOR_STORAGE = "https://github.com/alien4cloud/alien4cloud-extended-types.git";
     public static final String ALIEN4CLOUD_STORAGE_TYPES = "alien4cloud-extended-types";
     public static final String ALIEN_EXTENDED_STORAGE_TYPES_1_0_SNAPSHOT = "alien-extended-storage-types-1.0-SNAPSHOT";
+    public static final String ALIEN_EXTENDED_BASE_TYPES_1_0_SNAPSHOT = "alien-base-types-1.0-SNAPSHOT";
 
     @Resource
     private ArchiveUploadService archiveUploadService;
@@ -75,6 +76,11 @@ public class CSARUtil {
 
     public void uploadStorage() throws Exception {
         uploadCSAR(ARTIFACTS_DIRECTORY.resolve(ALIEN4CLOUD_STORAGE_TYPES).resolve(ALIEN_EXTENDED_STORAGE_TYPES_1_0_SNAPSHOT));
+        uploadCSAR(ARTIFACTS_DIRECTORY.resolve(ALIEN4CLOUD_STORAGE_TYPES).resolve(ALIEN_EXTENDED_BASE_TYPES_1_0_SNAPSHOT));
+    }
+
+    public void uploadTomcat() throws Exception {
+        uploadCSAR(Paths.get("./src/test/resources/components/tomcat-war"));
     }
 
     public void uploadAll() throws Exception {
@@ -82,10 +88,11 @@ public class CSARUtil {
         repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_NORMATIVES, "master", TOSCA_NORMATIVE_TYPES_NAME);
         repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_STORAGE, "master", ALIEN4CLOUD_STORAGE_TYPES);
         uploadNormativeTypes();
+        uploadStorage();
+        uploadTomcat();
         uploadApacheTypes();
         uploadMySqlTypes();
         uploadPHPTypes();
         uploadWordpress();
-        uploadStorage();
     }
 }

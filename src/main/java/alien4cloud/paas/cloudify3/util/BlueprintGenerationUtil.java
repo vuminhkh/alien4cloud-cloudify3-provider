@@ -115,6 +115,10 @@ public class BlueprintGenerationUtil {
         for (Map.Entry<String, Interface> interfaceEntry : allInterfaces.entrySet()) {
             Map<String, Operation> operations = Maps.newHashMap();
             for (Map.Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
+                if (operationEntry.getValue().getImplementationArtifact() == null) {
+                    // Don't consider operation which do not have any implementation artifact
+                    continue;
+                }
                 Map<String, IOperationParameter> parameters = operationEntry.getValue().getInputParameters();
                 if (parameters == null || parameters.isEmpty()) {
                     // No parameter
