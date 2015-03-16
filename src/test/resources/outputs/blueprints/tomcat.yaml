@@ -30,6 +30,15 @@ node_types:
       _a4c_native_type:
         default: network
 
+  _a4c_generated_type.cloudify.nodes.DeploymentArtifacts:
+    derived_from: cloudify.nodes.Root
+    properties:
+      artifacts:
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: cfy3_native/deployment_artifacts/download_artifacts.py
   alien.nodes.Java:
     derived_from: cloudify.nodes.SoftwareComponent
     properties:
@@ -88,6 +97,15 @@ node_templates:
 
 
 
+  _a4c_generated_node_deployment_artifacts_for_War:
+    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
+    properties:
+      artifacts:
+        war_file: tomcat-war-types/alien.nodes.War/warFiles/helloWorld.war
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: Server
+
   War:
     type: alien.nodes.War
     instances:
@@ -95,6 +113,8 @@ node_templates:
     properties:
       context_path: "helloworld"
     relationships:
+      - target: _a4c_generated_node_deployment_artifacts_for_War
+        type: cloudify.relationships.depends_on
       - target: Tomcat
         type: alien.relationships.WarHostedOnTomcat
         source_interfaces:
@@ -106,6 +126,8 @@ node_templates:
                   env:
                     CONTEXT_PATH: { get_property: [War, context_path] }
                     TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
+                    war_file: { get_attribute: [_a4c_generated_node_deployment_artifacts_for_War, war_file] }
+
   Tomcat:
     type: alien.nodes.Tomcat
     instances:

@@ -87,7 +87,7 @@ public class AbstractTest {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
         String cloudifyURL = System.getenv("CLOUDIFY_URL");
         if (cloudifyURL == null) {
-            cloudifyURL = "http://129.185.67.114:8100";
+            cloudifyURL = "http://129.185.67.49:8100";
         }
         cloudConfiguration.setUrl(cloudifyURL);
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);

@@ -1,6 +1,9 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -9,6 +12,8 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Resource;
 
@@ -35,6 +40,7 @@ import alien4cloud.paas.cloudify3.util.VelocityUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -46,6 +52,10 @@ import com.google.common.collect.Sets;
 @Component("cloudify-blueprint-service")
 @Slf4j
 public class BlueprintService {
+
+    public static final String SHELL_SCRIPT_ARTIFACT = "tosca.artifacts.ShellScript";
+
+    public static final Pattern SCRIPT_ECHO_PATTERN = Pattern.compile("^\\s*echo ((?:([\"'])[^\"]*\\2)|(?:[\\p{Alnum}\\p{Blank}]*))$");
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -118,6 +128,12 @@ public class BlueprintService {
             Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
             Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
         }
+        if (util.mapHasEntries(alienDeployment.getAllDeploymentArtifacts())) {
+            Path deploymentArtifactsScriptPath = generatedBlueprintDirectoryPath.resolve("cfy3_native/deployment_artifacts");
+            Files.createDirectories(deploymentArtifactsScriptPath);
+            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/deployment_artifacts/download_artifacts.py"),
+                    deploymentArtifactsScriptPath.resolve("download_artifacts.py"));
+        }
         return generatedBlueprintFilePath;
     }
 
@@ -130,7 +146,42 @@ public class BlueprintService {
         Files.createDirectories(copiedArtifactDirectory);
         Path artifactCopiedPath = copiedArtifactDirectory.resolve(artifactRelativePathName);
         Files.createDirectories(artifactCopiedPath.getParent());
-        Files.copy(artifactPath, artifactCopiedPath);
+        if (SHELL_SCRIPT_ARTIFACT.equals(artifact.getArtifactType())) {
+            BufferedReader artifactReader = null;
+            OutputStream artifactOutput = null;
+            try {
+                artifactReader = Files.newBufferedReader(artifactPath, Charsets.UTF_8);
+                artifactOutput = new BufferedOutputStream(Files.newOutputStream(artifactCopiedPath));
+                String line;
+                while ((line = artifactReader.readLine()) != null) {
+                    Matcher matcher = SCRIPT_ECHO_PATTERN.matcher(line);
+                    if (matcher.matches()) {
+                        String logContent = matcher.group(1);
+                        if (!logContent.startsWith("\"") && !logContent.startsWith("'")) {
+                            logContent = "\"" + logContent + "\"";
+                        }
+                        artifactOutput.write(("ctx logger info " + logContent + "\n").getBytes(Charsets.UTF_8));
+                    } else {
+                        artifactOutput.write((line + "\n").getBytes(Charsets.UTF_8));
+                    }
+                }
+            } finally {
+                if (artifactReader != null) {
+                    try {
+                        artifactReader.close();
+                    } catch (IOException e) {
+                    }
+                }
+                if (artifactOutput != null) {
+                    try {
+                        artifactOutput.close();
+                    } catch (IOException e) {
+                    }
+                }
+            }
+        } else {
+            Files.copy(artifactPath, artifactCopiedPath);
+        }
     }
 
     private void copyDeploymentArtifacts(Path generatedBlueprintDirectoryPath, IPaaSTemplate<?> nonNative, IndexedArtifactToscaElement nonNativeType)

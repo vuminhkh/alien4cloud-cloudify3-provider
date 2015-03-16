@@ -44,23 +44,23 @@ download () {
 		LINK_FLAG="-O"
 	fi
 	echo "${currHostName}:${currFilename} $DOWNLOADER $4 $Q_FLAG $O_FLAG $3 $LINK_FLAG $2"
-	sudo $DOWNLOADER $Q_FLAG $O_FLAG $3 $LINK_FLAG $2 || error_exit $? "Failed downloading $1"
+	$DOWNLOADER $Q_FLAG $O_FLAG $3 $LINK_FLAG $2 || error_exit $? "Failed downloading $1"
 }
 
 # create tomcat home if not exist
 if [ ! -d "$TOMCAT_HOME" ]; then
-    sudo mkdir -p $TOMCAT_HOME
+    mkdir -p $TOMCAT_HOME
 fi
 
 echo "${currHostName}:${currFilename} Downloading ${TOMCAT_URL} to ${destJavaArchive} ..."
 download "JDK" $TOMCAT_URL $TOMCAT_HOME/tomcat_archive.tar.gz
 
 # Install tomcat
-sudo tar xzvf $TOMCAT_HOME/tomcat_archive.tar.gz --strip 1 -C $TOMCAT_HOME
-sudo rm $TOMCAT_HOME/tomcat_archive.tar.gz
+tar xzvf $TOMCAT_HOME/tomcat_archive.tar.gz --strip 1 -C $TOMCAT_HOME
+rm $TOMCAT_HOME/tomcat_archive.tar.gz
 
 tomcatConfFolder=$TOMCAT_HOME/conf
 serverXml=$tomcatConfFolder/server.xml
 
 echo "${currHostName}:${currFilename} Configure tomcat to use port ${TOMCAT_PORT}"
-sudo sed -i -e "s/port=\"8080\"/port=\"$TOMCAT_PORT\"/g" $serverXml
+sed -i -e "s/port=\"8080\"/port=\"$TOMCAT_PORT\"/g" $serverXml

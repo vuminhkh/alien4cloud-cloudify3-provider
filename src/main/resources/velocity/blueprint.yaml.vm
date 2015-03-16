@@ -17,8 +17,6 @@ node_types:
 
 #parse("$provider_types_file")
 
-## TODO This is copied from http://www.getcloudify.org/spec/cloudify/3.2m4/types.yaml
-## TODO We must remove this once we migrate to cloudify 3.2
 #if($util.hasConfiguredVolume($deployment.volumes))
   ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem:
     derived_from: cloudify.nodes.Root
@@ -48,6 +46,17 @@ node_types:
         configure:
           implementation: cfy3_native/volume/mkfs.sh
 #end
+#if($util.mapHasEntries($deployment.allDeploymentArtifacts))
+  ${mapping.generatedTypePrefix}.cloudify.nodes.DeploymentArtifacts:
+    derived_from: cloudify.nodes.Root
+    properties:
+      artifacts:
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: cfy3_native/deployment_artifacts/download_artifacts.py
+#end
 #if($util.collectionHasElement($deployment.nonNativesTypes))
 #foreach($nonNativeType in ${deployment.nonNativesTypes})
   ${nonNativeType.elementId}:
@@ -64,23 +73,11 @@ node_types:
 #end
 #end
 #end
-#set( $nodeTypeInterfacesWithoutParameters = $util.getInterfaces($nonNativeType, false) )
-#if($util.mapHasEntries($nodeTypeInterfacesWithoutParameters))
-    interfaces:
-#foreach($interfaceEntry in $nodeTypeInterfacesWithoutParameters.entrySet())
-      $util.tryToMapToCloudifyInterface($interfaceEntry.key):
-#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-        $operationEntry.key: $nonNativeType.archiveName/$nonNativeType.elementId/$operationEntry.value.implementationArtifact.artifactRef
-#end
-#end
-#end
 #end
 #end
 
 #if($util.hasConfiguredVolume($deployment.volumes) || $util.collectionHasElement($deployment.nonNativesRelationshipTypes))
 relationships:
-## TODO This is copied from http://www.getcloudify.org/spec/cloudify/3.2m4/types.yaml
-## TODO We must remove this once we migrate to cloudify 3.2
 #if($util.hasConfiguredVolume($deployment.volumes))
   ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_depends_on_volume:
     derived_from: cloudify.relationships.depends_on
@@ -101,29 +98,6 @@ relationships:
 #foreach($nonNativeRelationshipType in ${deployment.nonNativesRelationshipTypes})
   ${nonNativeRelationshipType.elementId}:
     derived_from: $util.getDerivedFromType($nonNativeRelationshipType.derivedFrom)
-#set( $relationshipTypeInterfacesWithoutParameters = $util.getInterfaces($nonNativeRelationshipType, false) )
-#if($util.mapHasEntries($relationshipTypeInterfacesWithoutParameters))
-#set( $relationshipTypeSourceInterfacesWithoutParameters = $util.getRelationshipSourceInterfaces($relationshipTypeInterfacesWithoutParameters) )
-#if($util.mapHasEntries($relationshipTypeSourceInterfacesWithoutParameters))
-    source_interfaces:
-#foreach($interfaceEntry in $relationshipTypeSourceInterfacesWithoutParameters.entrySet())
-      $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
-#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-        $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
-#end
-#end
-#end
-#set( $relationshipTypeTargetInterfacesWithoutParameters = $util.getRelationshipTargetInterfaces($relationshipTypeInterfacesWithoutParameters) )
-#if($util.mapHasEntries($relationshipTypeTargetInterfacesWithoutParameters))
-    target_interfaces:
-#foreach($interfaceEntry in $relationshipTypeTargetInterfacesWithoutParameters.entrySet())
-      $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
-#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-        $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
-#end
-#end
-#end
-#end
 #end
 #end
 #end
@@ -131,6 +105,20 @@ relationships:
 node_templates:
 
 #parse("$provider_nodes_file")
+
+#foreach($deploymentArtifactsEntry in $deployment.allDeploymentArtifacts.entrySet())
+  ${mapping.generatedNodePrefix}_deployment_artifacts_for_$deploymentArtifactsEntry.key:
+    type: ${mapping.generatedTypePrefix}.cloudify.nodes.DeploymentArtifacts
+    properties:
+      artifacts:
+#foreach($deploymentArtifactEntry in $deploymentArtifactsEntry.value.entrySet())
+#set($nodeWithDeploymentArtifact = $deployment.allNodes.get(${deploymentArtifactsEntry.key}).indexedToscaElement)
+        $deploymentArtifactEntry.key: ${nodeWithDeploymentArtifact.archiveName}/${nodeWithDeploymentArtifact.elementId}/${deploymentArtifactEntry.value.artifactRef}
+#end
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: ${util.getHost($deployment.allNodes.get($deploymentArtifactsEntry.key)).id}
+#end
 
 #foreach($nonNativeNode in $deployment.nonNatives)
   $nonNativeNode.id:
@@ -140,15 +128,16 @@ node_templates:
 #if($util.mapHasEntries($nonNativeNode.nodeTemplate.properties))
     properties:
 #foreach($property in $nonNativeNode.nodeTemplate.properties.entrySet())
-#if($property.getValue())
-      $property.getKey(): "$util.formatNodeOperationInput($nonNativeNode, $property.getValue())"
+#if($property.value)
+      $property.key: "$util.formatNodeOperationInput($nonNativeNode, $property.value)"
 #end
 #end
 #end
-#set( $relationshipInterfacesWithParameters = $util.getInterfaces($nonNativeNode.indexedToscaElement, true) )
-#if($util.mapHasEntries($relationshipInterfacesWithParameters))
+#set( $nodeInterfacesWithParameters = $util.getNodeInterfaces($nonNativeNode, true) )
+#set( $nodeInterfacesWithoutParameters = $util.getNodeInterfaces($nonNativeNode, false) )
+#if($util.mapHasEntries($nodeInterfacesWithParameters) || $util.mapHasEntries($nodeInterfacesWithoutParameters))
     interfaces:
-#foreach($interfaceEntry in $relationshipInterfacesWithParameters.entrySet())
+#foreach($interfaceEntry in $nodeInterfacesWithParameters.entrySet())
       $util.tryToMapToCloudifyInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
         $operationEntry.key:
@@ -161,22 +150,35 @@ node_templates:
 #end
 #end
 #end
+#foreach($interfaceEntry in $nodeInterfacesWithoutParameters.entrySet())
+      $util.tryToMapToCloudifyInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+        $operationEntry.key: $nonNativeNode.indexedToscaElement.archiveName/$nonNativeNode.indexedToscaElement.elementId/$operationEntry.value.implementationArtifact.artifactRef
+#end
+#end
 #end
 #set( $relationshipTemplates = $util.getSourceRelationships($nonNativeNode) )
 #set( $attachedVolume = $util.getConfiguredAttachedVolume($nonNativeNode) )
-#if($util.collectionHasElement($relationshipTemplates) || $attachedVolume)
+#set( $hasDeploymentArtifacts = $deployment.allDeploymentArtifacts.containsKey(${nonNativeNode.id}) )
+#if($util.collectionHasElement($relationshipTemplates) || $attachedVolume || $hasDeploymentArtifacts)
     relationships:
 #if($attachedVolume)
       - target: ${mapping.generatedNodePrefix}_file_system_${attachedVolume.id}
         type: cloudify.relationships.depends_on
 #end
+#if($hasDeploymentArtifacts)
+      - target: ${mapping.generatedNodePrefix}_deployment_artifacts_for_${nonNativeNode.id}
+        type: cloudify.relationships.depends_on
+#end
 #foreach($relationship in $relationshipTemplates)
       - target: $relationship.relationshipTemplate.target
         type: $util.tryToMapToCloudifyType($relationship.indexedToscaElement.elementId)
-#set( $relationshipInterfacesWithParameters = $util.getInterfaces($relationship.indexedToscaElement, true) )
-#if($util.mapHasEntries($relationshipInterfacesWithParameters))
+#set( $relationshipInterfacesWithParameters = $util.getRelationshipInterfaces($relationship, true) )
+#set( $relationshipInterfacesWithoutParameters = $util.getRelationshipInterfaces($relationship, false) )
+#if($util.mapHasEntries($relationshipInterfacesWithParameters) || $util.mapHasEntries($relationshipInterfacesWithoutParameters))
 #set( $relationshipSourceInterfacesWithParameters = $util.getRelationshipSourceInterfaces($relationshipInterfacesWithParameters) )
-#if($util.mapHasEntries($relationshipSourceInterfacesWithParameters))
+#set( $relationshipSourceInterfacesWithoutParameters = $util.getRelationshipSourceInterfaces($relationshipInterfacesWithoutParameters) )
+#if($util.mapHasEntries($relationshipSourceInterfacesWithParameters) || $util.mapHasEntries($relationshipSourceInterfacesWithoutParameters))
         source_interfaces:
 #foreach($interfaceEntry in $relationshipSourceInterfacesWithParameters.entrySet())
           $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
@@ -191,9 +193,17 @@ node_templates:
 #end
 #end
 #end
+#foreach($interfaceEntry in $relationshipSourceInterfacesWithoutParameters.entrySet())
+          $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+            $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
+#end
+#end
+
 #end
 #set( $relationshipTargetInterfacesWithParameters = $util.getRelationshipTargetInterfaces($relationshipInterfacesWithParameters) )
-#if($util.mapHasEntries($relationshipTargetInterfacesWithParameters))
+#set( $relationshipTargetInterfacesWithoutParameters = $util.getRelationshipTargetInterfaces($relationshipInterfacesWithoutParameters) )
+#if($util.mapHasEntries($relationshipTargetInterfacesWithParameters) || $util.mapHasEntries($relationshipTargetInterfacesWithoutParameters))
         target_interfaces:
 #foreach($interfaceEntry in $relationshipTargetInterfacesWithParameters.entrySet())
           $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
@@ -206,6 +216,12 @@ node_templates:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
                     $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value)
 #end
+#end
+#end
+#foreach($interfaceEntry in $relationshipTargetInterfacesWithoutParameters.entrySet())
+          $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+            $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): $nonNativeRelationshipType.archiveName/$nonNativeRelationshipType.elementId/$operationEntry.value.implementationArtifact.artifactRef
 #end
 #end
 #end
