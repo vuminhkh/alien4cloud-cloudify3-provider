@@ -118,4 +118,9 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     public void testGenerateTomcat() {
         testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
     }
+
+    @Test
+    public void testGenerateArtifactsTest() {
+        testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
+    }
 }

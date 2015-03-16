@@ -16,6 +16,16 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class HttpUtil {
 
+    private void sleepWhenErrorHappen(long before, long timeout) {
+        if (System.currentTimeMillis() - before > timeout) {
+            Assert.fail("Test timeout");
+        }
+        try {
+            Thread.sleep(1000L);
+        } catch (InterruptedException e1) {
+        }
+    }
+
     public void checkUrl(String url, long timeout) {
         log.info("Checking url {}", url);
         long before = System.currentTimeMillis();
@@ -28,6 +38,10 @@ public class HttpUtil {
                     if (log.isDebugEnabled()) {
                         log.debug("Status code " + response.getStatusLine().getStatusCode());
                     }
+                    if (response.getStatusLine().getStatusCode() == 404) {
+                        sleepWhenErrorHappen(before, timeout);
+                        continue;
+                    }
                     Assert.assertTrue(response.getStatusLine().getStatusCode() >= 200 && response.getStatusLine().getStatusCode() < 300);
                     if (log.isDebugEnabled()) {
                         log.debug(EntityUtils.toString(response.getEntity()));
@@ -37,13 +51,7 @@ public class HttpUtil {
                     response.close();
                 }
             } catch (IOException e) {
-                if (System.currentTimeMillis() - before > timeout) {
-                    Assert.fail("Test timeout");
-                }
-                try {
-                    Thread.sleep(1000L);
-                } catch (InterruptedException e1) {
-                }
+                sleepWhenErrorHappen(before, timeout);
             }
         }
     }

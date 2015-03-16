@@ -83,6 +83,10 @@ public class CSARUtil {
         uploadCSAR(Paths.get("./src/test/resources/components/tomcat-war"));
     }
 
+    public void uploadArtifactTest() throws Exception {
+        uploadCSAR(Paths.get("./src/test/resources/components/artifact-test"));
+    }
+
     public void uploadAll() throws Exception {
         repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_SAMPLES, BRANCH_FOR_SAMPLES, SAMPLES_TYPES_NAME);
         repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_NORMATIVES, "master", TOSCA_NORMATIVE_TYPES_NAME);
@@ -94,5 +98,6 @@ public class CSARUtil {
         uploadMySqlTypes();
         uploadPHPTypes();
         uploadWordpress();
+        uploadArtifactTest();
     }
 }

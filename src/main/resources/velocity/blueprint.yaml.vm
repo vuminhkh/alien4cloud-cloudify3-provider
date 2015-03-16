@@ -106,18 +106,40 @@ node_templates:
 
 #parse("$provider_nodes_file")
 
-#foreach($deploymentArtifactsEntry in $deployment.allDeploymentArtifacts.entrySet())
-  ${mapping.generatedNodePrefix}_deployment_artifacts_for_$deploymentArtifactsEntry.key:
+#foreach($nodeArtifactsEntry in $deployment.allDeploymentArtifacts.entrySet())
+  ${mapping.generatedNodePrefix}_artifacts_for_$nodeArtifactsEntry.key:
     type: ${mapping.generatedTypePrefix}.cloudify.nodes.DeploymentArtifacts
     properties:
       artifacts:
-#foreach($deploymentArtifactEntry in $deploymentArtifactsEntry.value.entrySet())
-#set($nodeWithDeploymentArtifact = $deployment.allNodes.get(${deploymentArtifactsEntry.key}).indexedToscaElement)
-        $deploymentArtifactEntry.key: ${nodeWithDeploymentArtifact.archiveName}/${nodeWithDeploymentArtifact.elementId}/${deploymentArtifactEntry.value.artifactRef}
+#foreach($nodeArtifactEntry in $nodeArtifactsEntry.value.entrySet())
+        $nodeArtifactEntry.key: ${nodeArtifactEntry.value.archiveName}/${nodeArtifactEntry.value.containingType}/${nodeArtifactEntry.value.artifactRef}
 #end
     relationships:
       - type: cloudify.relationships.contained_in
-        target: ${util.getHost($deployment.allNodes.get($deploymentArtifactsEntry.key)).id}
+        target: ${util.getHost($deployment.allNodes.get($nodeArtifactsEntry.key)).id}
+#end
+
+#foreach($relationshipArtifactsEntry in $deployment.allRelationshipDeploymentArtifacts.entrySet())
+  ${mapping.generatedNodePrefix}_artifacts_for_relationship_${relationshipArtifactsEntry.key.id}_from_${relationshipArtifactsEntry.key.source}_on_source:
+    type: ${mapping.generatedTypePrefix}.cloudify.nodes.DeploymentArtifacts
+    properties:
+      artifacts:
+#foreach($relationshipArtifactEntry in $relationshipArtifactsEntry.value.entrySet())
+        $relationshipArtifactEntry.key: ${relationshipArtifactEntry.value.archiveName}/${relationshipArtifactEntry.value.containingType}/${relationshipArtifactEntry.value.artifactRef}
+#end
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: ${util.getHost($deployment.allNodes.get($relationshipArtifactsEntry.key.source)).id}
+  ${mapping.generatedNodePrefix}_artifacts_for_relationship_${relationshipArtifactsEntry.key.id}_from_${relationshipArtifactsEntry.key.source}_on_target:
+    type: ${mapping.generatedTypePrefix}.cloudify.nodes.DeploymentArtifacts
+    properties:
+      artifacts:
+#foreach($relationshipArtifactEntry in $relationshipArtifactsEntry.value.entrySet())
+        $relationshipArtifactEntry.key: ${relationshipArtifactEntry.value.archiveName}/${relationshipArtifactEntry.value.containingType}/${relationshipArtifactEntry.value.artifactRef}
+#end
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: ${util.getHost($deployment.allNodes.get($relationshipArtifactsEntry.key.target)).id}
 #end
 
 #foreach($nonNativeNode in $deployment.nonNatives)
@@ -160,17 +182,29 @@ node_templates:
 #set( $relationshipTemplates = $util.getSourceRelationships($nonNativeNode) )
 #set( $attachedVolume = $util.getConfiguredAttachedVolume($nonNativeNode) )
 #set( $hasDeploymentArtifacts = $deployment.allDeploymentArtifacts.containsKey(${nonNativeNode.id}) )
+#set( $allRelationshipWithDeploymentArtifacts = ${util.getAllRelationshipWithDeploymentArtifacts($nonNativeNode)})
 #if($util.collectionHasElement($relationshipTemplates) || $attachedVolume || $hasDeploymentArtifacts)
     relationships:
+#if($util.collectionHasElement($allRelationshipWithDeploymentArtifacts))
+#foreach($relationship in $allRelationshipWithDeploymentArtifacts)
+      - target: ${mapping.generatedNodePrefix}_artifacts_for_relationship_${relationship.id}_from_${relationship.source}_on_target
+        type: cloudify.relationships.depends_on
+#end
+#end
 #if($attachedVolume)
       - target: ${mapping.generatedNodePrefix}_file_system_${attachedVolume.id}
         type: cloudify.relationships.depends_on
 #end
 #if($hasDeploymentArtifacts)
-      - target: ${mapping.generatedNodePrefix}_deployment_artifacts_for_${nonNativeNode.id}
+      - target: ${mapping.generatedNodePrefix}_artifacts_for_${nonNativeNode.id}
         type: cloudify.relationships.depends_on
 #end
 #foreach($relationship in $relationshipTemplates)
+#set( $relationshipHasDeploymentArtifacts = $util.relationshipHasDeploymentArtifacts($relationship) )
+#if($relationshipHasDeploymentArtifacts)
+      - target: ${mapping.generatedNodePrefix}_artifacts_for_relationship_${relationship.id}_from_${relationship.source}_on_source
+        type: cloudify.relationships.depends_on
+#end
       - target: $relationship.relationshipTemplate.target
         type: $util.tryToMapToCloudifyType($relationship.indexedToscaElement.elementId)
 #set( $relationshipInterfacesWithParameters = $util.getRelationshipInterfaces($relationship, true) )
@@ -189,7 +223,7 @@ node_templates:
                 process:
                   env:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
-                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value)
+                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, true)
 #end
 #end
 #end
@@ -214,7 +248,7 @@ node_templates:
                 process:
                   env:
 #foreach($inputEntry in $operationEntry.value.inputParameters.entrySet())
-                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value)
+                    $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, false)
 #end
 #end
 #end

@@ -47,6 +47,8 @@ public class AbstractTest {
 
     public static final String TOMCAT_TOPOLOGY = "tomcat";
 
+    public static final String ARTIFACT_TEST_TOPOLOGY = "artifact_test";
+
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
     private NetworkTemplate network = new NetworkTemplate("net-pub", 4, true, null, null);

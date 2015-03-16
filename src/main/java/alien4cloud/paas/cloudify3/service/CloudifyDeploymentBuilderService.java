@@ -97,6 +97,21 @@ public class CloudifyDeploymentBuilderService {
                 allArtifacts.put(node.getId(), artifacts);
             }
         }
+
+        Map<CloudifyDeployment.Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newHashMap();
+        for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
+            List<PaaSRelationshipTemplate> relationships = nodeEntry.getValue().getRelationshipTemplates();
+            if (relationships != null && !relationships.isEmpty()) {
+                for (PaaSRelationshipTemplate relationship : relationships) {
+                    Map<String, DeploymentArtifact> artifacts = relationship.getIndexedToscaElement().getArtifacts();
+                    if (artifacts != null && !artifacts.isEmpty()) {
+                        allRelationshipArtifacts.put(new CloudifyDeployment.Relationship(relationship.getId(), relationship.getSource(), relationship
+                                .getRelationshipTemplate().getTarget()), artifacts);
+                    }
+                }
+            }
+        }
+
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
                 matchedInternalNetworks, matchedExternalNetworks, matchedStorages, buildTemplateMap(matchedComputes),
                 buildTemplateMap(matchedInternalNetworks), buildTemplateMap(matchedExternalNetworks), buildTemplateMap(matchedStorages), deploymentContext
@@ -104,7 +119,7 @@ public class CloudifyDeploymentBuilderService {
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), getTypesOrderedByDerivedFromHierarchy(deploymentContext
                         .getPaaSTopology().getComputes()), getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()),
                 getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()), deploymentContext.getPaaSTopology().getAllNodes(),
-                allArtifacts);
+                allArtifacts, allRelationshipArtifacts);
         return deployment;
     }
 }

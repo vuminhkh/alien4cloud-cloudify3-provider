@@ -126,18 +126,22 @@ public class TestDeploymentService extends AbstractDeploymentTest {
         });
     }
 
+    private String getIpAddress(String deploymentId, String nodeName) {
+        NodeInstance[] nodeInstances = nodeInstanceDAO.list(deploymentId);
+        String ipServer = null;
+        for (NodeInstance nodeInstance : nodeInstances) {
+            if ((mappingConfigurationHolder.getMappingConfiguration().getGeneratedNodePrefix() + "_floating_ip_Server").equals(nodeInstance.getNodeId())) {
+                ipServer = (String) nodeInstance.getRuntimeProperties().get("floating_ip_address");
+            }
+        }
+        Assert.assertNotNull(ipServer);
+        return ipServer;
+    }
+
     @org.junit.Test
     public void testDeployLamp() throws Exception {
         String deploymentId = launchTest(LAMP_TOPOLOGY);
-        NodeInstance[] nodeInstances = nodeInstanceDAO.list(deploymentId);
-        String ipServerLamp = null;
-        for (NodeInstance nodeInstance : nodeInstances) {
-            if ((mappingConfigurationHolder.getMappingConfiguration().getGeneratedNodePrefix() + "_floating_ip_Server").equals(nodeInstance.getNodeId())) {
-                ipServerLamp = (String) nodeInstance.getRuntimeProperties().get("floating_ip_address");
-            }
-        }
-        Assert.assertNotNull(ipServerLamp);
-        httpUtil.checkUrl("http://" + ipServerLamp + "/wp-admin/install.php", 120000L);
+        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/wp-admin/install.php", 120000L);
     }
 
     @org.junit.Test
@@ -162,6 +166,13 @@ public class TestDeploymentService extends AbstractDeploymentTest {
 
     @org.junit.Test
     public void testDeployTomcat() throws Exception {
-        launchTest(TOMCAT_TOPOLOGY);
+        String deploymentId = launchTest(TOMCAT_TOPOLOGY);
+        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", 120000L);
+    }
+
+    @org.junit.Test
+    public void testDeployArtifactTest() throws Exception {
+        String deploymentId = launchTest(ARTIFACT_TEST_TOPOLOGY);
+        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", 120000L);
     }
 }

@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
+import alien4cloud.component.repository.exception.CSARVersionNotFoundException;
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
 import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
@@ -67,8 +68,10 @@ public class DeploymentService {
         Path blueprintPath;
         try {
             blueprintPath = blueprintService.generateBlueprint(alienDeployment);
-        } catch (IOException e) {
-            log.error("Unable to generate the blueprint from recipe {} with deployment id {}", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
+        } catch (IOException | CSARVersionNotFoundException e) {
+            log.error(
+                    "Unable to generate the blueprint from recipe " + alienDeployment.getRecipeId() + " with deployment id "
+                            + alienDeployment.getDeploymentId(), e);
             eventService.registerDeploymentEvent(alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
             return Futures.immediateFailedFuture(e);
         }
