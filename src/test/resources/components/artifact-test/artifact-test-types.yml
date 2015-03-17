@@ -33,5 +33,5 @@ relationship_types:
           inputs:
             CONTEXT_PATH: { get_property: [SOURCE, context_path] }
             TOMCAT_HOME: { get_property: [TARGET, tomcat_home] }
-          implementation: scripts/tomcatInstallWar.sh
+          implementation: scripts/tomcat_install_war.sh
         post_configure_target: scripts/configureProperties.sh

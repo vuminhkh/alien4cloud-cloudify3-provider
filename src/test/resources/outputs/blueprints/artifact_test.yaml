@@ -101,7 +101,7 @@ node_templates:
     type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
     properties:
       artifacts:
-        war_file: tomcat-war-types/alien.nodes.War/warFiles/helloWorld.war
+        war_file: tomcat-war-types/warFiles/helloWorld.war
     relationships:
       - type: cloudify.relationships.contained_in
         target: Server
@@ -110,7 +110,7 @@ node_templates:
     type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
     properties:
       artifacts:
-        properties_file: artifact-test-types/alien.relationships.WarHostedOnTomcatWithProperties/conf/settings.properties
+        properties_file: artifact-test-types/conf/settings.properties
     relationships:
       - type: cloudify.relationships.contained_in
         target: Server
@@ -118,7 +118,7 @@ node_templates:
     type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
     properties:
       artifacts:
-        properties_file: artifact-test-types/alien.relationships.WarHostedOnTomcatWithProperties/conf/settings.properties
+        properties_file: artifact-test-types/conf/settings.properties
     relationships:
       - type: cloudify.relationships.contained_in
         target: Server
@@ -132,7 +132,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: artifact-test-types/alien.nodes.WarWithLifeCycleScript/scripts/create.sh
+          implementation: artifact-test-types/scripts/create.sh
           inputs:
             process:
               env:
@@ -147,7 +147,7 @@ node_templates:
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
             postconfigure:
-              implementation: artifact-test-types/alien.relationships.WarHostedOnTomcatWithProperties/scripts/tomcatInstallWar.sh
+              implementation: artifact-test-types/scripts/tomcat_install_war.sh
               inputs:
                 process:
                   env:
@@ -155,11 +155,10 @@ node_templates:
                     TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
                     war_file: { get_attribute: [_a4c_generated_node_artifacts_for_War, war_file] }
                     properties_file: { get_attribute: [_a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_source, properties_file] }
-
         target_interfaces:
           cloudify.interfaces.relationship_lifecycle:
             postconfigure:
-              implementation: artifact-test-types/alien.relationships.WarHostedOnTomcatWithProperties/scripts/configureProperties.sh
+              implementation: artifact-test-types/scripts/configureProperties.sh
               inputs:
                 process:
                   env:
@@ -171,20 +170,20 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         stop:
-          implementation: tomcat-war-types/alien.nodes.Tomcat/scripts/tomcat_stop.sh
+          implementation: tomcat-war-types/scripts/tomcat_stop.sh
           inputs:
             process:
               env:
                 TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
         start:
-          implementation: tomcat-war-types/alien.nodes.Tomcat/scripts/tomcat_start.sh
+          implementation: tomcat-war-types/scripts/tomcat_start.sh
           inputs:
             process:
               env:
                 TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
                 TOMCAT_PORT: { get_property: [Tomcat, tomcat_port] }
         create:
-          implementation: tomcat-war-types/alien.nodes.Tomcat/scripts/tomcat_install.sh
+          implementation: tomcat-war-types/scripts/tomcat_install.sh
           inputs:
             process:
               env:
@@ -205,7 +204,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: tomcat-war-types/alien.nodes.Java/scripts/java_install.sh
+          implementation: tomcat-war-types/scripts/java_install.sh
           inputs:
             process:
               env:

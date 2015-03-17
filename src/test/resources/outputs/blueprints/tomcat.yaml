@@ -101,7 +101,7 @@ node_templates:
     type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
     properties:
       artifacts:
-        war_file: tomcat-war-types/alien.nodes.War/warFiles/helloWorld.war
+        war_file: tomcat-war-types/warFiles/helloWorld.war
     relationships:
       - type: cloudify.relationships.contained_in
         target: Server
@@ -121,14 +121,13 @@ node_templates:
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
             postconfigure:
-              implementation: tomcat-war-types/alien.relationships.WarHostedOnTomcat/scripts/tomcatInstallWar.sh
+              implementation: tomcat-war-types/scripts/tomcat_install_war.sh
               inputs:
                 process:
                   env:
                     CONTEXT_PATH: { get_property: [War, context_path] }
                     TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
                     war_file: { get_attribute: [_a4c_generated_node_artifacts_for_War, war_file] }
-
   Tomcat:
     type: alien.nodes.Tomcat
     instances:
@@ -136,20 +135,20 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         stop:
-          implementation: tomcat-war-types/alien.nodes.Tomcat/scripts/tomcat_stop.sh
+          implementation: tomcat-war-types/scripts/tomcat_stop.sh
           inputs:
             process:
               env:
                 TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
         start:
-          implementation: tomcat-war-types/alien.nodes.Tomcat/scripts/tomcat_start.sh
+          implementation: tomcat-war-types/scripts/tomcat_start.sh
           inputs:
             process:
               env:
                 TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
                 TOMCAT_PORT: { get_property: [Tomcat, tomcat_port] }
         create:
-          implementation: tomcat-war-types/alien.nodes.Tomcat/scripts/tomcat_install.sh
+          implementation: tomcat-war-types/scripts/tomcat_install.sh
           inputs:
             process:
               env:
@@ -168,7 +167,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: tomcat-war-types/alien.nodes.Java/scripts/java_install.sh
+          implementation: tomcat-war-types/scripts/java_install.sh
           inputs:
             process:
               env:

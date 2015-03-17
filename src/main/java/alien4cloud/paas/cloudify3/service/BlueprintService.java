@@ -9,6 +9,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -146,7 +147,7 @@ public class BlueprintService {
         String artifactRelativePathName = artifact.getArtifactRef();
         FileSystem csarFS = FileSystems.newFileSystem(csarPath, null);
         Path artifactPath = csarFS.getPath(artifactRelativePathName);
-        Path copiedArtifactDirectory = generatedBlueprintDirectoryPath.resolve(artifact.getArchiveName()).resolve(artifact.getContainingType());
+        Path copiedArtifactDirectory = generatedBlueprintDirectoryPath.resolve(artifact.getArchiveName());
         Files.createDirectories(copiedArtifactDirectory);
         Path artifactCopiedPath = copiedArtifactDirectory.resolve(artifactRelativePathName);
         Files.createDirectories(artifactCopiedPath.getParent());
@@ -155,7 +156,8 @@ public class BlueprintService {
             OutputStream artifactOutput = null;
             try {
                 artifactReader = Files.newBufferedReader(artifactPath, Charsets.UTF_8);
-                artifactOutput = new BufferedOutputStream(Files.newOutputStream(artifactCopiedPath));
+                artifactOutput = new BufferedOutputStream(Files.newOutputStream(artifactCopiedPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE,
+                        StandardOpenOption.TRUNCATE_EXISTING));
                 String line;
                 while ((line = artifactReader.readLine()) != null) {
                     Matcher matcher = SCRIPT_ECHO_PATTERN.matcher(line);

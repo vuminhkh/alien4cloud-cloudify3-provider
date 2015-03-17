@@ -73,9 +73,6 @@ node_types:
       storage_path:
         type: string
         default: "/mountedStorage"
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        create: mysql-type/alien.nodes.Mysql/scripts/install_mysql.sh
 
 relationships:
   _a4c_generated_type.cloudify.relationships.file_system_depends_on_volume:
@@ -134,6 +131,8 @@ node_templates:
       - target: Compute
         type: cloudify.openstack.volume_attached_to_server
 
+
+
   Mysql:
     type: alien.nodes.Mysql
     instances:
@@ -148,7 +147,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         start:
-          implementation: mysql-type/alien.nodes.Mysql/scripts/start_mysql.sh
+          implementation: mysql-type/scripts/start_mysql.sh
           inputs:
             process:
               env:
@@ -158,6 +157,7 @@ node_templates:
                 DB_USER: { get_property: [Mysql, db_user] }
                 DB_PASSWORD: { get_property: [Mysql, db_password] }
                 BIND_ADRESS: { get_property: [Mysql, bind_address] }
+        create: mysql-type/scripts/install_mysql.sh
     relationships:
       - target: _a4c_generated_node_file_system_BlockStorage
         type: cloudify.relationships.depends_on

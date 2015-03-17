@@ -171,6 +171,7 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     }
 
     @org.junit.Test
+    @Ignore
     public void testDeployArtifactTest() throws Exception {
         String deploymentId = launchTest(ARTIFACT_TEST_TOPOLOGY);
         httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", 120000L);

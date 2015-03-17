@@ -85,18 +85,17 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     public void testGenerateLamp() {
         Path generated = testGeneratedBlueprintFile(LAMP_TOPOLOGY);
         checkVolumeScript(generated);
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/scripts/start_apache.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/scripts/install_apache.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("apache-type/scripts/start_apache.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("apache-type/scripts/install_apache.sh")));
 
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/alien.nodes.Mysql/scripts/install_mysql.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/alien.nodes.Mysql/scripts/start_mysql.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/scripts/install_mysql.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/scripts/start_mysql.sh")));
 
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("php-type/alien.nodes.PHP/scripts/install_php.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/alien.nodes.Wordpress/scripts/install_wordpress.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/alien.relationships.WordpressConnectToPHP/scripts/install_php_module.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve(
-                "wordpress-type/alien.relationships.WordpressConnectToMysql/scripts/config_wordpress_for_mysql.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/alien.relationships.WordpressHostedOnApache/scripts/config_wordpress.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("php-type/scripts/install_php.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/scripts/install_wordpress.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/scripts/install_php_module.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/scripts/config_wordpress_for_mysql.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/scripts/config_wordpress.sh")));
     }
 
     @Test
@@ -114,13 +113,29 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         testGeneratedBlueprintFile(DELETABLE_STORAGE_TOPOLOGY);
     }
 
+    private void validateTomcatArtifacts(Path generated) {
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/deployment_artifacts/download_artifacts.py")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/java_install.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_install.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_start.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_stop.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/warFiles/helloWorld.war")));
+    }
+
     @Test
     public void testGenerateTomcat() {
-        testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
+        Path generated = testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
+        validateTomcatArtifacts(generated);
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_install_war.sh")));
     }
 
     @Test
     public void testGenerateArtifactsTest() {
-        testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
+        Path generated = testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
+        validateTomcatArtifacts(generated);
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/settings.properties")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/configureProperties.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/create.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/tomcat_install_war.sh")));
     }
 }

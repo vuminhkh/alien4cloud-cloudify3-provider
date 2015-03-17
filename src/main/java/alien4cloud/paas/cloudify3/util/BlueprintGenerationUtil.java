@@ -104,7 +104,7 @@ public class BlueprintGenerationUtil {
         return relationshipInterfaces;
     }
 
-    public Map<String, Interface> getRelationshipInterfaces(PaaSRelationshipTemplate relationship, boolean withParameter) {
+    public Map<String, Interface> getRelationshipInterfaces(PaaSRelationshipTemplate relationship) {
         String source = relationship.getSource();
         String target = relationship.getRelationshipTemplate().getTarget();
         Map<String, DeploymentArtifact> sourceArtifacts = alienDeployment.getAllNodes().get(source).getIndexedToscaElement().getArtifacts();
@@ -122,7 +122,12 @@ public class BlueprintGenerationUtil {
                 allInterfaces.get(targetInterface.getKey()).getOperations().putAll(targetInterface.getValue().getOperations());
             }
         }
-        return getInterfaces(allInterfaces, relationship.getIndexedToscaElement(), withParameter);
+        return getInterfaces(allInterfaces, relationship.getIndexedToscaElement());
+    }
+
+    public boolean operationHasInputParameters(Operation operation) {
+        Map<String, IOperationParameter> inputParameters = operation.getInputParameters();
+        return inputParameters != null && !inputParameters.isEmpty();
     }
 
     private void enrichInterfaceOperationsWithDeploymentArtifacts(String artifactOwner, Map<String, DeploymentArtifact> artifacts,
@@ -151,8 +156,8 @@ public class BlueprintGenerationUtil {
         }
     }
 
-    public Map<String, Interface> getNodeInterfaces(PaaSNodeTemplate node, boolean withParameter) {
-        return getInterfaces(node.getIndexedToscaElement().getInterfaces(), node.getIndexedToscaElement(), withParameter);
+    public Map<String, Interface> getNodeInterfaces(PaaSNodeTemplate node) {
+        return getInterfaces(node.getIndexedToscaElement().getInterfaces(), node.getIndexedToscaElement());
     }
 
     /**
@@ -160,10 +165,9 @@ public class BlueprintGenerationUtil {
      *
      * @param allInterfaces all interfaces
      * @param type the tosca type
-     * @param withParameter interfaces' operations with parameters
      * @return only interfaces' operations that have input or don't have input
      */
-    private Map<String, Interface> getInterfaces(Map<String, Interface> allInterfaces, IndexedArtifactToscaElement type, boolean withParameter) {
+    private Map<String, Interface> getInterfaces(Map<String, Interface> allInterfaces, IndexedArtifactToscaElement type) {
         enrichInterfaceOperationsWithDeploymentArtifacts("SELF", type.getArtifacts(), allInterfaces);
         Map<String, Interface> interfaces = Maps.newHashMap();
         for (Map.Entry<String, Interface> interfaceEntry : allInterfaces.entrySet()) {
@@ -173,16 +177,7 @@ public class BlueprintGenerationUtil {
                     // Don't consider operation which do not have any implementation artifact
                     continue;
                 }
-                Map<String, IOperationParameter> parameters = operationEntry.getValue().getInputParameters();
-                if (parameters == null || parameters.isEmpty()) {
-                    // No parameter
-                    if (!withParameter) {
-                        operations.put(operationEntry.getKey(), operationEntry.getValue());
-                    }
-                } else if (withParameter) {
-                    // With parameter
-                    operations.put(operationEntry.getKey(), operationEntry.getValue());
-                }
+                operations.put(operationEntry.getKey(), operationEntry.getValue());
             }
             if (!operations.isEmpty()) {
                 // At least one operation fulfill the criteria
