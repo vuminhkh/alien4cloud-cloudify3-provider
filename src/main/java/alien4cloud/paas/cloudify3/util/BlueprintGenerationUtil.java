@@ -14,6 +14,7 @@ import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.FunctionPropertyValue;
+import alien4cloud.model.components.IArtifact;
 import alien4cloud.model.components.IOperationParameter;
 import alien4cloud.model.components.IndexedArtifactToscaElement;
 import alien4cloud.model.components.IndexedNodeType;
@@ -622,5 +623,28 @@ public class BlueprintGenerationUtil {
             }
         }
         return relationships;
+    }
+
+    public String getArtifactPath(String nodeId, String artifactId, IArtifact artifact) {
+        Map<String, DeploymentArtifact> topologyArtifacts = alienDeployment.getAllNodes().get(nodeId).getNodeTemplate().getArtifacts();
+        IArtifact topologyArtifact = topologyArtifacts != null ? topologyArtifacts.get(artifactId) : null;
+        if (topologyArtifact != null) {
+            // Overidden in the topology
+            return mappingConfiguration.getTopologyArtifactDirectoryName() + "/" + nodeId + "/" + artifact.getArchiveName() + "/" + artifact.getArtifactRef();
+        } else {
+            return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
+        }
+    }
+
+    public String getRelationshipArtifactPath(String sourceId, String relationshipId, String artifactId, IArtifact artifact) {
+        Map<String, DeploymentArtifact> topologyArtifacts = alienDeployment.getAllNodes().get(sourceId).getRelationshipTemplate(relationshipId, sourceId)
+                .getRelationshipTemplate().getArtifacts();
+        IArtifact topologyArtifact = topologyArtifacts != null ? topologyArtifacts.get(artifactId) : null;
+        if (topologyArtifact != null) {
+            // Overidden in the topology
+            return mappingConfiguration.getTopologyArtifactDirectoryName() + "/" + sourceId + "/" + artifact.getArchiveName() + "/" + artifact.getArtifactRef();
+        } else {
+            return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
+        }
     }
 }

@@ -51,7 +51,7 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
-          implementation: cfy3_native/volume/mkfs.sh
+          implementation: _a4c_cfy3_native_artifact/volume/mkfs.sh
   alien.nodes.Mysql:
     derived_from: cloudify.nodes.Database
     properties:
@@ -80,15 +80,15 @@ relationships:
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         preconfigure:
-          implementation: cfy3_native/volume/fdisk.sh
+          implementation: _a4c_cfy3_native_artifact/volume/fdisk.sh
   _a4c_generated_type.cloudify.relationships.file_system_contained_in_compute:
     derived_from: cloudify.relationships.contained_in
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         establish:
-          implementation: cfy3_native/volume/mount.sh
+          implementation: _a4c_cfy3_native_artifact/volume/mount.sh
         unlink:
-          implementation: cfy3_native/volume/unmount.sh
+          implementation: _a4c_cfy3_native_artifact/volume/unmount.sh
 
 node_templates:
 

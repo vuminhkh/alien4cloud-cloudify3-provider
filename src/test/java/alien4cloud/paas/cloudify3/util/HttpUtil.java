@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -26,7 +27,7 @@ public class HttpUtil {
         }
     }
 
-    public void checkUrl(String url, long timeout) {
+    public void checkUrl(String url, String containingText, long timeout) {
         log.info("Checking url {}", url);
         long before = System.currentTimeMillis();
         CloseableHttpClient httpClient = HttpClients.custom().build();
@@ -43,8 +44,12 @@ public class HttpUtil {
                         continue;
                     }
                     Assert.assertTrue(response.getStatusLine().getStatusCode() >= 200 && response.getStatusLine().getStatusCode() < 300);
+                    String responseText = EntityUtils.toString(response.getEntity());
                     if (log.isDebugEnabled()) {
-                        log.debug(EntityUtils.toString(response.getEntity()));
+                        log.debug(responseText);
+                    }
+                    if (StringUtils.isNotBlank(containingText)) {
+                        Assert.assertTrue(responseText.contains(containingText));
                     }
                     return;
                 } finally {

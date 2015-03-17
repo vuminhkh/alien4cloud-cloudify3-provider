@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3;
 
+import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -27,6 +28,7 @@ import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceStatus;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
 import com.google.common.collect.Lists;
 
@@ -141,7 +143,7 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     @org.junit.Test
     public void testDeployLamp() throws Exception {
         String deploymentId = launchTest(LAMP_TOPOLOGY);
-        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/wp-admin/install.php", 120000L);
+        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/wp-admin/install.php", null, 120000L);
     }
 
     @org.junit.Test
@@ -167,13 +169,22 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     @org.junit.Test
     public void testDeployTomcat() throws Exception {
         String deploymentId = launchTest(TOMCAT_TOPOLOGY);
-        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", 120000L);
+        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
     }
 
     @org.junit.Test
     @Ignore
     public void testDeployArtifactTest() throws Exception {
         String deploymentId = launchTest(ARTIFACT_TEST_TOPOLOGY);
-        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", 120000L);
+        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
+    }
+
+    @org.junit.Test
+    public void testDeployArtifactOverriddenTest() throws Exception {
+        PaaSTopologyDeploymentContext context = buildPaaSDeploymentContext(ARTIFACT_TEST_TOPOLOGY);
+        overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
+        launchTest(context);
+        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
+                120000L);
     }
 }

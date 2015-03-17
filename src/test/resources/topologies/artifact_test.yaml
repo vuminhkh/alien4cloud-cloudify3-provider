@@ -17,6 +17,13 @@ node_templates:
     name: War
     properties:
       context_path: "helloworld"
+    artifacts:
+      war_file:
+        artifact_type: alien.artifacts.WarFile
+        artifact_ref: warFiles/helloWorld.war
+        artifact_name: war_file
+        archive_name: tomcat-war-types
+        archive_version: 2.0.0-SNAPSHOT
     relationships:
       warHostedOnTomcat:
         type: alien.relationships.WarHostedOnTomcatWithProperties

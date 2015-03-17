@@ -9,10 +9,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,6 +22,8 @@ import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import alien4cloud.component.repository.ArtifactLocalRepository;
+import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.component.repository.CsarFileRepository;
 import alien4cloud.component.repository.exception.CSARVersionNotFoundException;
 import alien4cloud.model.components.DeploymentArtifact;
@@ -34,7 +34,7 @@ import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
-import alien4cloud.paas.IPaaSTemplate;
+import alien4cloud.model.topology.AbstractTemplate;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
@@ -45,7 +45,6 @@ import alien4cloud.paas.model.PaaSRelationshipTemplate;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * Handle blueprint generation from alien model
@@ -71,6 +70,9 @@ public class BlueprintService {
 
     @Resource
     private CsarFileRepository repository;
+
+    @Resource
+    private ArtifactLocalRepository artifactRepository;
 
     private Path recipeDirectoryPath;
 
@@ -105,29 +107,29 @@ public class BlueprintService {
         VelocityUtil.generate(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         // Copy artifacts
         List<PaaSNodeTemplate> nonNatives = alienDeployment.getNonNatives();
-        Set<String> processedNodeTypes = Sets.newHashSet();
-        Set<String> processedRelationshipTypes = Sets.newHashSet();
         if (nonNatives != null) {
             for (PaaSNodeTemplate nonNative : nonNatives) {
                 IndexedNodeType nonNativeType = nonNative.getIndexedToscaElement();
-                if (processedNodeTypes.add(nonNativeType.getElementId())) {
-                    // Don't process a type more than once
-                    copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative, nonNativeType);
-                    copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative, nonNativeType);
-                }
+                // Don't process a node more than once
+                copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNative.getNodeTemplate(), nonNativeType);
+                copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNativeType);
                 List<PaaSRelationshipTemplate> relationships = nonNative.getRelationshipTemplates();
                 for (PaaSRelationshipTemplate relationship : relationships) {
-                    IndexedRelationshipType relationshipType = relationship.getIndexedToscaElement();
-                    if (processedRelationshipTypes.add(relationshipType.getElementId())) {
-                        copyDeploymentArtifacts(generatedBlueprintDirectoryPath, relationship, relationshipType);
-                        copyImplementationArtifacts(generatedBlueprintDirectoryPath, relationship, relationshipType);
+                    if (relationship.getSource().equals(nonNative.getId())) {
+                        IndexedRelationshipType relationshipType = relationship.getIndexedToscaElement();
+                        copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationship.getRelationshipTemplate(), relationshipType);
+                        copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationshipType);
                     }
                 }
             }
         }
-
+        Path nativeArtifactDirectory = generatedBlueprintDirectoryPath.resolve(mappingConfigurationHolder.getMappingConfiguration()
+                .getNativeArtifactDirectoryName());
+        if (Files.exists(nativeArtifactDirectory)) {
+            throw new IOException(nativeArtifactDirectory.getFileName() + " is a reserved name, please choose another name for your archive");
+        }
         if (util.hasConfiguredVolume(alienDeployment.getVolumes())) {
-            Path volumeScriptPath = generatedBlueprintDirectoryPath.resolve("cfy3_native/volume");
+            Path volumeScriptPath = nativeArtifactDirectory.resolve("volume");
             Files.createDirectories(volumeScriptPath);
             Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
             Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
@@ -135,7 +137,7 @@ public class BlueprintService {
             Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
         }
         if (util.mapHasEntries(alienDeployment.getAllDeploymentArtifacts())) {
-            Path deploymentArtifactsScriptPath = generatedBlueprintDirectoryPath.resolve("cfy3_native/deployment_artifacts");
+            Path deploymentArtifactsScriptPath = nativeArtifactDirectory.resolve("deployment_artifacts");
             Files.createDirectories(deploymentArtifactsScriptPath);
             Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/deployment_artifacts/download_artifacts.py"),
                     deploymentArtifactsScriptPath.resolve("download_artifacts.py"));
@@ -143,21 +145,38 @@ public class BlueprintService {
         return generatedBlueprintFilePath;
     }
 
-    private void copyArtifact(Path generatedBlueprintDirectoryPath, Path csarPath, IArtifact artifact) throws IOException {
-        String artifactRelativePathName = artifact.getArtifactRef();
-        FileSystem csarFS = FileSystems.newFileSystem(csarPath, null);
-        Path artifactPath = csarFS.getPath(artifactRelativePathName);
-        Path copiedArtifactDirectory = generatedBlueprintDirectoryPath.resolve(artifact.getArchiveName());
-        Files.createDirectories(copiedArtifactDirectory);
-        Path artifactCopiedPath = copiedArtifactDirectory.resolve(artifactRelativePathName);
+    private void copyArtifact(Path generatedBlueprintDirectoryPath, Path csarPath, String pathToNode, IArtifact artifact, IArtifact originalArtifact)
+            throws IOException {
+        Path artifactPath;
+        Path artifactCopiedPath;
+        if (ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(artifact.getArtifactRepository())) {
+            // If the internal repository is used
+            // Overridden artifact
+            Path artifactCopiedDirectory = generatedBlueprintDirectoryPath
+                    .resolve(mappingConfigurationHolder.getMappingConfiguration().getTopologyArtifactDirectoryName()).resolve(pathToNode)
+                    .resolve(originalArtifact.getArchiveName());
+            artifactPath = artifactRepository.resolveFile(artifact.getArtifactRef());
+            artifactCopiedPath = artifactCopiedDirectory.resolve(originalArtifact.getArtifactRef());
+        } else {
+            Path artifactCopiedDirectory = generatedBlueprintDirectoryPath.resolve(originalArtifact.getArchiveName());
+            FileSystem csarFS = FileSystems.newFileSystem(csarPath, null);
+            String artifactRelativePathName = artifact.getArtifactRef();
+            artifactPath = csarFS.getPath(artifactRelativePathName);
+            artifactCopiedPath = artifactCopiedDirectory.resolve(artifactRelativePathName);
+        }
+        if (Files.exists(artifactCopiedPath)) {
+            // already copied do nothing
+            return;
+        }
         Files.createDirectories(artifactCopiedPath.getParent());
+        // For shell script we try to match all echo command and replace them with ctx logger info (cloudify 3 API for logging)
         if (SHELL_SCRIPT_ARTIFACT.equals(artifact.getArtifactType())) {
+            // TODO Make this parameterizable and configurable
             BufferedReader artifactReader = null;
             OutputStream artifactOutput = null;
             try {
                 artifactReader = Files.newBufferedReader(artifactPath, Charsets.UTF_8);
-                artifactOutput = new BufferedOutputStream(Files.newOutputStream(artifactCopiedPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE,
-                        StandardOpenOption.TRUNCATE_EXISTING));
+                artifactOutput = new BufferedOutputStream(Files.newOutputStream(artifactCopiedPath));
                 String line;
                 while ((line = artifactReader.readLine()) != null) {
                     Matcher matcher = SCRIPT_ECHO_PATTERN.matcher(line);
@@ -190,9 +209,9 @@ public class BlueprintService {
         }
     }
 
-    private void copyDeploymentArtifacts(Path generatedBlueprintDirectoryPath, IPaaSTemplate<?> nonNative, IndexedArtifactToscaElement nonNativeType)
+    private void copyDeploymentArtifacts(Path generatedBlueprintDirectoryPath, String pathToNode, AbstractTemplate node, IndexedArtifactToscaElement type)
             throws IOException, CSARVersionNotFoundException {
-        Map<String, DeploymentArtifact> artifacts = nonNativeType.getArtifacts();
+        Map<String, DeploymentArtifact> artifacts = type.getArtifacts();
         if (artifacts == null || artifacts.isEmpty()) {
             return;
         }
@@ -200,12 +219,17 @@ public class BlueprintService {
             DeploymentArtifact artifact = artifactEntry.getValue();
             if (artifact != null) {
                 Path csarPath = repository.getCSAR(artifact.getArchiveName(), artifact.getArchiveVersion());
-                copyArtifact(generatedBlueprintDirectoryPath, csarPath, artifact);
+                Map<String, DeploymentArtifact> topologyArtifacts = node.getArtifacts();
+                if (topologyArtifacts != null && topologyArtifacts.containsKey(artifactEntry.getKey())) {
+                    copyArtifact(generatedBlueprintDirectoryPath, csarPath, pathToNode, topologyArtifacts.get(artifactEntry.getKey()), artifact);
+                } else {
+                    copyArtifact(generatedBlueprintDirectoryPath, csarPath, pathToNode, artifact, artifact);
+                }
             }
         }
     }
 
-    private void copyImplementationArtifacts(Path generatedBlueprintDirectoryPath, IPaaSTemplate<?> nonNative, IndexedArtifactToscaElement nonNativeType)
+    private void copyImplementationArtifacts(Path generatedBlueprintDirectoryPath, String pathToNode, IndexedArtifactToscaElement nonNativeType)
             throws IOException, CSARVersionNotFoundException {
         Map<String, Interface> interfaces = nonNativeType.getInterfaces();
         if (interfaces == null || interfaces.isEmpty()) {
@@ -218,7 +242,7 @@ public class BlueprintService {
                 ImplementationArtifact artifact = operationEntry.getValue().getImplementationArtifact();
                 if (artifact != null) {
                     Path csarPath = repository.getCSAR(artifact.getArchiveName(), artifact.getArchiveVersion());
-                    copyArtifact(generatedBlueprintDirectoryPath, csarPath, artifact);
+                    copyArtifact(generatedBlueprintDirectoryPath, csarPath, pathToNode, artifact, artifact);
                 }
             }
         }

@@ -44,7 +44,7 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
-          implementation: cfy3_native/volume/mkfs.sh
+          implementation: ${mapping.nativeArtifactDirectoryName}/volume/mkfs.sh
 #end
 #if($util.mapHasEntries($deployment.allDeploymentArtifacts))
   ${mapping.generatedTypePrefix}.cloudify.nodes.DeploymentArtifacts:
@@ -55,7 +55,7 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: cfy3_native/deployment_artifacts/download_artifacts.py
+          implementation: ${mapping.nativeArtifactDirectoryName}/deployment_artifacts/download_artifacts.py
 #end
 #if($util.collectionHasElement($deployment.nonNativesTypes))
 #foreach($nonNativeType in ${deployment.nonNativesTypes})
@@ -84,15 +84,15 @@ relationships:
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         preconfigure:
-          implementation: cfy3_native/volume/fdisk.sh
+          implementation: ${mapping.nativeArtifactDirectoryName}/volume/fdisk.sh
   ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_contained_in_compute:
     derived_from: cloudify.relationships.contained_in
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         establish:
-          implementation: cfy3_native/volume/mount.sh
+          implementation: ${mapping.nativeArtifactDirectoryName}/volume/mount.sh
         unlink:
-          implementation: cfy3_native/volume/unmount.sh
+          implementation: ${mapping.nativeArtifactDirectoryName}/volume/unmount.sh
 #end
 #if($util.collectionHasElement($deployment.nonNativesRelationshipTypes))
 #foreach($nonNativeRelationshipType in ${deployment.nonNativesRelationshipTypes})
@@ -112,7 +112,7 @@ node_templates:
     properties:
       artifacts:
 #foreach($nodeArtifactEntry in $nodeArtifactsEntry.value.entrySet())
-        $nodeArtifactEntry.key: ${nodeArtifactEntry.value.archiveName}/${nodeArtifactEntry.value.artifactRef}
+        $nodeArtifactEntry.key: ${util.getArtifactPath(${nodeArtifactsEntry.key}, ${nodeArtifactEntry.key}, ${nodeArtifactEntry.value})}
 #end
     relationships:
       - type: cloudify.relationships.contained_in
@@ -125,7 +125,7 @@ node_templates:
     properties:
       artifacts:
 #foreach($relationshipArtifactEntry in $relationshipArtifactsEntry.value.entrySet())
-        $relationshipArtifactEntry.key: ${relationshipArtifactEntry.value.archiveName}/${relationshipArtifactEntry.value.artifactRef}
+        ${relationshipArtifactEntry.key}: ${util.getRelationshipArtifactPath(${relationshipArtifactsEntry.key.source}, ${relationshipArtifactsEntry.key.id}, ${relationshipArtifactEntry.key}, ${relationshipArtifactEntry.value})}
 #end
     relationships:
       - type: cloudify.relationships.contained_in
@@ -135,7 +135,7 @@ node_templates:
     properties:
       artifacts:
 #foreach($relationshipArtifactEntry in $relationshipArtifactsEntry.value.entrySet())
-        $relationshipArtifactEntry.key: ${relationshipArtifactEntry.value.archiveName}/${relationshipArtifactEntry.value.artifactRef}
+        $relationshipArtifactEntry.key: ${mapping.topologyArtifactDirectoryName}/${relationshipArtifactsEntry.key.source}/${relationshipArtifactEntry.value.archiveName}/${relationshipArtifactEntry.value.artifactRef}
 #end
     relationships:
       - type: cloudify.relationships.contained_in
@@ -214,7 +214,7 @@ node_templates:
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
 #if($util.operationHasInputParameters($operationEntry.value))
             $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key):
-              implementation: $operationEntry.value.implementationArtifact.archiveName/$operationEntry.value.implementationArtifact.artifactRef
+              implementation: ${operationEntry.value.implementationArtifact.archiveName}/${operationEntry.value.implementationArtifact.artifactRef}
               inputs:
                 process:
                   env:
@@ -222,7 +222,7 @@ node_templates:
                     $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, true)
 #end
 #else
-                    $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): $operationEntry.value.implementationArtifact.archiveName/$operationEntry.value.implementationArtifact.artifactRef
+                    $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): ${operationEntry.value.implementationArtifact.archiveName}/${operationEntry.value.implementationArtifact.artifactRef}
 #end
 #end
 #end
@@ -235,7 +235,7 @@ node_templates:
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
 #if($util.operationHasInputParameters($operationEntry.value))
             $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key):
-              implementation: $operationEntry.value.implementationArtifact.archiveName/$operationEntry.value.implementationArtifact.artifactRef
+              implementation: ${operationEntry.value.implementationArtifact.archiveName}/${operationEntry.value.implementationArtifact.artifactRef}
               inputs:
                 process:
                   env:
@@ -243,7 +243,7 @@ node_templates:
                     $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, false)
 #end
 #else
-                    $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): $operationEntry.value.implementationArtifact.archiveName/$operationEntry.value.implementationArtifact.artifactRef
+                    $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): ${operationEntry.value.implementationArtifact.archiveName}/${operationEntry.value.implementationArtifact.artifactRef}
 #end
 #end
 #end

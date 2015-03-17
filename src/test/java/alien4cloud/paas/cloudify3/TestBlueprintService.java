@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
@@ -38,11 +39,17 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
+    @Resource
+    private MappingConfigurationHolder mappingConfigurationHolder;
+
     private boolean record = false;
+
+    private String nativeDirectoryName;
 
     @Override
     @Before
     public void before() throws Exception {
+        nativeDirectoryName = mappingConfigurationHolder.getMappingConfiguration().getNativeArtifactDirectoryName();
         super.before();
         Thread.sleep(1000L);
         Blueprint[] blueprints = blueprintDAO.list();
@@ -53,10 +60,10 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     private void checkVolumeScript(Path generated) {
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/fdisk.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/mkfs.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/mount.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/unmount.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("volume/fdisk.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("volume/mkfs.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("volume/mount.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("volume/unmount.sh")));
     }
 
     @SneakyThrows
@@ -114,7 +121,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     private void validateTomcatArtifacts(Path generated) {
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/deployment_artifacts/download_artifacts.py")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("deployment_artifacts/download_artifacts.py")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/java_install.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_install.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_start.sh")));
