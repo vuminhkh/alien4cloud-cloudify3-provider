@@ -193,9 +193,8 @@ public class BlueprintGenerationUtil {
     public String formatRelationshipOperationInput(PaaSRelationshipTemplate relationship, IOperationParameter input, boolean isSource) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
-            List<String> parameters = functionPropertyValue.getParameters();
-            String nodeName = parameters.get(0);
-            String attribute = parameters.get(parameters.size() - 1);
+            String nodeName = functionPropertyValue.getTemplateName();
+            String attribute = functionPropertyValue.getPropertyOrAttributeName();
             // SOURCE and TARGET
             if (ToscaFunctionConstants.SOURCE.equals(nodeName)) {
                 nodeName = relationship.getSource();
@@ -234,7 +233,7 @@ public class BlueprintGenerationUtil {
 
     /**
      * Format operation parameter of a particular node
-     * 
+     *
      * @param node the node
      * @param input the input which can be a function or a scalar
      * @return the formatted parameter understandable by Cloudify 3
@@ -242,9 +241,8 @@ public class BlueprintGenerationUtil {
     public String formatNodeOperationInput(PaaSNodeTemplate node, IOperationParameter input) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
-            List<String> parameters = functionPropertyValue.getParameters();
-            String nodeName = parameters.get(0);
-            String attribute = parameters.get(parameters.size() - 1);
+            String nodeName = functionPropertyValue.getTemplateName();
+            String attribute = functionPropertyValue.getPropertyOrAttributeName();
             if (ToscaFunctionConstants.HOST.equals(nodeName)) {
                 // Resolve HOST
                 PaaSNodeTemplate host = node.getParent() != null ? node.getParent() : node;
