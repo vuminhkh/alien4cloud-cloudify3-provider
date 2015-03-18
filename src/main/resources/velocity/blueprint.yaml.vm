@@ -135,7 +135,7 @@ node_templates:
     properties:
       artifacts:
 #foreach($relationshipArtifactEntry in $relationshipArtifactsEntry.value.entrySet())
-        $relationshipArtifactEntry.key: ${mapping.topologyArtifactDirectoryName}/${relationshipArtifactsEntry.key.source}/${relationshipArtifactEntry.value.archiveName}/${relationshipArtifactEntry.value.artifactRef}
+        ${relationshipArtifactEntry.key}: ${util.getRelationshipArtifactPath(${relationshipArtifactsEntry.key.source}, ${relationshipArtifactsEntry.key.id}, ${relationshipArtifactEntry.key}, ${relationshipArtifactEntry.value})}
 #end
     relationships:
       - type: cloudify.relationships.contained_in

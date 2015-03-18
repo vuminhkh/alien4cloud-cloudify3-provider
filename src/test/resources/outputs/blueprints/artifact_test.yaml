@@ -118,7 +118,7 @@ node_templates:
     type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
     properties:
       artifacts:
-        properties_file: _a4c_cfy3_topology_artifact/War/artifact-test-types/conf/settings.properties
+        properties_file: artifact-test-types/conf/settings.properties
     relationships:
       - type: cloudify.relationships.contained_in
         target: Server
