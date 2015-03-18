@@ -149,7 +149,7 @@ public class BlueprintService {
             throws IOException {
         Path artifactPath;
         Path artifactCopiedPath;
-        if (ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(artifact.getArtifactRepository())) {
+        if (originalArtifact != null && ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(artifact.getArtifactRepository())) {
             // If the internal repository is used
             // Overridden artifact
             Path artifactCopiedDirectory = generatedBlueprintDirectoryPath
@@ -158,7 +158,7 @@ public class BlueprintService {
             artifactPath = artifactRepository.resolveFile(artifact.getArtifactRef());
             artifactCopiedPath = artifactCopiedDirectory.resolve(originalArtifact.getArtifactRef());
         } else {
-            Path artifactCopiedDirectory = generatedBlueprintDirectoryPath.resolve(originalArtifact.getArchiveName());
+            Path artifactCopiedDirectory = generatedBlueprintDirectoryPath.resolve(artifact.getArchiveName());
             FileSystem csarFS = FileSystems.newFileSystem(csarPath, null);
             String artifactRelativePathName = artifact.getArtifactRef();
             artifactPath = csarFS.getPath(artifactRelativePathName);
@@ -223,7 +223,7 @@ public class BlueprintService {
                 if (topologyArtifacts != null && topologyArtifacts.containsKey(artifactEntry.getKey())) {
                     copyArtifact(generatedBlueprintDirectoryPath, csarPath, pathToNode, topologyArtifacts.get(artifactEntry.getKey()), artifact);
                 } else {
-                    copyArtifact(generatedBlueprintDirectoryPath, csarPath, pathToNode, artifact, artifact);
+                    copyArtifact(generatedBlueprintDirectoryPath, csarPath, pathToNode, artifact, null);
                 }
             }
         }
@@ -242,7 +242,7 @@ public class BlueprintService {
                 ImplementationArtifact artifact = operationEntry.getValue().getImplementationArtifact();
                 if (artifact != null) {
                     Path csarPath = repository.getCSAR(artifact.getArchiveName(), artifact.getArchiveVersion());
-                    copyArtifact(generatedBlueprintDirectoryPath, csarPath, pathToNode, artifact, artifact);
+                    copyArtifact(generatedBlueprintDirectoryPath, csarPath, pathToNode, artifact, null);
                 }
             }
         }

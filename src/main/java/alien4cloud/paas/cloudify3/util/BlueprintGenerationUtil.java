@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
 
+import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.DeploymentArtifact;
@@ -628,7 +629,7 @@ public class BlueprintGenerationUtil {
     public String getArtifactPath(String nodeId, String artifactId, IArtifact artifact) {
         Map<String, DeploymentArtifact> topologyArtifacts = alienDeployment.getAllNodes().get(nodeId).getNodeTemplate().getArtifacts();
         IArtifact topologyArtifact = topologyArtifacts != null ? topologyArtifacts.get(artifactId) : null;
-        if (topologyArtifact != null) {
+        if (topologyArtifact != null && ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(topologyArtifact.getArtifactRepository())) {
             // Overidden in the topology
             return mappingConfiguration.getTopologyArtifactDirectoryName() + "/" + nodeId + "/" + artifact.getArchiveName() + "/" + artifact.getArtifactRef();
         } else {
@@ -640,7 +641,7 @@ public class BlueprintGenerationUtil {
         Map<String, DeploymentArtifact> topologyArtifacts = alienDeployment.getAllNodes().get(sourceId).getRelationshipTemplate(relationshipId, sourceId)
                 .getRelationshipTemplate().getArtifacts();
         IArtifact topologyArtifact = topologyArtifacts != null ? topologyArtifacts.get(artifactId) : null;
-        if (topologyArtifact != null) {
+        if (topologyArtifact != null && ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(topologyArtifact.getArtifactRepository())) {
             // Overidden in the topology
             return mappingConfiguration.getTopologyArtifactDirectoryName() + "/" + sourceId + "/" + artifact.getArchiveName() + "/" + artifact.getArtifactRef();
         } else {

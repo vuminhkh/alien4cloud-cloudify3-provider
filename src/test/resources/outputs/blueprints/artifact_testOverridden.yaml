@@ -101,7 +101,7 @@ node_templates:
     type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
     properties:
       artifacts:
-        war_file: tomcat-war-types/warFiles/helloWorld.war
+        war_file: _a4c_cfy3_topology_artifact/War/tomcat-war-types/warFiles/helloWorld.war
     relationships:
       - type: cloudify.relationships.contained_in
         target: Server
