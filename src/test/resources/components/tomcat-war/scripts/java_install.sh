@@ -42,20 +42,23 @@ download () {
 		LINK_FLAG="-O"
 	fi
 	echo "${currHostName}:${currFilename} $DOWNLOADER $4 $Q_FLAG $O_FLAG $3 $LINK_FLAG $2"
-	sudo $DOWNLOADER --header "Cookie: oraclelicense=accept-securebackup-cookie" $Q_FLAG $O_FLAG $3 $LINK_FLAG $2 || error_exit $? "Failed downloading $1"
+	$DOWNLOADER --header "Cookie: oraclelicense=accept-securebackup-cookie" $Q_FLAG $O_FLAG $3 $LINK_FLAG $2 || error_exit $? "Failed downloading $1"
 }
 
 # create java home if not exist
 if [ ! -d "$JAVA_HOME" ]; then
-    sudo mkdir -p $JAVA_HOME
+    mkdir -p $JAVA_HOME
 fi
 
 echo "${currHostName}:${currFilename} Downloading ${JAVA_URL} to ${destJavaArchive} ..."
 download "JDK" $JAVA_URL $JAVA_HOME/java_archive.tar.gz
 
 # Install java
-sudo tar xzvf $JAVA_HOME/java_archive.tar.gz --strip 1 -C $JAVA_HOME
-sudo rm $JAVA_HOME/java_archive.tar.gz
+tar xzvf $JAVA_HOME/java_archive.tar.gz --strip 1 -C $JAVA_HOME
+rm $JAVA_HOME/java_archive.tar.gz
 
-# Export Java home for all users
-sudo echo "export JAVA_HOME=$JAVA_HOME" >> /etc/profile
+echo "${currHostName}:${currFilename} Java installed at ${JAVA_HOME}"
+
+sudo ln -s $JAVA_HOME/bin/java /usr/bin/java
+# TODO A hack to have java available
+# TODO The right solution is to have output attribute for Java published by Java component

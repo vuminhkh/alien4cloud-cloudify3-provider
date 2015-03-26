@@ -8,6 +8,10 @@ native_type_property_name: _a4c_native_type
 
 native_property_parent: _a4c_native_property
 
+native_artifact_directory_name: _a4c_cfy3_native_artifact
+
+topology_artifact_directory_name: _a4c_cfy3_topology_artifact
+
 normative_types:
   tosca.nodes.Root: cloudify.nodes.Root
   tosca.nodes.SoftwareComponent: cloudify.nodes.SoftwareComponent

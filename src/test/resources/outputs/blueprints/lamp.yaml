@@ -63,7 +63,7 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
-          implementation: cfy3_native/volume/mkfs.sh
+          implementation: _a4c_cfy3_native_artifact/volume/mkfs.sh
   alien.nodes.Apache:
     derived_from: cloudify.nodes.WebServer
     properties:
@@ -76,9 +76,6 @@ node_types:
       document_root:
         type: string
         default: "/var/www"
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        start: apache-type/alien.nodes.Apache/scripts/start_apache.sh
   alien.nodes.Mysql:
     derived_from: cloudify.nodes.Database
     properties:
@@ -100,9 +97,6 @@ node_types:
       storage_path:
         type: string
         default: "/mountedStorage"
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        create: mysql-type/alien.nodes.Mysql/scripts/install_mysql.sh
   alien.nodes.Wordpress:
     derived_from: cloudify.nodes.ApplicationModule
     properties:
@@ -118,9 +112,6 @@ node_types:
       version:
         type: string
         default: "5"
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        create: php-type/alien.nodes.PHP/scripts/install_php.sh
 
 relationships:
   _a4c_generated_type.cloudify.relationships.file_system_depends_on_volume:
@@ -128,22 +119,19 @@ relationships:
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         preconfigure:
-          implementation: cfy3_native/volume/fdisk.sh
+          implementation: _a4c_cfy3_native_artifact/volume/fdisk.sh
   _a4c_generated_type.cloudify.relationships.file_system_contained_in_compute:
     derived_from: cloudify.relationships.contained_in
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         establish:
-          implementation: cfy3_native/volume/mount.sh
+          implementation: _a4c_cfy3_native_artifact/volume/mount.sh
         unlink:
-          implementation: cfy3_native/volume/unmount.sh
+          implementation: _a4c_cfy3_native_artifact/volume/unmount.sh
   alien.relationships.WordpressHostedOnApache:
     derived_from: cloudify.relationships.contained_in
   alien.relationships.WordpressConnectToPHP:
     derived_from: cloudify.relationships.connected_to
-    source_interfaces:
-      cloudify.interfaces.relationship_lifecycle:
-        preconfigure: wordpress-type/alien.relationships.WordpressConnectToPHP/scripts/install_php_module.sh
   alien.relationships.WordpressConnectToMysql:
     derived_from: cloudify.relationships.connected_to
 
@@ -229,6 +217,8 @@ node_templates:
       - target: DataBase
         type: cloudify.openstack.volume_attached_to_server
 
+
+
   Apache:
     type: alien.nodes.Apache
     instances:
@@ -239,8 +229,9 @@ node_templates:
       version: "2.4"
     interfaces:
       cloudify.interfaces.lifecycle:
+        start: apache-type/scripts/start_apache.sh
         create:
-          implementation: apache-type/alien.nodes.Apache/scripts/install_apache.sh
+          implementation: apache-type/scripts/install_apache.sh
           inputs:
             process:
               env:
@@ -255,6 +246,9 @@ node_templates:
       deploy: 1
     properties:
       version: "5"
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: php-type/scripts/install_php.sh
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in
@@ -268,7 +262,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: wordpress-type/alien.nodes.Wordpress/scripts/install_wordpress.sh
+          implementation: wordpress-type/scripts/install_wordpress.sh
           inputs:
             process:
               env:
@@ -279,7 +273,7 @@ node_templates:
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
             preconfigure:
-              implementation: wordpress-type/alien.relationships.WordpressHostedOnApache/scripts/config_wordpress.sh
+              implementation: wordpress-type/scripts/config_wordpress.sh
               inputs:
                 process:
                   env:
@@ -290,7 +284,7 @@ node_templates:
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
             preconfigure:
-              implementation: wordpress-type/alien.relationships.WordpressConnectToMysql/scripts/config_wordpress_for_mysql.sh
+              implementation: wordpress-type/scripts/config_wordpress_for_mysql.sh
               inputs:
                 process:
                   env:
@@ -301,6 +295,9 @@ node_templates:
                     DB_PASSWORD: { get_property: [Mysql, db_password] }
       - target: PHP
         type: alien.relationships.WordpressConnectToPHP
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+                    preconfigure: wordpress-type/scripts/install_php_module.sh
   Mysql:
     type: alien.nodes.Mysql
     instances:
@@ -315,7 +312,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         start:
-          implementation: mysql-type/alien.nodes.Mysql/scripts/start_mysql.sh
+          implementation: mysql-type/scripts/start_mysql.sh
           inputs:
             process:
               env:
@@ -325,6 +322,7 @@ node_templates:
                 DB_USER: { get_property: [Mysql, db_user] }
                 DB_PASSWORD: { get_property: [Mysql, db_password] }
                 BIND_ADRESS: { get_property: [Mysql, bind_address] }
+        create: mysql-type/scripts/install_mysql.sh
     relationships:
       - target: _a4c_generated_node_file_system_DataBaseStorage
         type: cloudify.relationships.depends_on

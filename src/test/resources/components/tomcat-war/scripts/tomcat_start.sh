@@ -7,8 +7,6 @@ echo "${currHostName}:${currFilename} Starting Tomcat in ${TOMCAT_HOME}..."
 
 echo "${currHostName}:${currFilename} Tomcat port ${TOMCAT_PORT}"
 
-echo "${currHostName}:${currFilename} Java home ${JAVA_HOME}"
-
 # args:
 # $1 the error code of the last command (should be explicitly passed)
 # $2 the message to print in case of an error
@@ -70,11 +68,7 @@ wait_for_server() {
     fi
 }
 
-if [ -z "$JAVA_HOME" ]; then
-    export PATH=$PATH:/usr/sbin:/sbin:$JAVA_HOME/bin || error_exit $? "Failed on: export PATH=$PATH:/usr/sbin:/sbin"
-else
-    export PATH=$PATH:/usr/sbin:/sbin || error_exit $? "Failed on: export PATH=$PATH:/usr/sbin:/sbin"
-fi
+export PATH=$PATH:/usr/sbin:/sbin || error_exit $? "Failed on: export PATH=$PATH:/usr/sbin:/sbin"
 
 export CLASSPATH=
 

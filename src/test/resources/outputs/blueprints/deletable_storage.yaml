@@ -51,7 +51,7 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
-          implementation: cfy3_native/volume/mkfs.sh
+          implementation: _a4c_cfy3_native_artifact/volume/mkfs.sh
   alien.nodes.Mysql:
     derived_from: cloudify.nodes.Database
     properties:
@@ -73,9 +73,6 @@ node_types:
       storage_path:
         type: string
         default: "/mountedStorage"
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        create: mysql-type/alien.nodes.Mysql/scripts/install_mysql.sh
 
 relationships:
   _a4c_generated_type.cloudify.relationships.file_system_depends_on_volume:
@@ -83,15 +80,15 @@ relationships:
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         preconfigure:
-          implementation: cfy3_native/volume/fdisk.sh
+          implementation: _a4c_cfy3_native_artifact/volume/fdisk.sh
   _a4c_generated_type.cloudify.relationships.file_system_contained_in_compute:
     derived_from: cloudify.relationships.contained_in
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         establish:
-          implementation: cfy3_native/volume/mount.sh
+          implementation: _a4c_cfy3_native_artifact/volume/mount.sh
         unlink:
-          implementation: cfy3_native/volume/unmount.sh
+          implementation: _a4c_cfy3_native_artifact/volume/unmount.sh
 
 node_templates:
 
@@ -131,6 +128,8 @@ node_templates:
       - target: Compute
         type: cloudify.openstack.volume_attached_to_server
 
+
+
   Mysql:
     type: alien.nodes.Mysql
     instances:
@@ -145,7 +144,7 @@ node_templates:
     interfaces:
       cloudify.interfaces.lifecycle:
         start:
-          implementation: mysql-type/alien.nodes.Mysql/scripts/start_mysql.sh
+          implementation: mysql-type/scripts/start_mysql.sh
           inputs:
             process:
               env:
@@ -155,6 +154,7 @@ node_templates:
                 DB_USER: { get_property: [Mysql, db_user] }
                 DB_PASSWORD: { get_property: [Mysql, db_password] }
                 BIND_ADRESS: { get_property: [Mysql, bind_address] }
+        create: mysql-type/scripts/install_mysql.sh
     relationships:
       - target: _a4c_generated_node_file_system_BlockStorage
         type: cloudify.relationships.depends_on

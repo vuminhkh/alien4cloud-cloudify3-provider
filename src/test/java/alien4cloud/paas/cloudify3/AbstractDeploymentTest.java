@@ -1,5 +1,9 @@
 package alien4cloud.paas.cloudify3;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
@@ -8,6 +12,9 @@ import javax.annotation.Resource;
 import org.junit.After;
 import org.junit.Before;
 
+import alien4cloud.component.repository.ArtifactLocalRepository;
+import alien4cloud.component.repository.ArtifactRepositoryConstants;
+import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
@@ -19,6 +26,7 @@ import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
 
+import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.SettableFuture;
 
 public class AbstractDeploymentTest extends AbstractTest {
@@ -40,6 +48,9 @@ public class AbstractDeploymentTest extends AbstractTest {
 
     @Resource
     private CloudifyPaaSProvider cloudifyPaaSProvider;
+
+    @Resource
+    private ArtifactLocalRepository artifactRepository;
 
     private void cleanDeployments() throws Exception {
         Date now = new Date();
@@ -81,11 +92,9 @@ public class AbstractDeploymentTest extends AbstractTest {
         return deploymentContext;
     }
 
-    protected String launchTest(String topologyName) throws ExecutionException, InterruptedException {
-        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        String deploymentId = stackTraceElements[2].getMethodName();
+    protected void launchTest(PaaSTopologyDeploymentContext deploymentContext) throws ExecutionException, InterruptedException {
         final SettableFuture<Object> future = SettableFuture.create();
-        cloudifyPaaSProvider.deploy(buildPaaSDeploymentContext(deploymentId, topologyName), new IPaaSCallback<Object>() {
+        cloudifyPaaSProvider.deploy(deploymentContext, new IPaaSCallback<Object>() {
 
             @Override
             public void onSuccess(Object data) {
@@ -98,6 +107,35 @@ public class AbstractDeploymentTest extends AbstractTest {
             }
         });
         future.get();
+    }
+
+    protected void overrideArtifact(PaaSTopologyDeploymentContext deploymentContext, String nodeName, String artifactId, Path newArtifactContent)
+            throws IOException {
+        DeploymentArtifact artifact = deploymentContext.getPaaSTopology().getAllNodes().get(nodeName).getNodeTemplate().getArtifacts().get(artifactId);
+        if (ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(artifact.getArtifactRepository())) {
+            artifactRepository.deleteFile(artifact.getArtifactRef());
+        }
+        InputStream artifactStream = Files.newInputStream(newArtifactContent);
+        try {
+            String artifactFileId = artifactRepository.storeFile(artifactStream);
+            artifact.setArtifactName(newArtifactContent.getFileName().toString());
+            artifact.setArtifactRef(artifactFileId);
+            artifact.setArtifactRepository(ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY);
+        } finally {
+            Closeables.close(artifactStream, true);
+        }
+    }
+
+    protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String topologyName) {
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        String deploymentId = stackTraceElements[2].getMethodName();
+        return buildPaaSDeploymentContext(deploymentId, topologyName);
+    }
+
+    protected String launchTest(String topologyName) throws ExecutionException, InterruptedException {
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        String deploymentId = stackTraceElements[2].getMethodName();
+        launchTest(buildPaaSDeploymentContext(deploymentId, topologyName));
         return deploymentId;
     }
 }
