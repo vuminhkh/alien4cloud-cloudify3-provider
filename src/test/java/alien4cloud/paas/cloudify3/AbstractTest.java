@@ -1,7 +1,6 @@
 package alien4cloud.paas.cloudify3;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -46,13 +45,17 @@ public class AbstractTest {
 
     public static final String DELETABLE_STORAGE_TOPOLOGY = "deletable_storage";
 
+    public static final String TOMCAT_TOPOLOGY = "tomcat";
+
+    public static final String ARTIFACT_TEST_TOPOLOGY = "artifact_test";
+
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
-    private NetworkTemplate network = new NetworkTemplate("net-pub", 4, true, null, null);
+    private NetworkTemplate network = new NetworkTemplate("net-pub", 4, true, null, null, null);
 
-    private NetworkTemplate internalNetwork = new NetworkTemplate("internal-network", 4, false, "192.168.1.0/24", "192.168.1.1");
+    private NetworkTemplate internalNetwork = new NetworkTemplate("internal-network", 4, false, "192.168.1.0/24", "192.168.1.1", null);
 
-    private StorageTemplate storageTemplate = new StorageTemplate("small", 1L, "/dev/vdb");
+    private StorageTemplate storageTemplate = new StorageTemplate("small", 1L, "/dev/vdb", null);
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -86,7 +89,7 @@ public class AbstractTest {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
         String cloudifyURL = System.getenv("CLOUDIFY_URL");
         if (cloudifyURL == null) {
-            cloudifyURL = "http://129.185.67.114:8100";
+            cloudifyURL = "http://129.185.67.49:8100";
         }
         cloudConfiguration.setUrl(cloudifyURL);
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);

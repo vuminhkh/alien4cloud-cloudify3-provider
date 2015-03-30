@@ -1,0 +1,215 @@
+
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
+
+node_types:
+
+  _a4c_generated_type.openstack.Compute:
+    derived_from: cloudify.openstack.nodes.Server
+    properties:
+      _a4c_native_property:
+        default: {}
+      _a4c_native_type:
+        default: compute
+
+  _a4c_generated_type.openstack.FloatingIP:
+    derived_from: cloudify.openstack.nodes.FloatingIP
+    properties:
+      _a4c_native_type:
+        default: floating_ip
+
+
+  _a4c_generated_type.openstack.Network:
+    derived_from: cloudify.openstack.nodes.Network
+    properties:
+      _a4c_native_property:
+        default: {}
+      _a4c_native_type:
+        default: network
+
+  _a4c_generated_type.cloudify.nodes.DeploymentArtifacts:
+    derived_from: cloudify.nodes.Root
+    properties:
+      artifacts:
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: _a4c_cfy3_native_artifact/deployment_artifacts/download_artifacts.py
+  alien.nodes.Java:
+    derived_from: cloudify.nodes.SoftwareComponent
+    properties:
+      java_url:
+        type: string
+        default: "http://download.oracle.com/otn-pub/java/jdk/7u75-b13/jdk-7u75-linux-x64.tar.gz"
+      java_home:
+        type: string
+        default: "/opt/java"
+  alien.nodes.Tomcat:
+    derived_from: cloudify.nodes.WebServer
+    properties:
+      tomcat_home:
+        type: string
+        default: "/opt/tomcat"
+      tomcat_port:
+        type: string
+        default: "80"
+      tomcat_url:
+        type: string
+        default: "http://apache.crihan.fr/dist/tomcat/tomcat-8/v8.0.20/bin/apache-tomcat-8.0.20.tar.gz"
+  alien.nodes.WarWithLifeCycleScript:
+    derived_from: cloudify.nodes.ApplicationModule
+    properties:
+      context_path:
+        type: string
+        default: ""
+
+relationships:
+  alien.relationships.RunOnJVM:
+    derived_from: cloudify.relationships.depends_on
+  alien.relationships.WarHostedOnTomcatWithProperties:
+    derived_from: cloudify.relationships.contained_in
+
+node_templates:
+
+  Server:
+    type: _a4c_generated_type.openstack.Compute
+    properties:
+      _a4c_native_property:
+        os_arch: "x86_64"
+        os_type: "linux"
+      server:
+        image: 727df994-2e1b-404e-9276-b248223a835d
+        flavor: 2
+    instances:
+      deploy: 1
+    relationships:
+      - target: _a4c_generated_node_floating_ip_Server
+        type: cloudify.openstack.server_connected_to_floating_ip
+  _a4c_generated_node_floating_ip_Server:
+    type: _a4c_generated_type.openstack.FloatingIP
+    properties:
+      floatingip:
+        floating_network_name: net-pub
+
+
+
+  _a4c_generated_node_artifacts_for_War:
+    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
+    properties:
+      artifacts:
+        war_file: _a4c_cfy3_topology_artifact/War/tomcat-war-types/warFiles/helloWorld.war
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: Server
+
+  _a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_source:
+    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
+    properties:
+      artifacts:
+        properties_file: artifact-test-types/conf/settings.properties
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: Server
+  _a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_target:
+    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
+    properties:
+      artifacts:
+        properties_file: artifact-test-types/conf/settings.properties
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: Server
+
+  War:
+    type: alien.nodes.WarWithLifeCycleScript
+    instances:
+      deploy: 1
+    properties:
+      context_path: "helloworld"
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: artifact-test-types/scripts/create.sh
+          inputs:
+            process:
+              env:
+                war_file: { get_attribute: [_a4c_generated_node_artifacts_for_War, war_file] }
+    relationships:
+      - target: _a4c_generated_node_artifacts_for_War
+        type: cloudify.relationships.depends_on
+      - target: _a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_source
+        type: cloudify.relationships.depends_on
+      - target: Tomcat
+        type: alien.relationships.WarHostedOnTomcatWithProperties
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            postconfigure:
+              implementation: artifact-test-types/scripts/tomcat_install_war.sh
+              inputs:
+                process:
+                  env:
+                    CONTEXT_PATH: { get_property: [War, context_path] }
+                    TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
+                    war_file: { get_attribute: [_a4c_generated_node_artifacts_for_War, war_file] }
+                    properties_file: { get_attribute: [_a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_source, properties_file] }
+        target_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            postconfigure:
+              implementation: artifact-test-types/scripts/configureProperties.sh
+              inputs:
+                process:
+                  env:
+                    properties_file: { get_attribute: [_a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_target, properties_file] }
+  Tomcat:
+    type: alien.nodes.Tomcat
+    instances:
+      deploy: 1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        stop:
+          implementation: tomcat-war-types/scripts/tomcat_stop.sh
+          inputs:
+            process:
+              env:
+                TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
+        start:
+          implementation: tomcat-war-types/scripts/tomcat_start.sh
+          inputs:
+            process:
+              env:
+                TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
+                TOMCAT_PORT: { get_property: [Tomcat, tomcat_port] }
+        create:
+          implementation: tomcat-war-types/scripts/tomcat_install.sh
+          inputs:
+            process:
+              env:
+                TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
+                TOMCAT_PORT: { get_property: [Tomcat, tomcat_port] }
+                TOMCAT_URL: { get_property: [Tomcat, tomcat_url] }
+    relationships:
+      - target: _a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_target
+        type: cloudify.relationships.depends_on
+      - target: Server
+        type: cloudify.relationships.contained_in
+      - target: Java
+        type: alien.relationships.RunOnJVM
+  Java:
+    type: alien.nodes.Java
+    instances:
+      deploy: 1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: tomcat-war-types/scripts/java_install.sh
+          inputs:
+            process:
+              env:
+                JAVA_URL: { get_property: [Java, java_url] }
+                JAVA_HOME: { get_property: [Java, java_home] }
+    relationships:
+      - target: Server
+        type: cloudify.relationships.contained_in

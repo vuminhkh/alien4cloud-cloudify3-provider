@@ -1,0 +1,53 @@
+node_templates:
+  NetPub:
+    type: tosca.nodes.Network
+    name: NetPub
+    properties:
+      network_name:
+        value: net-pub
+  Java:
+    type: alien.nodes.Java
+    name: Java
+    relationships:
+      hostedOnServer:
+        type: tosca.relationships.HostedOn
+        target: Server
+  War:
+    type: alien.nodes.War
+    name: War
+    properties:
+      context_path: "helloworld"
+    relationships:
+      warHostedOnTomcat:
+        type: alien.relationships.WarHostedOnTomcat
+        target: Tomcat
+  Tomcat:
+    type: alien.nodes.Tomcat
+    name: Tomcat
+    relationships:
+      hostedOnServer:
+        type: tosca.relationships.HostedOn
+        target: Server
+      runOnJVM:
+        type: alien.relationships.RunOnJVM
+        target: Java
+  Server:
+    type: tosca.nodes.Compute
+    name: Server
+    properties:
+      os_arch:
+        value: x86_64
+      os_type:
+        value: linux
+    relationships:
+      public_internet:
+        type: tosca.relationships.Network
+        target: NetPub
+
+dependencies:
+  - name: tosca-normative-types
+    version: 1.0.0.wd03-SNAPSHOT
+  - name: alien-base-types
+    version: 1.0-SNAPSHOT
+  - name: tomcat-war-types
+    version: 2.0.0-SNAPSHOT

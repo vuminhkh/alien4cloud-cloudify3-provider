@@ -19,10 +19,12 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
@@ -38,11 +40,17 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
+    @Resource
+    private MappingConfigurationHolder mappingConfigurationHolder;
+
     private boolean record = false;
+
+    private String nativeDirectoryName;
 
     @Override
     @Before
     public void before() throws Exception {
+        nativeDirectoryName = mappingConfigurationHolder.getMappingConfiguration().getNativeArtifactDirectoryName();
         super.before();
         Thread.sleep(1000L);
         Blueprint[] blueprints = blueprintDAO.list();
@@ -53,18 +61,30 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     private void checkVolumeScript(Path generated) {
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/fdisk.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/mkfs.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/mount.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("cfy3_native/volume/unmount.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("volume/fdisk.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("volume/mkfs.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("volume/mount.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("volume/unmount.sh")));
+    }
+
+    private static interface DeploymentContextVisitor {
+        void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception;
     }
 
     @SneakyThrows
     private Path testGeneratedBlueprintFile(String topology) {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(buildPaaSDeploymentContext(
-                stackTraceElements[2].getMethodName(), topology)));
-        String recordedFile = "src/test/resources/outputs/blueprints/" + topology + ".yaml";
+        return testGeneratedBlueprintFile(topology, topology, stackTraceElements[2].getMethodName(), null);
+    }
+
+    @SneakyThrows
+    private Path testGeneratedBlueprintFile(String topology, String outputFile, String testName, DeploymentContextVisitor contextVisitor) {
+        PaaSTopologyDeploymentContext context = buildPaaSDeploymentContext(testName, topology);
+        if (contextVisitor != null) {
+            contextVisitor.visitDeploymentContext(context);
+        }
+        Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(context));
+        String recordedFile = "src/test/resources/outputs/blueprints/" + outputFile + ".yaml";
         if (record) {
             Files.copy(generated, Paths.get(recordedFile), StandardCopyOption.REPLACE_EXISTING);
         } else {
@@ -85,18 +105,17 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     public void testGenerateLamp() {
         Path generated = testGeneratedBlueprintFile(LAMP_TOPOLOGY);
         checkVolumeScript(generated);
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/scripts/start_apache.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("apache-type/alien.nodes.Apache/scripts/install_apache.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("apache-type/scripts/start_apache.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("apache-type/scripts/install_apache.sh")));
 
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/alien.nodes.Mysql/scripts/install_mysql.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/alien.nodes.Mysql/scripts/start_mysql.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/scripts/install_mysql.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/scripts/start_mysql.sh")));
 
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("php-type/alien.nodes.PHP/scripts/install_php.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/alien.nodes.Wordpress/scripts/install_wordpress.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/alien.relationships.WordpressConnectToPHP/scripts/install_php_module.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve(
-                "wordpress-type/alien.relationships.WordpressConnectToMysql/scripts/config_wordpress_for_mysql.sh")));
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/alien.relationships.WordpressHostedOnApache/scripts/config_wordpress.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("php-type/scripts/install_php.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/scripts/install_wordpress.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/scripts/install_php_module.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/scripts/config_wordpress_for_mysql.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/scripts/config_wordpress.sh")));
     }
 
     @Test
@@ -112,5 +131,49 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Test
     public void testGenerateDeletableBlockStorage() {
         testGeneratedBlueprintFile(DELETABLE_STORAGE_TOPOLOGY);
+    }
+
+    private void validateTomcatArtifacts(Path generated) {
+        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("deployment_artifacts/download_artifacts.py")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/java_install.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_install.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_start.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_stop.sh")));
+    }
+
+    @Test
+    public void testGenerateTomcat() {
+        Path generated = testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
+        validateTomcatArtifacts(generated);
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/warFiles/helloWorld.war")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_install_war.sh")));
+    }
+
+    @Test
+    public void testGenerateArtifactsTest() {
+        Path generated = testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
+        validateTomcatArtifacts(generated);
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/warFiles/helloWorld.war")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/settings.properties")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/configureProperties.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/create.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/tomcat_install_war.sh")));
+    }
+
+    @Test
+    public void testGenerateOverriddenArtifactsTest() {
+        Path generated = testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY, ARTIFACT_TEST_TOPOLOGY + "Overridden", "testGenerateOverridenArtifactsTest",
+                new DeploymentContextVisitor() {
+                    @Override
+                    public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
+                        overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
+                    }
+                });
+        validateTomcatArtifacts(generated);
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("_a4c_cfy3_topology_artifact/War/tomcat-war-types/warFiles/helloWorld.war")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/settings.properties")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/configureProperties.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/create.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/tomcat_install_war.sh")));
     }
 }

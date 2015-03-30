@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.NetworkTemplate;
 import alien4cloud.model.cloud.StorageTemplate;
+import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IndexedModelUtils;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
@@ -88,15 +89,37 @@ public class CloudifyDeploymentBuilderService {
                 matchedInternalNetworks.add(matchedNetwork);
             }
         }
+        Map<String, Map<String, DeploymentArtifact>> allArtifacts = Maps.newHashMap();
+        for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
+            PaaSNodeTemplate node = nodeEntry.getValue();
+            Map<String, DeploymentArtifact> artifacts = node.getIndexedToscaElement().getArtifacts();
+            if (artifacts != null && !artifacts.isEmpty()) {
+                allArtifacts.put(node.getId(), artifacts);
+            }
+        }
+
+        Map<CloudifyDeployment.Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newHashMap();
+        for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
+            List<PaaSRelationshipTemplate> relationships = nodeEntry.getValue().getRelationshipTemplates();
+            if (relationships != null && !relationships.isEmpty()) {
+                for (PaaSRelationshipTemplate relationship : relationships) {
+                    Map<String, DeploymentArtifact> artifacts = relationship.getIndexedToscaElement().getArtifacts();
+                    if (artifacts != null && !artifacts.isEmpty()) {
+                        allRelationshipArtifacts.put(new CloudifyDeployment.Relationship(relationship.getId(), relationship.getSource(), relationship
+                                .getRelationshipTemplate().getTarget()), artifacts);
+                    }
+                }
+            }
+        }
+
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
                 matchedInternalNetworks, matchedExternalNetworks, matchedStorages, buildTemplateMap(matchedComputes),
                 buildTemplateMap(matchedInternalNetworks), buildTemplateMap(matchedExternalNetworks), buildTemplateMap(matchedStorages), deploymentContext
                         .getPaaSTopology().getNonNatives(), IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap),
-                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getComputes()),
-                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()),
-                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()),
-                deploymentContext.getPaaSTopology().getAllNodes());
+                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), getTypesOrderedByDerivedFromHierarchy(deploymentContext
+                        .getPaaSTopology().getComputes()), getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()),
+                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()), deploymentContext.getPaaSTopology().getAllNodes(),
+                allArtifacts, allRelationshipArtifacts);
         return deployment;
     }
 }
