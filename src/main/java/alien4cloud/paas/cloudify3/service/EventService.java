@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.paas.cloudify3.dao.EventDAO;
+import alien4cloud.paas.cloudify3.dao.DeploymentEventDAO;
 import alien4cloud.paas.cloudify3.dao.NodeDAO;
 import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
 import alien4cloud.paas.cloudify3.model.AbstractCloudifyModel;
@@ -50,7 +50,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 public class EventService {
 
     @Resource
-    private EventDAO eventDAO;
+    private DeploymentEventDAO eventDAO;
 
     @Resource
     private NodeInstanceDAO nodeInstanceDAO;

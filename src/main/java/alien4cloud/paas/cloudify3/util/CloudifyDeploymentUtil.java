@@ -8,6 +8,7 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
@@ -44,13 +45,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
- * Some utilities method which help generating cloudify 3 blueprint
+ * Some utilities method which help transforming an alien deployment to a cloudify deployment
  *
  * @author Minh Khang VU
  */
 @AllArgsConstructor
 @Slf4j
-public class BlueprintGenerationUtil {
+public class CloudifyDeploymentUtil {
 
     private MappingConfiguration mappingConfiguration;
 
@@ -159,7 +160,19 @@ public class BlueprintGenerationUtil {
     }
 
     public Map<String, Interface> getNodeInterfaces(PaaSNodeTemplate node) {
-        return getInterfaces(node.getIndexedToscaElement().getInterfaces(), node.getIndexedToscaElement());
+        Map<String, Interface> nodeInterfaces = getInterfaces(node.getIndexedToscaElement().getInterfaces(), node.getIndexedToscaElement());
+        for (Map.Entry<String, Interface> nodeInterfaceEntry : nodeInterfaces.entrySet()) {
+            String interfaceName = nodeInterfaceEntry.getKey();
+            if (!isStandardLifecycleInterface(interfaceName)) {
+                Map<String, Operation> operations = nodeInterfaceEntry.getValue().getOperations();
+                if (MapUtils.isNotEmpty(operations)) {
+                    for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
+                        operationEntry.getValue().setInputParameters(null);
+                    }
+                }
+            }
+        }
+        return nodeInterfaces;
     }
 
     /**
@@ -436,8 +449,12 @@ public class BlueprintGenerationUtil {
         return mappingConfiguration.getNormativeTypes().containsKey(toscaType);
     }
 
+    public boolean isStandardLifecycleInterface(String interfaceName) {
+        return ToscaNodeLifecycleConstants.STANDARD.equals(interfaceName) || ToscaNodeLifecycleConstants.STANDARD_SHORT.equals(interfaceName);
+    }
+
     public String tryToMapToCloudifyInterface(String interfaceName) {
-        if (ToscaNodeLifecycleConstants.STANDARD.equals(interfaceName) || ToscaNodeLifecycleConstants.STANDARD_SHORT.equals(interfaceName)) {
+        if (isStandardLifecycleInterface(interfaceName)) {
             return "cloudify.interfaces.lifecycle";
         } else {
             return interfaceName;

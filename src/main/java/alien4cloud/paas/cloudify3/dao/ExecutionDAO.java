@@ -46,7 +46,7 @@ public class ExecutionDAO extends AbstractDAO {
         return asyncList(deploymentId).get();
     }
 
-    public ListenableFuture<Execution> asyncStart(String deploymentId, String workflowId, Map<String, Object> parameters, boolean allowCustomParameters,
+    public ListenableFuture<Execution> asyncStart(String deploymentId, String workflowId, Map<String, ?> parameters, boolean allowCustomParameters,
             boolean force) {
         if (log.isDebugEnabled()) {
             log.debug("Start execution of workflow {} for deployment {}", workflowId, deploymentId);
@@ -55,8 +55,8 @@ public class ExecutionDAO extends AbstractDAO {
         request.put("deployment_id", deploymentId);
         request.put("workflow_id", workflowId);
         request.put("parameters", parameters);
-        request.put("allow_custom_parameters", String.valueOf(allowCustomParameters));
-        request.put("force", String.valueOf(force));
+        request.put("allow_custom_parameters", allowCustomParameters);
+        request.put("force", force);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
         return FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getBaseUrl(), HttpMethod.POST, new HttpEntity<>(request, headers), Execution.class));

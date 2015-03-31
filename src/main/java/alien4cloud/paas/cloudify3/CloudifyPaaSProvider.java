@@ -18,6 +18,7 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
+import alien4cloud.paas.cloudify3.service.CustomWorkflowService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
@@ -50,6 +51,9 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
+
+    @Resource(name = "cloudify-custom-workflow-service")
+    private CustomWorkflowService customWorkflowService;
 
     @Resource(name = "cloudify-configuration-holder")
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -174,8 +178,10 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
     }
 
     @Override
-    public void executeOperation(PaaSDeploymentContext deploymentContext, NodeOperationExecRequest nodeOperationExecRequest,
+    public void executeOperation(PaaSTopologyDeploymentContext deploymentContext, NodeOperationExecRequest nodeOperationExecRequest,
             IPaaSCallback<Map<String, String>> callback) throws OperationExecutionException {
-        throw new NotSupportedException("executeOperation is not supported yet");
+        CloudifyDeployment deployment = cloudifyDeploymentBuilderService.buildCloudifyDeployment(deploymentContext);
+        ListenableFuture<Map<String, String>> executionFutureResult = customWorkflowService.executeOperation(deployment, nodeOperationExecRequest);
+        FutureUtil.associateFutureToPaaSCallback(executionFutureResult, callback);
     }
 }
