@@ -92,6 +92,7 @@ public class AbstractTest {
             cloudifyURL = "http://129.185.67.36:8100";
         }
         cloudConfiguration.setUrl(cloudifyURL);
+        cloudConfiguration.setDebugScript(true);
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
 

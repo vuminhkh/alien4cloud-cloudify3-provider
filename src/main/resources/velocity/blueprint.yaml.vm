@@ -5,6 +5,17 @@ This template is used to generate cloudify 3 recipe from alien model
 - $deployment --> contains Alien's deployment and types
 - $provider_types --> template file for specific provider types
 *#
+#macro(deploymentArtifactEntry $artifactName $artifactPath)
+#if($util.isArtifactDirectory($artifactPath))
+#set ( $nodeArtifactChildrenPaths = $util.listArtifactDirectory($artifactPath) )
+        $artifactName:
+#foreach($nodeArtifactChildPath in $nodeArtifactChildrenPaths)
+          - $nodeArtifactChildPath
+#end
+#else
+        $artifactName: $artifactPath
+#end
+#end
 tosca_definitions_version: $mapping.dslVersion
 
 imports:
@@ -112,7 +123,8 @@ node_templates:
     properties:
       artifacts:
 #foreach($nodeArtifactEntry in $nodeArtifactsEntry.value.entrySet())
-        $nodeArtifactEntry.key: ${util.getArtifactPath(${nodeArtifactsEntry.key}, ${nodeArtifactEntry.key}, ${nodeArtifactEntry.value})}
+#set( $nodeArtifactPath = ${util.getArtifactPath(${nodeArtifactsEntry.key}, ${nodeArtifactEntry.key}, ${nodeArtifactEntry.value})} )
+#deploymentArtifactEntry($nodeArtifactEntry.key, $nodeArtifactPath)
 #end
     relationships:
       - type: cloudify.relationships.contained_in
@@ -125,7 +137,8 @@ node_templates:
     properties:
       artifacts:
 #foreach($relationshipArtifactEntry in $relationshipArtifactsEntry.value.entrySet())
-        ${relationshipArtifactEntry.key}: ${util.getRelationshipArtifactPath(${relationshipArtifactsEntry.key.source}, ${relationshipArtifactsEntry.key.id}, ${relationshipArtifactEntry.key}, ${relationshipArtifactEntry.value})}
+#set($relationshipArtifactPath = ${util.getRelationshipArtifactPath(${relationshipArtifactsEntry.key.source}, ${relationshipArtifactsEntry.key.id}, ${relationshipArtifactEntry.key}, ${relationshipArtifactEntry.value})} )
+#deploymentArtifactEntry($relationshipArtifactEntry.key, $relationshipArtifactPath)
 #end
     relationships:
       - type: cloudify.relationships.contained_in
@@ -135,7 +148,8 @@ node_templates:
     properties:
       artifacts:
 #foreach($relationshipArtifactEntry in $relationshipArtifactsEntry.value.entrySet())
-        ${relationshipArtifactEntry.key}: ${util.getRelationshipArtifactPath(${relationshipArtifactsEntry.key.source}, ${relationshipArtifactsEntry.key.id}, ${relationshipArtifactEntry.key}, ${relationshipArtifactEntry.value})}
+#set($relationshipArtifactPath = ${util.getRelationshipArtifactPath(${relationshipArtifactsEntry.key.source}, ${relationshipArtifactsEntry.key.id}, ${relationshipArtifactEntry.key}, ${relationshipArtifactEntry.value})} )
+#deploymentArtifactEntry($relationshipArtifactEntry.key, $relationshipArtifactPath)
 #end
     relationships:
       - type: cloudify.relationships.contained_in
@@ -150,8 +164,8 @@ node_templates:
 #if($util.mapHasEntries($nonNativeNode.nodeTemplate.properties))
     properties:
 #foreach($property in $nonNativeNode.nodeTemplate.properties.entrySet())
-#if($property.value)
-      $property.key: "$util.formatNodeOperationInput($nonNativeNode, $property.value)"
+#if($property.value.value)
+      $property.key: "$property.value.value"
 #end
 #end
 #end
@@ -161,7 +175,7 @@ node_templates:
 #foreach($interfaceEntry in $nodeInterfaces.entrySet())
       $util.tryToMapToCloudifyInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-#if($util.operationHasInputParameters($operationEntry.value))
+#if($util.operationHasInputParameters($interfaceEntry.key, $operationEntry.value))
         $operationEntry.key:
           implementation: ${operationEntry.value.implementationArtifact.archiveName}/${operationEntry.value.implementationArtifact.artifactRef}
           inputs:

@@ -53,7 +53,7 @@ if [ ! -d "$TOMCAT_HOME" ]; then
 fi
 
 echo "${currHostName}:${currFilename} Downloading ${TOMCAT_URL} to ${destJavaArchive} ..."
-download "JDK" $TOMCAT_URL $TOMCAT_HOME/tomcat_archive.tar.gz
+download "Tomcat" $TOMCAT_URL $TOMCAT_HOME/tomcat_archive.tar.gz
 
 # Install tomcat
 tar xzvf $TOMCAT_HOME/tomcat_archive.tar.gz --strip 1 -C $TOMCAT_HOME

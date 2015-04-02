@@ -113,6 +113,9 @@ node_templates:
       deploy: 1
     properties:
       context_path: "helloworld"
+    interfaces:
+      custom:
+        update_war_file: tomcat-war-types/scripts/tomcat_install_war.sh
     relationships:
       - target: _a4c_generated_node_artifacts_for_War
         type: cloudify.relationships.depends_on
@@ -132,6 +135,10 @@ node_templates:
     type: alien.nodes.Tomcat
     instances:
       deploy: 1
+    properties:
+      tomcat_home: "/opt/tomcat"
+      tomcat_port: "80"
+      tomcat_url: "http://apache.crihan.fr/dist/tomcat/tomcat-8/v8.0.20/bin/apache-tomcat-8.0.20.tar.gz"
     interfaces:
       cloudify.interfaces.lifecycle:
         stop:
@@ -164,6 +171,9 @@ node_templates:
     type: alien.nodes.Java
     instances:
       deploy: 1
+    properties:
+      java_home: "/opt/java"
+      java_url: "http://download.oracle.com/otn-pub/java/jdk/7u75-b13/jdk-7u75-linux-x64.tar.gz"
     interfaces:
       cloudify.interfaces.lifecycle:
         create:

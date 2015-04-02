@@ -5,11 +5,13 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Resource;
 
-import org.junit.After;
+import org.apache.commons.collections4.MapUtils;
+import org.junit.Assert;
 import org.junit.Before;
 
 import alien4cloud.component.repository.ArtifactLocalRepository;
@@ -22,6 +24,7 @@ import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
+import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
@@ -76,7 +79,7 @@ public class AbstractDeploymentTest extends AbstractTest {
         cleanDeployments();
     }
 
-    @After
+    // @After
     public void after() throws Exception {
         cleanDeployments();
     }
@@ -124,6 +127,25 @@ public class AbstractDeploymentTest extends AbstractTest {
         } finally {
             Closeables.close(artifactStream, true);
         }
+    }
+
+    protected void executeCustomCommand(PaaSTopologyDeploymentContext context, NodeOperationExecRequest nodeOperationExecRequest) throws ExecutionException,
+            InterruptedException {
+        final SettableFuture<Map<String, String>> future = SettableFuture.create();
+        cloudifyPaaSProvider.executeOperation(context, nodeOperationExecRequest, new IPaaSCallback<Map<String, String>>() {
+            @Override
+            public void onSuccess(Map<String, String> data) {
+                future.set(data);
+            }
+
+            @Override
+            public void onFailure(Throwable throwable) {
+                future.setException(throwable);
+            }
+        });
+        Map<String, String> data = future.get();
+        Assert.assertNotNull(data);
+        Assert.assertTrue(MapUtils.isNotEmpty(data));
     }
 
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String topologyName) {

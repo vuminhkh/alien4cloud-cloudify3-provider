@@ -3,6 +3,7 @@ package alien4cloud.paas.cloudify3;
 import java.nio.file.Paths;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Resource;
@@ -26,11 +27,13 @@ import alien4cloud.paas.cloudify3.util.HttpUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceStatus;
+import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
@@ -132,7 +135,7 @@ public class TestDeploymentService extends AbstractDeploymentTest {
         NodeInstance[] nodeInstances = nodeInstanceDAO.list(deploymentId);
         String ipServer = null;
         for (NodeInstance nodeInstance : nodeInstances) {
-            if ((mappingConfigurationHolder.getMappingConfiguration().getGeneratedNodePrefix() + "_floating_ip_Server").equals(nodeInstance.getNodeId())) {
+            if ((mappingConfigurationHolder.getMappingConfiguration().getGeneratedNodePrefix() + "_floating_ip_" + nodeName).equals(nodeInstance.getNodeId())) {
                 ipServer = (String) nodeInstance.getRuntimeProperties().get("floating_ip_address");
             }
         }
@@ -168,8 +171,15 @@ public class TestDeploymentService extends AbstractDeploymentTest {
 
     @org.junit.Test
     public void testDeployTomcat() throws Exception {
-        String deploymentId = launchTest(TOMCAT_TOPOLOGY);
-        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
+        PaaSTopologyDeploymentContext context = buildPaaSDeploymentContext(TOMCAT_TOPOLOGY);
+        launchTest(context);
+        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentId(), "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
+        Map<String, String> commandParameters = Maps.newHashMap();
+        commandParameters.put("WAR_URL",
+                "https://github.com/alien4cloud/alien4cloud-cloudify3-provider/raw/master/src/test/resources/data/war-examples/helloWorld.war");
+        executeCustomCommand(context, new NodeOperationExecRequest("War", null, "custom", "update_war_file", commandParameters));
+        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
+                120000L);
     }
 
     @org.junit.Test
