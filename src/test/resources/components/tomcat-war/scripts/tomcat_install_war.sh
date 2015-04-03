@@ -30,7 +30,7 @@ download () {
 		LINK_FLAG="-O"
 	fi
 	echo "${currHostName}:${currFilename} $DOWNLOADER $4 $Q_FLAG $O_FLAG $3 $LINK_FLAG $2"
-	$DOWNLOADER $Q_FLAG $O_FLAG $3 $LINK_FLAG $2 || error_exit $? "Failed downloading $1"
+	sudo $DOWNLOADER $Q_FLAG $O_FLAG $3 $LINK_FLAG $2 || error_exit $? "Failed downloading $1"
 }
 
 if [ -z "${WAR_URL}" ];then
@@ -50,9 +50,9 @@ tomcatConfFolder=$TOMCAT_HOME/conf
 tomcatContextPathFolder=$tomcatConfFolder/Catalina/localhost
 tomcatContextFile=$tomcatContextPathFolder/$CONTEXT_PATH.xml
 
-mkdir -p $tomcatContextPathFolder
+sudo mkdir -p $tomcatContextPathFolder
 
 # Write the context configuration
-rm -f $tomcatContextFile
-echo "<Context docBase=\"${war_file}\" path=\"${CONTEXT_PATH}\" />" > $tomcatContextFile
+sudo rm -f $tomcatContextFile
+echo "<Context docBase=\"${war_file}\" path=\"${CONTEXT_PATH}\" />" | sudo tee $tomcatContextFile > /dev/null
 echo "${currHostName}:${currFilename} Sucessfully installed war on Tomcat in ${TOMCAT_HOME}"

@@ -73,7 +73,7 @@ export PATH=$PATH:/usr/sbin:/sbin || error_exit $? "Failed on: export PATH=$PATH
 export CLASSPATH=
 
 COMMAND="$TOMCAT_HOME/bin/catalina.sh run"
-nohup ${COMMAND} > /dev/null 2>&1 &
+sudo nohup ${COMMAND} > /dev/null 2>&1 &
 PID=$!
 echo "${currHostName}:${currFilename} Started Tomcat under process ${PID}"
 

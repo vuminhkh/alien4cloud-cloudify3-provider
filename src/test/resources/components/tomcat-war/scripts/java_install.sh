@@ -42,20 +42,20 @@ download () {
 		LINK_FLAG="-O"
 	fi
 	echo "${currHostName}:${currFilename} $DOWNLOADER $4 $Q_FLAG $O_FLAG $3 $LINK_FLAG $2"
-	$DOWNLOADER --header "Cookie: oraclelicense=accept-securebackup-cookie" $Q_FLAG $O_FLAG $3 $LINK_FLAG $2 || error_exit $? "Failed downloading $1"
+	sudo $DOWNLOADER --header "Cookie: oraclelicense=accept-securebackup-cookie" $Q_FLAG $O_FLAG $3 $LINK_FLAG $2 || error_exit $? "Failed downloading $1"
 }
 
 # create java home if not exist
 if [ ! -d "$JAVA_HOME" ]; then
-    mkdir -p $JAVA_HOME
+    sudo mkdir -p $JAVA_HOME
 fi
 
 echo "${currHostName}:${currFilename} Downloading ${JAVA_URL} to ${destJavaArchive} ..."
 download "JDK" $JAVA_URL $JAVA_HOME/java_archive.tar.gz
 
 # Install java
-tar xzvf $JAVA_HOME/java_archive.tar.gz --strip 1 -C $JAVA_HOME
-rm $JAVA_HOME/java_archive.tar.gz
+sudo tar xzvf $JAVA_HOME/java_archive.tar.gz --strip 1 -C $JAVA_HOME
+sudo rm $JAVA_HOME/java_archive.tar.gz
 
 echo "${currHostName}:${currFilename} Java installed at ${JAVA_HOME}"
 

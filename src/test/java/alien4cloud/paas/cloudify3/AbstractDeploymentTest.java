@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutionException;
 import javax.annotation.Resource;
 
 import org.apache.commons.collections4.MapUtils;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
@@ -79,7 +80,7 @@ public class AbstractDeploymentTest extends AbstractTest {
         cleanDeployments();
     }
 
-    // @After
+    @After
     public void after() throws Exception {
         cleanDeployments();
     }

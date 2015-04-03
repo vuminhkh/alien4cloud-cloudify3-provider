@@ -8,6 +8,7 @@ import javax.annotation.Resource;
 
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.springframework.beans.factory.annotation.Value;
 
 import alien4cloud.model.application.DeploymentSetup;
 import alien4cloud.model.cloud.CloudImage;
@@ -49,9 +50,18 @@ public class AbstractTest {
 
     public static final String ARTIFACT_TEST_TOPOLOGY = "artifact_test";
 
+    @Value("${cloudify3.externalNetworkName}")
+    private String externalNetworkName;
+
+    @Value("${cloudify3.apiUrl}")
+    private String apiUrl;
+
+    @Value("${cloudify3.imageId}")
+    private String imageId;
+
     private ComputeTemplate computeTemplate = new ComputeTemplate("alien_image", "alien_flavor");
 
-    private NetworkTemplate network = new NetworkTemplate("net-pub", 4, true, null, null, null);
+    private NetworkTemplate network = new NetworkTemplate(externalNetworkName, 4, true, null, null, null);
 
     private NetworkTemplate internalNetwork = new NetworkTemplate("internal-network", 4, false, "192.168.1.0/24", "192.168.1.1", null);
 
@@ -89,7 +99,7 @@ public class AbstractTest {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
         String cloudifyURL = System.getenv("CLOUDIFY_URL");
         if (cloudifyURL == null) {
-            cloudifyURL = "http://129.185.67.36:8100";
+            cloudifyURL = apiUrl;
         }
         cloudConfiguration.setUrl(cloudifyURL);
         cloudConfiguration.setDebugScript(true);
@@ -99,7 +109,7 @@ public class AbstractTest {
         Map<CloudImage, String> imageMapping = Maps.newHashMap();
         CloudImage cloudImage = new CloudImage();
         cloudImage.setId("alien_image");
-        imageMapping.put(cloudImage, "727df994-2e1b-404e-9276-b248223a835d");
+        imageMapping.put(cloudImage, imageId);
         matcherConfig.setImageMapping(imageMapping);
 
         Map<CloudImageFlavor, String> flavorMapping = Maps.newHashMap();
@@ -107,7 +117,7 @@ public class AbstractTest {
         matcherConfig.setFlavorMapping(flavorMapping);
 
         Map<NetworkTemplate, String> networkMapping = Maps.newHashMap();
-        networkMapping.put(network, "net-pub");
+        networkMapping.put(network, externalNetworkName);
         networkMapping.put(internalNetwork, "internal-network");
         matcherConfig.setNetworkMapping(networkMapping);
 
