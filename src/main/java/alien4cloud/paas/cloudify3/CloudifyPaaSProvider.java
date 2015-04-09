@@ -7,6 +7,7 @@ import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
@@ -184,4 +185,15 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         ListenableFuture<Map<String, String>> executionFutureResult = customWorkflowService.executeOperation(deployment, nodeOperationExecRequest);
         FutureUtil.associateFutureToPaaSCallback(executionFutureResult, callback);
     }
+
+    @Override
+    public void switchInstanceMaintenanceMode(PaaSDeploymentContext arg0, String arg1, String arg2, boolean arg3) {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public void switchMaintenanceMode(PaaSDeploymentContext arg0, boolean arg1) {
+        throw new NotImplementedException();
+    }
+
 }
