@@ -117,7 +117,7 @@ public class CustomWorkflowService extends RuntimeService {
 
     public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment, final NodeOperationExecRequest nodeOperationExecRequest) {
         CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
-                mappingConfigurationHolder.getProviderMappingConfiguration(), deployment, blueprintService.resolveBlueprintPath(deployment.getRecipeId()));
+                mappingConfigurationHolder.getProviderMappingConfiguration(), deployment, blueprintService.resolveBlueprintPath(deployment.getDeploymentId()));
         if (MapUtils.isEmpty(deployment.getAllNodes()) || !deployment.getAllNodes().containsKey(nodeOperationExecRequest.getNodeTemplateName())) {
             throw new OperationExecutionException("Node " + nodeOperationExecRequest.getNodeTemplateName() + " do not exist in the deployment");
         }

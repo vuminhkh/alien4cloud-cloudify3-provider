@@ -17,8 +17,6 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Resource;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -54,7 +52,6 @@ import com.google.common.collect.Maps;
  * @author Minh Khang VU
  */
 @Component("cloudify-blueprint-service")
-@Slf4j
 public class BlueprintService {
 
     public static final String SHELL_SCRIPT_ARTIFACT = "tosca.artifacts.ShellScript";

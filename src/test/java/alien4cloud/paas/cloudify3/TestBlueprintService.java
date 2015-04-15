@@ -10,7 +10,6 @@ import javax.annotation.Resource;
 
 import junitx.framework.FileAssert;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -28,7 +27,6 @@ import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
-@Slf4j
 public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Resource

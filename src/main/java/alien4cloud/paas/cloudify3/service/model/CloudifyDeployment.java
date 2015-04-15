@@ -24,8 +24,6 @@ public class CloudifyDeployment {
 
     private String deploymentId;
 
-    private String recipeId;
-
     private List<MatchedPaaSComputeTemplate> computes;
 
     private List<MatchedPaaSTemplate<NetworkTemplate>> internalNetworks;

@@ -91,7 +91,7 @@ public class AbstractDeploymentTest extends AbstractTest {
         deploymentContext.setPaaSTopology(topologyTreeBuilderService.buildPaaSTopology(topology));
         deploymentContext.setTopology(topology);
         alien4cloud.model.deployment.Deployment deployment = new alien4cloud.model.deployment.Deployment();
-        deployment.setPaasId(deployment.getId());
+        deployment.setPaasId(appName);
         deploymentContext.setDeployment(deployment);
         return deploymentContext;
     }
