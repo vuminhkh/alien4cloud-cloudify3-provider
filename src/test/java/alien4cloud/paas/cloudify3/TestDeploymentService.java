@@ -173,12 +173,12 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     public void testDeployTomcat() throws Exception {
         PaaSTopologyDeploymentContext context = buildPaaSDeploymentContext(TOMCAT_TOPOLOGY);
         launchTest(context);
-        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentId(), "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
+        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
         Map<String, String> commandParameters = Maps.newHashMap();
         commandParameters.put("WAR_URL",
                 "https://github.com/alien4cloud/alien4cloud-cloudify3-provider/raw/master/src/test/resources/data/war-examples/helloWorld.war");
         executeCustomCommand(context, new NodeOperationExecRequest("War", null, "custom", "update_war_file", commandParameters));
-        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
+        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
                 120000L);
     }
 
@@ -194,7 +194,7 @@ public class TestDeploymentService extends AbstractDeploymentTest {
         PaaSTopologyDeploymentContext context = buildPaaSDeploymentContext(ARTIFACT_TEST_TOPOLOGY);
         overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
         launchTest(context);
-        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
+        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
                 120000L);
     }
 }

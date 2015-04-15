@@ -119,13 +119,13 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public void getStatus(PaaSDeploymentContext deploymentContext, IPaaSCallback<DeploymentStatus> callback) {
-        statusService.getStatus(deploymentContext.getDeploymentId(), callback);
+        statusService.getStatus(deploymentContext.getDeploymentPaaSId(), callback);
     }
 
     @Override
     public void getInstancesInformation(PaaSDeploymentContext deploymentContext, Topology topology,
             IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
-        statusService.getInstancesInformation(deploymentContext.getDeploymentId(), topology, callback);
+        statusService.getInstancesInformation(deploymentContext.getDeploymentPaaSId(), topology, callback);
     }
 
     @Override
