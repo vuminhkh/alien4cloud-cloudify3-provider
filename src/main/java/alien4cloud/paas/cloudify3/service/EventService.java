@@ -193,7 +193,7 @@ public class EventService {
                                             if (volumeId != null) {
                                                 instanceStateMonitorEventIterator.remove();
                                                 PaaSInstanceStorageMonitorEvent storageEvent = new PaaSInstanceStorageMonitorEvent(instanceStateMonitorEvent,
-                                                        volumeId);
+                                                        volumeId, false);
                                                 int eventIndex = alienEvents.indexOf(instanceStateMonitorEvent);
                                                 // Replace the old event with the storage event
                                                 // It's ugly and temporary, as we'll try not to create a new type of event for each native type
