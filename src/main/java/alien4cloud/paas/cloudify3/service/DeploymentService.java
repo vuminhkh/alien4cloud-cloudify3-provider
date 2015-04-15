@@ -82,12 +82,12 @@ public class DeploymentService extends RuntimeService {
     }
 
     public ListenableFuture<?> undeploy(final PaaSDeploymentContext deploymentContext) {
-        log.info("Undeploying recipe {} with deployment id {}", deploymentContext.getRecipeId(), deploymentContext.getDeploymentId());
+        log.info("Undeploying recipe {} with deployment id {}", deploymentContext.getDeploymentId(), deploymentContext.getDeploymentId());
         eventService.registerDeploymentEvent(deploymentContext.getDeploymentId(), DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS);
         try {
-            FileUtil.delete(blueprintService.resolveBlueprintPath(deploymentContext.getRecipeId()));
+            FileUtil.delete(blueprintService.resolveBlueprintPath(deploymentContext.getDeploymentId()));
         } catch (IOException e) {
-            log.warn("Unable to delete generated blueprint for recipe " + deploymentContext.getRecipeId(), e);
+            log.warn("Unable to delete generated blueprint for recipe " + deploymentContext.getDeploymentId(), e);
         }
         ListenableFuture<?> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentId(), Workflow.UNINSTALL, null,
                 false, false));
@@ -114,14 +114,14 @@ public class DeploymentService extends RuntimeService {
                 ListenableFuture<?> scheduledDeleteBlueprint = Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
                     @Override
                     public ListenableFuture<?> call() throws Exception {
-                        return blueprintDAO.asyncDelete(deploymentContext.getRecipeId());
+                        return blueprintDAO.asyncDelete(deploymentContext.getDeploymentId());
                     }
                 }, 2, TimeUnit.SECONDS));
                 return scheduledDeleteBlueprint;
             }
         };
         ListenableFuture<?> undeploymentFuture = Futures.transform(deletedDeployment, deleteBlueprintFunction);
-        addFailureCallback(undeploymentFuture, "Undeployment", deploymentContext.getRecipeId(), deploymentContext.getDeploymentId(),
+        addFailureCallback(undeploymentFuture, "Undeployment", deploymentContext.getDeploymentId(), deploymentContext.getDeploymentId(),
                 DeploymentStatus.UNDEPLOYED);
         return undeploymentFuture;
     }

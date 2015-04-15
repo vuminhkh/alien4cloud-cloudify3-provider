@@ -184,4 +184,16 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         ListenableFuture<Map<String, String>> executionFutureResult = customWorkflowService.executeOperation(deployment, nodeOperationExecRequest);
         FutureUtil.associateFutureToPaaSCallback(executionFutureResult, callback);
     }
+
+    @Override
+    public void switchMaintenanceMode(PaaSDeploymentContext deploymentContext, boolean maintenanceModeOn) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void switchInstanceMaintenanceMode(PaaSDeploymentContext deploymentContext, String nodeId, String instanceId, boolean maintenanceModeOn) {
+        // TODO Auto-generated method stub
+
+    }
 }

@@ -86,7 +86,7 @@ public class BlueprintService {
      */
     public Path generateBlueprint(CloudifyDeployment alienDeployment) throws IOException, CSARVersionNotFoundException {
         // Where the whole blueprint will be generated
-        Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getRecipeId());
+        Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getDeploymentId());
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
         CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
@@ -259,8 +259,8 @@ public class BlueprintService {
         }
     }
 
-    public Path resolveBlueprintPath(String recipeId) {
-        return recipeDirectoryPath.resolve(recipeId);
+    public Path resolveBlueprintPath(String deploymentId) {
+        return recipeDirectoryPath.resolve(deploymentId);
     }
 
     @Required
