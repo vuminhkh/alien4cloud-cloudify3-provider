@@ -101,6 +101,15 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      */
 
     @Override
+    public void init(Map<String, PaaSTopologyDeploymentContext> activeDeployments) {
+        if (activeDeployments == null) {
+            return;
+        } else {
+            eventService.init(activeDeployments);
+        }
+    }
+
+    @Override
     public void setConfiguration(CloudConfiguration newConfiguration) throws PluginConfigurationException {
         if (newConfiguration == null) {
             throw new PluginConfigurationException("Configuration is null");

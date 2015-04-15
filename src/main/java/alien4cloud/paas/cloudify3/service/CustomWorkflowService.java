@@ -87,7 +87,7 @@ public class CustomWorkflowService extends RuntimeService {
                         parameterValue = FunctionEvaluator.evaluateGetPropertyFunction(function, node, deployment.getAllNodes());
                     } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function.getFunction())) {
                         try {
-                            Map<String, String> attributes = MapUtil.toString(runtimePropertiesService.evaluate(deployment.getDeploymentId(),
+                            Map<String, String> attributes = MapUtil.toString(runtimePropertiesService.evaluate(deployment.getDeploymentPaaSId(),
                                     function.getTemplateName(), function.getPropertyOrAttributeName()).get());
                             if (MapUtils.isEmpty(attributes)) {
                                 throw new OperationExecutionException("Node " + node.getId() + " do not have any instance at this moment");
@@ -117,7 +117,7 @@ public class CustomWorkflowService extends RuntimeService {
 
     public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment, final NodeOperationExecRequest nodeOperationExecRequest) {
         CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
-                mappingConfigurationHolder.getProviderMappingConfiguration(), deployment, blueprintService.resolveBlueprintPath(deployment.getDeploymentId()));
+                mappingConfigurationHolder.getProviderMappingConfiguration(), deployment, blueprintService.resolveBlueprintPath(deployment.getDeploymentPaaSId()));
         if (MapUtils.isEmpty(deployment.getAllNodes()) || !deployment.getAllNodes().containsKey(nodeOperationExecRequest.getNodeTemplateName())) {
             throw new OperationExecutionException("Node " + nodeOperationExecRequest.getNodeTemplateName() + " do not exist in the deployment");
         }
@@ -135,12 +135,12 @@ public class CustomWorkflowService extends RuntimeService {
         // Here we are safe, the node, the interface and the operation exists
         Operation operation = interfaceOperations.get(nodeOperationExecRequest.getOperationName());
 
-        ListenableFuture<Execution> operationExecutionFuture = waitForExecutionFinish(executionDAO.asyncStart(deployment.getDeploymentId(),
+        ListenableFuture<Execution> operationExecutionFuture = waitForExecutionFinish(executionDAO.asyncStart(deployment.getDeploymentPaaSId(),
                 Workflow.EXECUTE_OPERATION, buildWorkflowParameters(deployment, util, nodeOperationExecRequest, node, operation), true, false));
         AsyncFunction<Execution, Map<String, String>> getOperationResultFunction = new AsyncFunction<Execution, Map<String, String>>() {
             @Override
             public ListenableFuture<Map<String, String>> apply(Execution input) throws Exception {
-                ListenableFuture<NodeInstance[]> allInstances = nodeInstanceDAO.asyncList(deployment.getDeploymentId());
+                ListenableFuture<NodeInstance[]> allInstances = nodeInstanceDAO.asyncList(deployment.getDeploymentPaaSId());
                 Function<NodeInstance[], Map<String, String>> nodeInstanceToResultFunction = new Function<NodeInstance[], Map<String, String>>() {
                     @Override
                     public Map<String, String> apply(NodeInstance[] nodeInstances) {

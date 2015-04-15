@@ -30,6 +30,7 @@ import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStorageMonitorEvent;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 
 import com.google.common.base.Function;
@@ -60,6 +61,15 @@ public class EventService {
 
     @Resource
     private StatusService statusService;
+
+    // TODO : May manage in a better manner this kind of state
+    private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newHashMap();
+
+    public void init(Map<String, PaaSTopologyDeploymentContext> activeDeploymentContexts) {
+        for (Map.Entry<String, PaaSTopologyDeploymentContext> activeDeploymentContextEntry : activeDeploymentContexts.entrySet()) {
+            paaSDeploymentIdToAlienDeploymentIdMapping.put(activeDeploymentContextEntry.getKey(), activeDeploymentContextEntry.getValue().getDeploymentId());
+        }
+    }
 
     /**
      * This queue is used for internal events
@@ -114,7 +124,10 @@ public class EventService {
                                         nodeMap.put(node.getId(), node);
                                     }
                                     for (NodeInstance nodeInstance : instances) {
-                                        internalProviderEventsQueue.add(toAlienEvent(nodeInstance, nodeMap.get(nodeInstance.getNodeId())));
+                                        AbstractMonitorEvent alienEvent = toAlienEvent(nodeInstance, nodeMap.get(nodeInstance.getNodeId()));
+                                        if (alienEvent != null) {
+                                            internalProviderEventsQueue.add(alienEvent);
+                                        }
                                     }
                                 }
 
@@ -140,8 +153,9 @@ public class EventService {
         return alienEventsFuture;
     }
 
-    public synchronized void registerDeploymentEvent(String deploymentId, DeploymentStatus deploymentStatus) {
-        statusService.registerDeploymentEvent(deploymentId, deploymentStatus);
+    public synchronized void registerDeploymentEvent(String deploymentPaaSId, String deploymentId, DeploymentStatus deploymentStatus) {
+        statusService.registerDeploymentEvent(deploymentPaaSId, deploymentStatus);
+        paaSDeploymentIdToAlienDeploymentIdMapping.put(deploymentPaaSId, deploymentId);
         PaaSDeploymentStatusMonitorEvent deploymentStatusMonitorEvent = new PaaSDeploymentStatusMonitorEvent();
         deploymentStatusMonitorEvent.setDeploymentStatus(deploymentStatus);
         deploymentStatusMonitorEvent.setDeploymentId(deploymentId);
@@ -338,6 +352,11 @@ public class EventService {
         PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = new PaaSInstanceStateMonitorEvent();
         instanceStateMonitorEvent.setInstanceState(nodeInstance.getState());
         instanceStateMonitorEvent.setInstanceStatus(statusService.getInstanceStatusFromState(nodeInstance.getState()));
+        String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(nodeInstance.getDeploymentId());
+        if (alienDeploymentId == null) {
+            log.warn("Alien deployment id is not found for paaS deployment {}, must ignore this node instance {}", nodeInstance.getDeploymentId(), nodeInstance);
+            return null;
+        }
         instanceStateMonitorEvent.setDeploymentId(nodeInstance.getDeploymentId());
         instanceStateMonitorEvent.setNodeTemplateId(nodeInstance.getNodeId());
         instanceStateMonitorEvent.setInstanceId(nodeInstance.getId());
@@ -389,7 +408,13 @@ public class EventService {
             return null;
         }
         alienEvent.setDate(DatatypeConverter.parseDateTime(cloudifyEvent.getTimestamp()).getTimeInMillis());
-        alienEvent.setDeploymentId(cloudifyEvent.getContext().getDeploymentId());
+        String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(cloudifyEvent.getContext().getDeploymentId());
+        if (alienDeploymentId == null) {
+            log.warn("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
+                    cloudifyEvent);
+            return null;
+        }
+        alienEvent.setDeploymentId(alienDeploymentId);
         return alienEvent;
     }
 }

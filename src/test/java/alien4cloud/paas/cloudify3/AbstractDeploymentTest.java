@@ -87,11 +87,11 @@ public class AbstractDeploymentTest extends AbstractTest {
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName) {
         Topology topology = applicationUtil.createAlienApplication(appName, topologyName);
         PaaSTopologyDeploymentContext deploymentContext = new PaaSTopologyDeploymentContext();
-        deploymentContext.setDeploymentSetup(generateDeploymentSetup(topology));
         deploymentContext.setPaaSTopology(topologyTreeBuilderService.buildPaaSTopology(topology));
         deploymentContext.setTopology(topology);
         alien4cloud.model.deployment.Deployment deployment = new alien4cloud.model.deployment.Deployment();
         deployment.setPaasId(appName);
+        deployment.setDeploymentSetup(generateDeploymentSetup(topology));
         deploymentContext.setDeployment(deployment);
         return deploymentContext;
     }

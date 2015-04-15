@@ -109,7 +109,7 @@ public class CloudifyDeploymentBuilderService {
             }
         }
 
-        CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getRecipeId(), matchedComputes,
+        CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(), matchedComputes,
                 matchedInternalNetworks, matchedExternalNetworks, matchedStorages, buildTemplateMap(matchedComputes),
                 buildTemplateMap(matchedInternalNetworks), buildTemplateMap(matchedExternalNetworks), buildTemplateMap(matchedStorages), deploymentContext
                         .getPaaSTopology().getNonNatives(), IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),

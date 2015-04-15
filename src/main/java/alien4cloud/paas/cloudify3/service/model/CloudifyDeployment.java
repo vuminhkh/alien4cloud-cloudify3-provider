@@ -22,6 +22,14 @@ import alien4cloud.paas.model.PaaSNodeTemplate;
 @NoArgsConstructor
 public class CloudifyDeployment {
 
+    /**
+     * This id is a human readable paaS id that will be used to identify deployment on cloudify 3
+     */
+    private String deploymentPaaSId;
+
+    /**
+     * This id is technical alien deployment id that will be used to generate events and send back to alien
+     */
     private String deploymentId;
 
     private List<MatchedPaaSComputeTemplate> computes;

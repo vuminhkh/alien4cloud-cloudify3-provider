@@ -49,23 +49,23 @@ public class DeploymentService extends RuntimeService {
 
     public ListenableFuture<Execution> deploy(final CloudifyDeployment alienDeployment) {
         // Cloudify 3 will use recipe id to identify a blueprint and a deployment instead of deployment id
-        log.info("Deploying recipe {} with deployment id {}", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId());
-        eventService.registerDeploymentEvent(alienDeployment.getDeploymentId(), DeploymentStatus.DEPLOYMENT_IN_PROGRESS);
+        log.info("Deploying {} for alien deployment {}", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId());
+        eventService.registerDeploymentEvent(alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.DEPLOYMENT_IN_PROGRESS);
         Path blueprintPath;
         try {
             blueprintPath = blueprintService.generateBlueprint(alienDeployment);
         } catch (IOException | CSARVersionNotFoundException e) {
             log.error(
-                    "Unable to generate the blueprint from recipe " + alienDeployment.getRecipeId() + " with deployment id "
+                    "Unable to generate the blueprint for " + alienDeployment.getDeploymentPaaSId() + " with alien deployment id "
                             + alienDeployment.getDeploymentId(), e);
-            eventService.registerDeploymentEvent(alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
+            eventService.registerDeploymentEvent(alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
             return Futures.immediateFailedFuture(e);
         }
-        ListenableFuture<Blueprint> createdBlueprint = blueprintDAO.asyncCreate(alienDeployment.getRecipeId(), blueprintPath.toString());
+        ListenableFuture<Blueprint> createdBlueprint = blueprintDAO.asyncCreate(alienDeployment.getDeploymentPaaSId(), blueprintPath.toString());
         AsyncFunction<Blueprint, Deployment> createDeploymentFunction = new AsyncFunction<Blueprint, Deployment>() {
             @Override
             public ListenableFuture<Deployment> apply(Blueprint blueprint) throws Exception {
-                return waitForDeploymentExecutionsFinish(deploymentDAO.asyncCreate(alienDeployment.getDeploymentId(), blueprint.getId(),
+                return waitForDeploymentExecutionsFinish(deploymentDAO.asyncCreate(alienDeployment.getDeploymentPaaSId(), blueprint.getId(),
                         Maps.<String, Object> newHashMap()));
             }
         };
@@ -77,17 +77,18 @@ public class DeploymentService extends RuntimeService {
             }
         };
         ListenableFuture<Execution> executionFuture = Futures.transform(createdDeployment, startExecutionFunction);
-        addFailureCallback(executionFuture, "Deployment", alienDeployment.getRecipeId(), alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
+        addFailureCallback(executionFuture, "Deployment", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
         return executionFuture;
     }
 
     public ListenableFuture<?> undeploy(final PaaSDeploymentContext deploymentContext) {
-        log.info("Undeploying recipe {} with deployment id {}", deploymentContext.getRecipeId(), deploymentContext.getDeploymentId());
-        eventService.registerDeploymentEvent(deploymentContext.getDeploymentId(), DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS);
+        log.info("Undeploying recipe {} with alien's deployment id {}", deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId());
+        eventService.registerDeploymentEvent(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
+                DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS);
         try {
-            FileUtil.delete(blueprintService.resolveBlueprintPath(deploymentContext.getRecipeId()));
+            FileUtil.delete(blueprintService.resolveBlueprintPath(deploymentContext.getDeploymentPaaSId()));
         } catch (IOException e) {
-            log.warn("Unable to delete generated blueprint for recipe " + deploymentContext.getRecipeId(), e);
+            log.warn("Unable to delete generated blueprint for recipe " + deploymentContext.getDeploymentPaaSId(), e);
         }
         ListenableFuture<?> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentPaaSId(), Workflow.UNINSTALL, null,
                 false, false));
@@ -114,30 +115,30 @@ public class DeploymentService extends RuntimeService {
                 ListenableFuture<?> scheduledDeleteBlueprint = Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
                     @Override
                     public ListenableFuture<?> call() throws Exception {
-                        return blueprintDAO.asyncDelete(deploymentContext.getRecipeId());
+                        return blueprintDAO.asyncDelete(deploymentContext.getDeploymentPaaSId());
                     }
                 }, 2, TimeUnit.SECONDS));
                 return scheduledDeleteBlueprint;
             }
         };
         ListenableFuture<?> undeploymentFuture = Futures.transform(deletedDeployment, deleteBlueprintFunction);
-        addFailureCallback(undeploymentFuture, "Undeployment", deploymentContext.getRecipeId(), deploymentContext.getDeploymentId(),
+        addFailureCallback(undeploymentFuture, "Undeployment", deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
                 DeploymentStatus.UNDEPLOYED);
         return undeploymentFuture;
     }
 
-    private void addFailureCallback(ListenableFuture future, final String operationName, final String recipeId, final String deploymentId,
+    private void addFailureCallback(ListenableFuture future, final String operationName, final String deploymentPaaSId, final String deploymentId,
             final DeploymentStatus status) {
         Futures.addCallback(future, new FutureCallback<Execution>() {
             @Override
             public void onSuccess(Execution result) {
-                log.info(operationName + " of recipe {} with deployment id {} has been executed asynchronously", recipeId, deploymentId);
+                log.info(operationName + " of deployment {} with alien's deployment id {} has been executed asynchronously", deploymentPaaSId, deploymentId);
             }
 
             @Override
             public void onFailure(Throwable t) {
-                log.error(operationName + " of recipe " + recipeId + " with deployment id " + deploymentId + " has failed", t);
-                eventService.registerDeploymentEvent(deploymentId, status);
+                log.error(operationName + " of deployment " + deploymentPaaSId + " with alien's deployment id " + deploymentId + " has failed", t);
+                eventService.registerDeploymentEvent(deploymentPaaSId, deploymentId, status);
             }
         });
     }
