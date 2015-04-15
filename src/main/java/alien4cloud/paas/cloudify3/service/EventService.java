@@ -106,7 +106,7 @@ public class EventService {
                         if (log.isDebugEnabled()) {
                             log.debug("Send event {} to Alien", event);
                         }
-                        DeploymentStatus deploymentStatus = ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus();
+                        final DeploymentStatus deploymentStatus = ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus();
                         statusService.registerDeploymentEvent(event.getDeploymentId(), deploymentStatus);
                         if (DeploymentStatus.DEPLOYED.equals(deploymentStatus)) {
                             log.info("Deployment {} has finished successfully", event.getDeploymentId());
@@ -128,6 +128,10 @@ public class EventService {
                                         if (alienEvent != null) {
                                             internalProviderEventsQueue.add(alienEvent);
                                         }
+                                    }
+                                    if (DeploymentStatus.UNDEPLOYED.equals(deploymentStatus)) {
+                                        log.info("Un-Deployment {} has finished successfully", event.getDeploymentId());
+                                        paaSDeploymentIdToAlienDeploymentIdMapping.remove(event.getDeploymentId());
                                     }
                                 }
 
