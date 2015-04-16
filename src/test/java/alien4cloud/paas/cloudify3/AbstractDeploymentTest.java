@@ -64,6 +64,8 @@ public class AbstractDeploymentTest extends AbstractTest {
             for (Deployment deployment : deployments) {
                 PaaSDeploymentContext context = new PaaSDeploymentContext();
                 context.setDeployment(new alien4cloud.model.deployment.Deployment());
+                context.getDeployment().setId(deployment.getId());
+                context.getDeployment().setPaasId(deployment.getId());
                 deploymentService.undeploy(context).get();
             }
             Thread.sleep(1000L);
@@ -90,6 +92,7 @@ public class AbstractDeploymentTest extends AbstractTest {
         deploymentContext.setPaaSTopology(topologyTreeBuilderService.buildPaaSTopology(topology));
         deploymentContext.setTopology(topology);
         alien4cloud.model.deployment.Deployment deployment = new alien4cloud.model.deployment.Deployment();
+        deployment.setId(appName);
         deployment.setPaasId(appName);
         deployment.setDeploymentSetup(generateDeploymentSetup(topology));
         deploymentContext.setDeployment(deployment);
