@@ -63,11 +63,13 @@ public class EventService {
     private StatusService statusService;
 
     // TODO : May manage in a better manner this kind of state
-    private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newHashMap();
+    private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newConcurrentMap();
+    private Map<String, String> alienDeploymentIdToPaaSDeploymentIdMapping = Maps.newConcurrentMap();
 
     public void init(Map<String, PaaSTopologyDeploymentContext> activeDeploymentContexts) {
         for (Map.Entry<String, PaaSTopologyDeploymentContext> activeDeploymentContextEntry : activeDeploymentContexts.entrySet()) {
             paaSDeploymentIdToAlienDeploymentIdMapping.put(activeDeploymentContextEntry.getKey(), activeDeploymentContextEntry.getValue().getDeploymentId());
+            alienDeploymentIdToPaaSDeploymentIdMapping.put(activeDeploymentContextEntry.getValue().getDeploymentId(), activeDeploymentContextEntry.getKey());
         }
     }
 
@@ -107,11 +109,12 @@ public class EventService {
                             log.debug("Send event {} to Alien", event);
                         }
                         final DeploymentStatus deploymentStatus = ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus();
-                        statusService.registerDeploymentEvent(event.getDeploymentId(), deploymentStatus);
+                        final String paaSDeploymentId = alienDeploymentIdToPaaSDeploymentIdMapping.get(event.getDeploymentId());
+                        statusService.registerDeploymentEvent(paaSDeploymentId, deploymentStatus);
                         if (DeploymentStatus.DEPLOYED.equals(deploymentStatus)) {
-                            log.info("Deployment {} has finished successfully", event.getDeploymentId());
-                            ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(event.getDeploymentId());
-                            ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(event.getDeploymentId(), null);
+                            log.info("Deployment {} has finished successfully", paaSDeploymentId);
+                            ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(paaSDeploymentId);
+                            ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(paaSDeploymentId, null);
                             ListenableFuture<List<AbstractCloudifyModel[]>> combinedFutures = Futures.allAsList(instancesFuture, nodesFuture);
 
                             Futures.addCallback(combinedFutures, new FutureCallback<List<AbstractCloudifyModel[]>>() {
@@ -129,20 +132,19 @@ public class EventService {
                                             internalProviderEventsQueue.add(alienEvent);
                                         }
                                     }
-                                    if (DeploymentStatus.UNDEPLOYED.equals(deploymentStatus)) {
-                                        log.info("Un-Deployment {} has finished successfully", event.getDeploymentId());
-                                        paaSDeploymentIdToAlienDeploymentIdMapping.remove(event.getDeploymentId());
-                                    }
                                 }
 
                                 @Override
                                 public void onFailure(Throwable t) {
-                                    log.error("Error happened while trying to retrieve runtime properties for finished deployment " + event.getDeploymentId(),
-                                            t);
+                                    log.error("Error happened while trying to retrieve runtime properties for finished deployment " + paaSDeploymentId, t);
                                 }
                             });
+                        } else if (DeploymentStatus.UNDEPLOYED.equals(deploymentStatus)) {
+                            log.info("Un-Deployment {} has finished successfully", paaSDeploymentId);
+                            paaSDeploymentIdToAlienDeploymentIdMapping.remove(paaSDeploymentId);
+                            alienDeploymentIdToPaaSDeploymentIdMapping.remove(event.getDeploymentId());
                         } else {
-                            log.info("Deployment {} has finished with status {}", event.getDeploymentId(),
+                            log.info("Deployment {} has finished with status {}", paaSDeploymentId,
                                     ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus());
                         }
                     }
@@ -160,6 +162,7 @@ public class EventService {
     public synchronized void registerDeploymentEvent(String deploymentPaaSId, String deploymentId, DeploymentStatus deploymentStatus) {
         statusService.registerDeploymentEvent(deploymentPaaSId, deploymentStatus);
         paaSDeploymentIdToAlienDeploymentIdMapping.put(deploymentPaaSId, deploymentId);
+        alienDeploymentIdToPaaSDeploymentIdMapping.put(deploymentId, deploymentPaaSId);
         PaaSDeploymentStatusMonitorEvent deploymentStatusMonitorEvent = new PaaSDeploymentStatusMonitorEvent();
         deploymentStatusMonitorEvent.setDeploymentStatus(deploymentStatus);
         deploymentStatusMonitorEvent.setDeploymentId(deploymentId);
@@ -323,10 +326,12 @@ public class EventService {
         for (AbstractMonitorEvent alienEvent : alienEvents) {
             if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
                 PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = (PaaSInstanceStateMonitorEvent) alienEvent;
-                List<PaaSInstanceStateMonitorEvent> instanceEvensForDeployment = instanceEventByDeployments.get(instanceStateMonitorEvent.getDeploymentId());
+                String alienDeploymentId = instanceStateMonitorEvent.getDeploymentId();
+                String paaSDeploymentId = alienDeploymentIdToPaaSDeploymentIdMapping.get(alienDeploymentId);
+                List<PaaSInstanceStateMonitorEvent> instanceEvensForDeployment = instanceEventByDeployments.get(paaSDeploymentId);
                 if (instanceEvensForDeployment == null) {
                     instanceEvensForDeployment = Lists.newArrayList();
-                    instanceEventByDeployments.put(instanceStateMonitorEvent.getDeploymentId(), instanceEvensForDeployment);
+                    instanceEventByDeployments.put(paaSDeploymentId, instanceEvensForDeployment);
                 }
                 instanceEvensForDeployment.add(instanceStateMonitorEvent);
             }
