@@ -741,4 +741,15 @@ public class CloudifyDeploymentUtil {
             return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
         }
     }
+
+    public String formatVolumeSize(Long size) {
+        if (size == null) {
+            throw new IllegalArgumentException("Volume size is required");
+        }
+        long sizeInGib = size / (1024L * 1024L * 1024L);
+        if (sizeInGib <= 0) {
+            sizeInGib = 1;
+        }
+        return String.valueOf(sizeInGib);
+    }
 }

@@ -65,7 +65,7 @@ public class AbstractTest {
 
     private NetworkTemplate internalNetwork = new NetworkTemplate("internal-network", 4, false, "192.168.1.0/24", "192.168.1.1", null);
 
-    private StorageTemplate storageTemplate = new StorageTemplate("small", 1L, "/dev/vdb", null);
+    private StorageTemplate storageTemplate = new StorageTemplate("small", 1073741824L, "/dev/vdb", null);
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;

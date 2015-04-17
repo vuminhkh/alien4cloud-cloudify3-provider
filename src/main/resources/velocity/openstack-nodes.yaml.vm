@@ -110,7 +110,7 @@
 #end
 #if(${matchedVolume.paaSResourceTemplate.size})
       volume:
-        size: ${matchedVolume.paaSResourceTemplate.size}
+        size: ${util.formatVolumeSize(${matchedVolume.paaSResourceTemplate.size})}
 #end
 #if(!${util.isDeletableVolumeType(${matchedVolume.paaSNodeTemplate.indexedToscaElement})})
     interfaces:
