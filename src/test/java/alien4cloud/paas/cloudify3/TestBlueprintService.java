@@ -10,7 +10,6 @@ import javax.annotation.Resource;
 
 import junitx.framework.FileAssert;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -28,7 +27,6 @@ import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
-@Slf4j
 public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Resource
@@ -110,6 +108,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
 
         Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/scripts/install_mysql.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/scripts/start_mysql.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("mysql-type/configs/mysqld_charset.cnf")));
 
         Assert.assertTrue(Files.exists(generated.getParent().resolve("php-type/scripts/install_php.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("wordpress-type/scripts/install_wordpress.sh")));
@@ -155,9 +154,11 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         validateTomcatArtifacts(generated);
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/warFiles/helloWorld.war")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/settings.properties")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/log.properties")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/configureProperties.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/create.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/tomcat_install_war.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/assertDirectoryCopied.sh")));
     }
 
     @Test
@@ -172,8 +173,10 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         validateTomcatArtifacts(generated);
         Assert.assertTrue(Files.exists(generated.getParent().resolve("_a4c_cfy3_topology_artifact/War/tomcat-war-types/warFiles/helloWorld.war")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/settings.properties")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/log.properties")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/configureProperties.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/create.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/tomcat_install_war.sh")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/assertDirectoryCopied.sh")));
     }
 }

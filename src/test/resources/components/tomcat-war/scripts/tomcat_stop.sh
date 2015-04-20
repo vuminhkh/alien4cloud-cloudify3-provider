@@ -27,5 +27,5 @@ fi
 
 export CLASSPATH=
 
-$TOMCAT_HOME/bin/catalina.sh stop
+sudo $TOMCAT_HOME/bin/catalina.sh stop
 echo "${currHostName}:${currFilename} Sucessfully stopped tomcat"

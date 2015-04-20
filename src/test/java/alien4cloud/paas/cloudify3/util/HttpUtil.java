@@ -49,7 +49,11 @@ public class HttpUtil {
                         log.debug(responseText);
                     }
                     if (StringUtils.isNotBlank(containingText)) {
-                        Assert.assertTrue(responseText.contains(containingText));
+                        if (!responseText.contains(containingText)) {
+                            log.info("Expect to receive \n {} but received \n {}", containingText, responseText);
+                            sleepWhenErrorHappen(before, timeout);
+                            continue;
+                        }
                     }
                     return;
                 } finally {

@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.paas.cloudify3.dao.EventDAO;
+import alien4cloud.paas.cloudify3.dao.DeploymentEventDAO;
 import alien4cloud.paas.cloudify3.dao.NodeDAO;
 import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
 import alien4cloud.paas.cloudify3.model.AbstractCloudifyModel;
@@ -30,6 +30,7 @@ import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStorageMonitorEvent;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 
 import com.google.common.base.Function;
@@ -50,7 +51,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 public class EventService {
 
     @Resource
-    private EventDAO eventDAO;
+    private DeploymentEventDAO eventDAO;
 
     @Resource
     private NodeInstanceDAO nodeInstanceDAO;
@@ -60,6 +61,17 @@ public class EventService {
 
     @Resource
     private StatusService statusService;
+
+    // TODO : May manage in a better manner this kind of state
+    private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newConcurrentMap();
+    private Map<String, String> alienDeploymentIdToPaaSDeploymentIdMapping = Maps.newConcurrentMap();
+
+    public void init(Map<String, PaaSTopologyDeploymentContext> activeDeploymentContexts) {
+        for (Map.Entry<String, PaaSTopologyDeploymentContext> activeDeploymentContextEntry : activeDeploymentContexts.entrySet()) {
+            paaSDeploymentIdToAlienDeploymentIdMapping.put(activeDeploymentContextEntry.getKey(), activeDeploymentContextEntry.getValue().getDeploymentId());
+            alienDeploymentIdToPaaSDeploymentIdMapping.put(activeDeploymentContextEntry.getValue().getDeploymentId(), activeDeploymentContextEntry.getKey());
+        }
+    }
 
     /**
      * This queue is used for internal events
@@ -96,12 +108,13 @@ public class EventService {
                         if (log.isDebugEnabled()) {
                             log.debug("Send event {} to Alien", event);
                         }
-                        DeploymentStatus deploymentStatus = ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus();
-                        statusService.registerDeploymentEvent(event.getDeploymentId(), deploymentStatus);
+                        final DeploymentStatus deploymentStatus = ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus();
+                        final String paaSDeploymentId = alienDeploymentIdToPaaSDeploymentIdMapping.get(event.getDeploymentId());
+                        statusService.registerDeploymentEvent(paaSDeploymentId, deploymentStatus);
                         if (DeploymentStatus.DEPLOYED.equals(deploymentStatus)) {
-                            log.info("Deployment {} has finished successfully", event.getDeploymentId());
-                            ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(event.getDeploymentId());
-                            ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(event.getDeploymentId(), null);
+                            log.info("Deployment {} has finished successfully", paaSDeploymentId);
+                            ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(paaSDeploymentId);
+                            ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(paaSDeploymentId, null);
                             ListenableFuture<List<AbstractCloudifyModel[]>> combinedFutures = Futures.allAsList(instancesFuture, nodesFuture);
 
                             Futures.addCallback(combinedFutures, new FutureCallback<List<AbstractCloudifyModel[]>>() {
@@ -114,18 +127,24 @@ public class EventService {
                                         nodeMap.put(node.getId(), node);
                                     }
                                     for (NodeInstance nodeInstance : instances) {
-                                        internalProviderEventsQueue.add(toAlienEvent(nodeInstance, nodeMap.get(nodeInstance.getNodeId())));
+                                        AbstractMonitorEvent alienEvent = toAlienEvent(nodeInstance, nodeMap.get(nodeInstance.getNodeId()));
+                                        if (alienEvent != null) {
+                                            internalProviderEventsQueue.add(alienEvent);
+                                        }
                                     }
                                 }
 
                                 @Override
                                 public void onFailure(Throwable t) {
-                                    log.error("Error happened while trying to retrieve runtime properties for finished deployment " + event.getDeploymentId(),
-                                            t);
+                                    log.error("Error happened while trying to retrieve runtime properties for finished deployment " + paaSDeploymentId, t);
                                 }
                             });
+                        } else if (DeploymentStatus.UNDEPLOYED.equals(deploymentStatus)) {
+                            log.info("Un-Deployment {} has finished successfully", paaSDeploymentId);
+                            paaSDeploymentIdToAlienDeploymentIdMapping.remove(paaSDeploymentId);
+                            alienDeploymentIdToPaaSDeploymentIdMapping.remove(event.getDeploymentId());
                         } else {
-                            log.info("Deployment {} has finished with status {}", event.getDeploymentId(),
+                            log.info("Deployment {} has finished with status {}", paaSDeploymentId,
                                     ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus());
                         }
                     }
@@ -140,8 +159,10 @@ public class EventService {
         return alienEventsFuture;
     }
 
-    public synchronized void registerDeploymentEvent(String deploymentId, DeploymentStatus deploymentStatus) {
-        statusService.registerDeploymentEvent(deploymentId, deploymentStatus);
+    public synchronized void registerDeploymentEvent(String deploymentPaaSId, String deploymentId, DeploymentStatus deploymentStatus) {
+        statusService.registerDeploymentEvent(deploymentPaaSId, deploymentStatus);
+        paaSDeploymentIdToAlienDeploymentIdMapping.put(deploymentPaaSId, deploymentId);
+        alienDeploymentIdToPaaSDeploymentIdMapping.put(deploymentId, deploymentPaaSId);
         PaaSDeploymentStatusMonitorEvent deploymentStatusMonitorEvent = new PaaSDeploymentStatusMonitorEvent();
         deploymentStatusMonitorEvent.setDeploymentStatus(deploymentStatus);
         deploymentStatusMonitorEvent.setDeploymentId(deploymentId);
@@ -193,7 +214,7 @@ public class EventService {
                                             if (volumeId != null) {
                                                 instanceStateMonitorEventIterator.remove();
                                                 PaaSInstanceStorageMonitorEvent storageEvent = new PaaSInstanceStorageMonitorEvent(instanceStateMonitorEvent,
-                                                        volumeId);
+                                                        volumeId, false);
                                                 int eventIndex = alienEvents.indexOf(instanceStateMonitorEvent);
                                                 // Replace the old event with the storage event
                                                 // It's ugly and temporary, as we'll try not to create a new type of event for each native type
@@ -305,10 +326,12 @@ public class EventService {
         for (AbstractMonitorEvent alienEvent : alienEvents) {
             if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
                 PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = (PaaSInstanceStateMonitorEvent) alienEvent;
-                List<PaaSInstanceStateMonitorEvent> instanceEvensForDeployment = instanceEventByDeployments.get(instanceStateMonitorEvent.getDeploymentId());
+                String alienDeploymentId = instanceStateMonitorEvent.getDeploymentId();
+                String paaSDeploymentId = alienDeploymentIdToPaaSDeploymentIdMapping.get(alienDeploymentId);
+                List<PaaSInstanceStateMonitorEvent> instanceEvensForDeployment = instanceEventByDeployments.get(paaSDeploymentId);
                 if (instanceEvensForDeployment == null) {
                     instanceEvensForDeployment = Lists.newArrayList();
-                    instanceEventByDeployments.put(instanceStateMonitorEvent.getDeploymentId(), instanceEvensForDeployment);
+                    instanceEventByDeployments.put(paaSDeploymentId, instanceEvensForDeployment);
                 }
                 instanceEvensForDeployment.add(instanceStateMonitorEvent);
             }
@@ -338,6 +361,11 @@ public class EventService {
         PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = new PaaSInstanceStateMonitorEvent();
         instanceStateMonitorEvent.setInstanceState(nodeInstance.getState());
         instanceStateMonitorEvent.setInstanceStatus(statusService.getInstanceStatusFromState(nodeInstance.getState()));
+        String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(nodeInstance.getDeploymentId());
+        if (alienDeploymentId == null) {
+            log.warn("Alien deployment id is not found for paaS deployment {}, must ignore this node instance {}", nodeInstance.getDeploymentId(), nodeInstance);
+            return null;
+        }
         instanceStateMonitorEvent.setDeploymentId(nodeInstance.getDeploymentId());
         instanceStateMonitorEvent.setNodeTemplateId(nodeInstance.getNodeId());
         instanceStateMonitorEvent.setInstanceId(nodeInstance.getId());
@@ -389,7 +417,13 @@ public class EventService {
             return null;
         }
         alienEvent.setDate(DatatypeConverter.parseDateTime(cloudifyEvent.getTimestamp()).getTimeInMillis());
-        alienEvent.setDeploymentId(cloudifyEvent.getContext().getDeploymentId());
+        String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(cloudifyEvent.getContext().getDeploymentId());
+        if (alienDeploymentId == null) {
+            log.warn("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
+                    cloudifyEvent);
+            return null;
+        }
+        alienEvent.setDeploymentId(alienDeploymentId);
         return alienEvent;
     }
 }

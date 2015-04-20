@@ -98,6 +98,17 @@ node_types:
     artifacts:
       - war_file: warFiles/helloWorld.war
         type: alien.artifacts.WarFile
+    interfaces:
+      custom:
+        update_war_file:
+          inputs:
+            CONTEXT_PATH: { get_property: [SELF, context_path] }
+            TOMCAT_HOME: { get_property: [HOST, tomcat_home] }
+            WAR_URL:
+              type: string
+              description: url of the war to upload to update the current one
+              required: true
+          implementation: scripts/tomcat_install_war.sh
 
 relationship_types:
 

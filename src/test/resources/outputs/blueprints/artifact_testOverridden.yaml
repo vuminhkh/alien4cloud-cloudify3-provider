@@ -39,6 +39,8 @@ node_types:
       cloudify.interfaces.lifecycle:
         create:
           implementation: _a4c_cfy3_native_artifact/deployment_artifacts/download_artifacts.py
+  alien.nodes.TestArtifactDirectory:
+    derived_from: cloudify.nodes.SoftwareComponent
   alien.nodes.Java:
     derived_from: cloudify.nodes.SoftwareComponent
     properties:
@@ -105,6 +107,16 @@ node_templates:
     relationships:
       - type: cloudify.relationships.contained_in
         target: Server
+  _a4c_generated_node_artifacts_for_Artifact_Directory_Test:
+    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
+    properties:
+      artifacts:
+        confs_directory:
+          - artifact-test-types/conf/log.properties
+          - artifact-test-types/conf/settings.properties
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: Server
 
   _a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_source:
     type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
@@ -137,6 +149,8 @@ node_templates:
             process:
               env:
                 war_file: { get_attribute: [_a4c_generated_node_artifacts_for_War, war_file] }
+      custom:
+        update_war_file: tomcat-war-types/scripts/tomcat_install_war.sh
     relationships:
       - target: _a4c_generated_node_artifacts_for_War
         type: cloudify.relationships.depends_on
@@ -163,6 +177,23 @@ node_templates:
                 process:
                   env:
                     properties_file: { get_attribute: [_a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_target, properties_file] }
+  Artifact_Directory_Test:
+    type: alien.nodes.TestArtifactDirectory
+    instances:
+      deploy: 1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: artifact-test-types/scripts/assertDirectoryCopied.sh
+          inputs:
+            process:
+              env:
+                confs_directory: { get_attribute: [_a4c_generated_node_artifacts_for_Artifact_Directory_Test, confs_directory] }
+    relationships:
+      - target: _a4c_generated_node_artifacts_for_Artifact_Directory_Test
+        type: cloudify.relationships.depends_on
+      - target: Server
+        type: cloudify.relationships.contained_in
   Tomcat:
     type: alien.nodes.Tomcat
     instances:

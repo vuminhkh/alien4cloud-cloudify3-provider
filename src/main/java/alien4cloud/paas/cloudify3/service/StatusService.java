@@ -85,37 +85,37 @@ public class StatusService {
 
     private void init() throws Exception {
         Deployment[] deployments = deploymentDAO.list();
-        List<String> deploymentIds = Lists.transform(Arrays.asList(deployments), new Function<Deployment, String>() {
+        List<String> deploymentPaaSIds = Lists.transform(Arrays.asList(deployments), new Function<Deployment, String>() {
 
             @Override
             public String apply(Deployment deployment) {
                 return deployment.getId();
             }
         });
-        for (String deploymentId : deploymentIds) {
+        for (String deploymentPaaSId : deploymentPaaSIds) {
             DeploymentStatus deploymentStatus;
             Execution[] executions;
             try {
-                executions = executionDAO.list(deploymentId);
+                executions = executionDAO.list(deploymentPaaSId);
             } catch (Exception exception) {
-                statusCache.put(deploymentId, DeploymentStatus.UNDEPLOYED);
+                statusCache.put(deploymentPaaSId, DeploymentStatus.UNDEPLOYED);
                 continue;
             }
             if (executions.length == 0) {
                 deploymentStatus = DeploymentStatus.UNDEPLOYED;
             } else {
-                deploymentStatus = getStatus(deploymentId, executions);
+                deploymentStatus = getStatus(deploymentPaaSId, executions);
             }
-            statusCache.put(deploymentId, deploymentStatus);
+            statusCache.put(deploymentPaaSId, deploymentStatus);
         }
     }
 
-    private DeploymentStatus getStatus(String deploymentId, Execution[] executions) {
+    private DeploymentStatus getStatus(String deploymentPaaSId, Execution[] executions) {
         Execution lastExecution = null;
         // Get the last install or uninstall execution, to check for status
         for (Execution execution : executions) {
             if (log.isDebugEnabled()) {
-                log.debug("Deployment {} has execution {} created at {} for workflow {} in status {}", deploymentId, execution.getId(),
+                log.debug("Deployment {} has execution {} created at {} for workflow {} in status {}", deploymentPaaSId, execution.getId(),
                         execution.getCreatedAt(), execution.getWorkflowId(), execution.getStatus());
             }
             // Only consider install/uninstall workflow to check for deployment status
@@ -156,34 +156,34 @@ public class StatusService {
         }
     }
 
-    public DeploymentStatus getStatus(String deploymentId) {
-        if (!statusCache.containsKey(deploymentId)) {
+    public DeploymentStatus getStatus(String deploymentPaaSId) {
+        if (!statusCache.containsKey(deploymentPaaSId)) {
             return DeploymentStatus.UNDEPLOYED;
         } else {
-            return statusCache.get(deploymentId);
+            return statusCache.get(deploymentPaaSId);
         }
     }
 
-    public void getStatus(String deploymentId, IPaaSCallback<DeploymentStatus> callback) {
-        callback.onSuccess(getStatus(deploymentId));
+    public void getStatus(String deploymentPaaSId, IPaaSCallback<DeploymentStatus> callback) {
+        callback.onSuccess(getStatus(deploymentPaaSId));
     }
 
-    public void getStatuses(String[] deploymentIds, IPaaSCallback<DeploymentStatus[]> callback) {
+    public void getStatuses(String[] deploymentPaaSIds, IPaaSCallback<DeploymentStatus[]> callback) {
         List<DeploymentStatus> deploymentStatuses = Lists.newArrayList();
-        for (String deploymentId : deploymentIds) {
-            deploymentStatuses.add(getStatus(deploymentId));
+        for (String deploymentPaaSId : deploymentPaaSIds) {
+            deploymentStatuses.add(getStatus(deploymentPaaSId));
         }
         callback.onSuccess(deploymentStatuses.toArray(new DeploymentStatus[deploymentStatuses.size()]));
     }
 
-    public void getInstancesInformation(final String deploymentId, final Topology topology,
+    public void getInstancesInformation(final String deploymentPaaSId, final Topology topology,
             final IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
-        if (!statusCache.containsKey(deploymentId)) {
+        if (!statusCache.containsKey(deploymentPaaSId)) {
             callback.onSuccess(Maps.<String, Map<String, InstanceInformation>> newHashMap());
             return;
         }
-        ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(deploymentId);
-        ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(deploymentId, null);
+        ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(deploymentPaaSId);
+        ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(deploymentPaaSId, null);
         ListenableFuture<List<AbstractCloudifyModel[]>> combinedFutures = Futures.allAsList(instancesFuture, nodesFuture);
         Futures.addCallback(combinedFutures, new FutureCallback<List<AbstractCloudifyModel[]>>() {
             @Override
@@ -233,15 +233,15 @@ public class StatusService {
             @Override
             public void onFailure(Throwable t) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Problem retrieving instance information for deployment <" + deploymentId + "> ");
+                    log.debug("Problem retrieving instance information for deployment <" + deploymentPaaSId + "> ");
                 }
                 callback.onSuccess(Maps.<String, Map<String, InstanceInformation>> newHashMap());
             }
         });
     }
 
-    public void registerDeploymentEvent(String deploymentId, DeploymentStatus deploymentStatus) {
-        this.statusCache.put(deploymentId, deploymentStatus);
+    public void registerDeploymentEvent(String deploymentPaaSId, DeploymentStatus deploymentStatus) {
+        this.statusCache.put(deploymentPaaSId, deploymentStatus);
     }
 
     public InstanceStatus getInstanceStatusFromState(String state) {

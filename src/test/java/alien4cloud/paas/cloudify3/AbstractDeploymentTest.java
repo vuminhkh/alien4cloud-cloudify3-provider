@@ -5,11 +5,14 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Resource;
 
+import org.apache.commons.collections4.MapUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import alien4cloud.component.repository.ArtifactLocalRepository;
@@ -22,6 +25,7 @@ import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
+import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
@@ -59,8 +63,9 @@ public class AbstractDeploymentTest extends AbstractTest {
         if (deployments.length > 0) {
             for (Deployment deployment : deployments) {
                 PaaSDeploymentContext context = new PaaSDeploymentContext();
-                context.setDeploymentId(deployment.getId());
-                context.setRecipeId(deployment.getBlueprintId());
+                context.setDeployment(new alien4cloud.model.deployment.Deployment());
+                context.getDeployment().setId(deployment.getId());
+                context.getDeployment().setPaasId(deployment.getId());
                 deploymentService.undeploy(context).get();
             }
             Thread.sleep(1000L);
@@ -84,11 +89,13 @@ public class AbstractDeploymentTest extends AbstractTest {
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName) {
         Topology topology = applicationUtil.createAlienApplication(appName, topologyName);
         PaaSTopologyDeploymentContext deploymentContext = new PaaSTopologyDeploymentContext();
-        deploymentContext.setDeploymentSetup(generateDeploymentSetup(topology));
         deploymentContext.setPaaSTopology(topologyTreeBuilderService.buildPaaSTopology(topology));
         deploymentContext.setTopology(topology);
-        deploymentContext.setDeploymentId(appName);
-        deploymentContext.setRecipeId(appName);
+        alien4cloud.model.deployment.Deployment deployment = new alien4cloud.model.deployment.Deployment();
+        deployment.setId(appName);
+        deployment.setPaasId(appName);
+        deployment.setDeploymentSetup(generateDeploymentSetup(topology));
+        deploymentContext.setDeployment(deployment);
         return deploymentContext;
     }
 
@@ -124,6 +131,25 @@ public class AbstractDeploymentTest extends AbstractTest {
         } finally {
             Closeables.close(artifactStream, true);
         }
+    }
+
+    protected void executeCustomCommand(PaaSTopologyDeploymentContext context, NodeOperationExecRequest nodeOperationExecRequest) throws ExecutionException,
+            InterruptedException {
+        final SettableFuture<Map<String, String>> future = SettableFuture.create();
+        cloudifyPaaSProvider.executeOperation(context, nodeOperationExecRequest, new IPaaSCallback<Map<String, String>>() {
+            @Override
+            public void onSuccess(Map<String, String> data) {
+                future.set(data);
+            }
+
+            @Override
+            public void onFailure(Throwable throwable) {
+                future.setException(throwable);
+            }
+        });
+        Map<String, String> data = future.get();
+        Assert.assertNotNull(data);
+        Assert.assertTrue(MapUtils.isNotEmpty(data));
     }
 
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String topologyName) {

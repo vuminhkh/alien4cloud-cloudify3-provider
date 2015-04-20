@@ -6,8 +6,8 @@
 #if(${util.mapHasEntries(${matchedPaaSCompute.paaSNodeTemplate.nodeTemplate.properties})})
       ${mapping.nativePropertyParent}:
 #foreach($property in ${matchedPaaSCompute.paaSNodeTemplate.nodeTemplate.properties.entrySet()})
-#if($property.getValue())
-        $property.getKey(): "$util.formatNodeOperationInput($matchedPaaSCompute.paaSNodeTemplate, $property.getValue())"
+#if($property.value.value)
+        $property.getKey(): "$property.value.value"
 #end
 #end
 #end
@@ -51,8 +51,8 @@
 #if(${util.mapHasEntries(${matchedNetwork.paaSNodeTemplate.nodeTemplate.properties})})
       ${mapping.nativePropertyParent}:
 #foreach($property in ${matchedNetwork.paaSNodeTemplate.nodeTemplate.properties.entrySet()})
-#if($property.getValue())
-        $property.getKey(): "$util.formatNodeOperationInput($matchedNetwork.paaSNodeTemplate, $property.getValue())"
+#if($property.value.value)
+        $property.getKey(): "$property.value.value"
 #end
 #end
 #end
@@ -96,8 +96,8 @@
 #if(${util.mapHasEntries(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties})})
       ${mapping.nativePropertyParent}:
 #foreach($property in ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.entrySet()})
-#if($property.getValue())
-        $property.getKey(): "$util.formatNodeOperationInput($matchedVolume.paaSNodeTemplate, $property.getValue())"
+#if($property.value.value)
+        $property.getKey(): "$property.value.value"
 #end
 #end
 #end
@@ -110,7 +110,7 @@
 #end
 #if(${matchedVolume.paaSResourceTemplate.size})
       volume:
-        size: ${matchedVolume.paaSResourceTemplate.size}
+        size: ${util.formatVolumeSize(${matchedVolume.paaSResourceTemplate.size})}
 #end
 #if(!${util.isDeletableVolumeType(${matchedVolume.paaSNodeTemplate.indexedToscaElement})})
     interfaces:

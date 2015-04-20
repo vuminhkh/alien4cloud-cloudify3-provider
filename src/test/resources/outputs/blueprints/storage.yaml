@@ -52,6 +52,15 @@ node_types:
       cloudify.interfaces.lifecycle:
         configure:
           implementation: _a4c_cfy3_native_artifact/volume/mkfs.sh
+  _a4c_generated_type.cloudify.nodes.DeploymentArtifacts:
+    derived_from: cloudify.nodes.Root
+    properties:
+      artifacts:
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: _a4c_cfy3_native_artifact/deployment_artifacts/download_artifacts.py
   alien.nodes.Mysql:
     derived_from: cloudify.nodes.Database
     properties:
@@ -131,6 +140,15 @@ node_templates:
       - target: Compute
         type: cloudify.openstack.volume_attached_to_server
 
+  _a4c_generated_node_artifacts_for_Mysql:
+    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
+    properties:
+      artifacts:
+        configs:
+          - mysql-type/configs/mysqld_charset.cnf
+    relationships:
+      - type: cloudify.relationships.contained_in
+        target: Compute
 
 
   Mysql:
@@ -157,9 +175,17 @@ node_templates:
                 DB_USER: { get_property: [Mysql, db_user] }
                 DB_PASSWORD: { get_property: [Mysql, db_password] }
                 BIND_ADRESS: { get_property: [Mysql, bind_address] }
-        create: mysql-type/scripts/install_mysql.sh
+                configs: { get_attribute: [_a4c_generated_node_artifacts_for_Mysql, configs] }
+        create:
+          implementation: mysql-type/scripts/install_mysql.sh
+          inputs:
+            process:
+              env:
+                configs: { get_attribute: [_a4c_generated_node_artifacts_for_Mysql, configs] }
     relationships:
       - target: _a4c_generated_node_file_system_BlockStorage
+        type: cloudify.relationships.depends_on
+      - target: _a4c_generated_node_artifacts_for_Mysql
         type: cloudify.relationships.depends_on
       - target: Compute
         type: cloudify.relationships.contained_in

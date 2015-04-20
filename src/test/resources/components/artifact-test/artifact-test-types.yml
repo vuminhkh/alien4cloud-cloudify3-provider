@@ -13,6 +13,15 @@ description: Tomcat recipe, including war type and relationship.
 
 node_types:
 
+  alien.nodes.TestArtifactDirectory:
+    derived_from: tosca.nodes.SoftwareComponent
+    artifacts:
+      - confs_directory: conf
+        type: tosca.artifacts.File
+    interfaces:
+      Standard:
+        create: scripts/assertDirectoryCopied.sh
+
   alien.nodes.WarWithLifeCycleScript:
     derived_from: alien.nodes.War
     description: A war element with lifecycle operation implemented

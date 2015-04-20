@@ -91,3 +91,8 @@ documentation:
 
 audit:
   ttl: 1d
+
+cloudify3:
+  externalNetworkName: "net-pub"
+  apiUrl: "http://129.185.67.114:8100"
+  imageId: "727df994-2e1b-404e-9276-b248223a835d"

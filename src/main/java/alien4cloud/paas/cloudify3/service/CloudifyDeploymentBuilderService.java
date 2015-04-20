@@ -5,8 +5,6 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.NetworkTemplate;
@@ -28,7 +26,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 @Component("cloudify-deployment-builder-service")
-@Slf4j
 public class CloudifyDeploymentBuilderService {
 
     @Resource(name = "cloudify-compute-template-matcher-service")
@@ -112,7 +109,7 @@ public class CloudifyDeploymentBuilderService {
             }
         }
 
-        CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentId(), deploymentContext.getRecipeId(), matchedComputes,
+        CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(), matchedComputes,
                 matchedInternalNetworks, matchedExternalNetworks, matchedStorages, buildTemplateMap(matchedComputes),
                 buildTemplateMap(matchedInternalNetworks), buildTemplateMap(matchedExternalNetworks), buildTemplateMap(matchedStorages), deploymentContext
                         .getPaaSTopology().getNonNatives(), IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),

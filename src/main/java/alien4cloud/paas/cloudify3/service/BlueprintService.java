@@ -9,14 +9,13 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Resource;
-
-import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,10 +37,11 @@ import alien4cloud.model.topology.AbstractTemplate;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.paas.cloudify3.util.BlueprintGenerationUtil;
+import alien4cloud.paas.cloudify3.util.CloudifyDeploymentUtil;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
+import alien4cloud.utils.FileUtil;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
@@ -52,7 +52,6 @@ import com.google.common.collect.Maps;
  * @author Minh Khang VU
  */
 @Component("cloudify-blueprint-service")
-@Slf4j
 public class BlueprintService {
 
     public static final String SHELL_SCRIPT_ARTIFACT = "tosca.artifacts.ShellScript";
@@ -84,11 +83,11 @@ public class BlueprintService {
      */
     public Path generateBlueprint(CloudifyDeployment alienDeployment) throws IOException, CSARVersionNotFoundException {
         // Where the whole blueprint will be generated
-        Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getRecipeId());
+        Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getDeploymentPaaSId());
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
-        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(),
-                mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment);
+        CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
+                mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment, generatedBlueprintDirectoryPath);
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
@@ -103,8 +102,6 @@ public class BlueprintService {
         context.put("provider_types_file",
                 resourceLoaderService.loadResourceFromClasspath("velocity/" + cloudConfigurationHolder.getConfiguration().getProvider() + "-types.yaml.vm")
                         .getFileName().toString());
-        // Generate the blueprint
-        VelocityUtil.generate(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         // Copy artifacts
         List<PaaSNodeTemplate> nonNatives = alienDeployment.getNonNatives();
         if (nonNatives != null) {
@@ -142,7 +139,44 @@ public class BlueprintService {
             Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/deployment_artifacts/download_artifacts.py"),
                     deploymentArtifactsScriptPath.resolve("download_artifacts.py"));
         }
+        // Generate the blueprint at the end
+        VelocityUtil.generate(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
+    }
+
+    private void copyShellScriptImplementationArtifact(Path artifactPath, Path artifactCopiedPath) throws IOException {
+        BufferedReader artifactReader = null;
+        OutputStream artifactOutput = null;
+        try {
+            artifactReader = Files.newBufferedReader(artifactPath, Charsets.UTF_8);
+            artifactOutput = new BufferedOutputStream(Files.newOutputStream(artifactCopiedPath));
+            String line;
+            while ((line = artifactReader.readLine()) != null) {
+                Matcher matcher = SCRIPT_ECHO_PATTERN.matcher(line);
+                if (matcher.matches()) {
+                    String logContent = matcher.group(1);
+                    if (!logContent.startsWith("\"") && !logContent.startsWith("'")) {
+                        logContent = "\"" + logContent + "\"";
+                    }
+                    artifactOutput.write(("ctx logger info " + logContent + "\n").getBytes(Charsets.UTF_8));
+                } else {
+                    artifactOutput.write((line + "\n").getBytes(Charsets.UTF_8));
+                }
+            }
+        } finally {
+            if (artifactReader != null) {
+                try {
+                    artifactReader.close();
+                } catch (IOException e) {
+                }
+            }
+            if (artifactOutput != null) {
+                try {
+                    artifactOutput.close();
+                } catch (IOException e) {
+                }
+            }
+        }
     }
 
     private void copyArtifact(Path generatedBlueprintDirectoryPath, Path csarPath, String pathToNode, IArtifact artifact, IArtifact originalArtifact)
@@ -164,48 +198,22 @@ public class BlueprintService {
             artifactPath = csarFS.getPath(artifactRelativePathName);
             artifactCopiedPath = artifactCopiedDirectory.resolve(artifactRelativePathName);
         }
-        if (Files.exists(artifactCopiedPath)) {
+        if (Files.isRegularFile(artifactCopiedPath)) {
             // already copied do nothing
             return;
         }
         Files.createDirectories(artifactCopiedPath.getParent());
         // For shell script we try to match all echo command and replace them with ctx logger info (cloudify 3 API for logging)
-        if (SHELL_SCRIPT_ARTIFACT.equals(artifact.getArtifactType())) {
-            // TODO Make this parameterizable and configurable
-            BufferedReader artifactReader = null;
-            OutputStream artifactOutput = null;
-            try {
-                artifactReader = Files.newBufferedReader(artifactPath, Charsets.UTF_8);
-                artifactOutput = new BufferedOutputStream(Files.newOutputStream(artifactCopiedPath));
-                String line;
-                while ((line = artifactReader.readLine()) != null) {
-                    Matcher matcher = SCRIPT_ECHO_PATTERN.matcher(line);
-                    if (matcher.matches()) {
-                        String logContent = matcher.group(1);
-                        if (!logContent.startsWith("\"") && !logContent.startsWith("'")) {
-                            logContent = "\"" + logContent + "\"";
-                        }
-                        artifactOutput.write(("ctx logger info " + logContent + "\n").getBytes(Charsets.UTF_8));
-                    } else {
-                        artifactOutput.write((line + "\n").getBytes(Charsets.UTF_8));
-                    }
-                }
-            } finally {
-                if (artifactReader != null) {
-                    try {
-                        artifactReader.close();
-                    } catch (IOException e) {
-                    }
-                }
-                if (artifactOutput != null) {
-                    try {
-                        artifactOutput.close();
-                    } catch (IOException e) {
-                    }
-                }
-            }
+        // Only enabled for debugging purpose
+        if (cloudConfigurationHolder.getConfiguration().getDebugScript() && SHELL_SCRIPT_ARTIFACT.equals(artifact.getArtifactType())
+                && artifact instanceof ImplementationArtifact) {
+            copyShellScriptImplementationArtifact(artifactPath, artifactCopiedPath);
         } else {
-            Files.copy(artifactPath, artifactCopiedPath);
+            if (Files.isDirectory(artifactPath)) {
+                FileUtil.copy(artifactPath, artifactCopiedPath, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                Files.copy(artifactPath, artifactCopiedPath);
+            }
         }
     }
 
@@ -248,20 +256,13 @@ public class BlueprintService {
         }
     }
 
-    /**
-     * Find out where the blueprint of a deployment might/should be generated to
-     *
-     * @param recipeId the recipe's id
-     * @return the path to the generated blueprint
-     */
-    public Path resolveBlueprintPath(String recipeId) {
-        return recipeDirectoryPath.resolve(recipeId);
+    public Path resolveBlueprintPath(String deploymentId) {
+        return recipeDirectoryPath.resolve(deploymentId);
     }
 
     @Required
     @Value("${directories.alien}/cloudify3")
     public void setRecipeDirectoryPath(final String path) {
-        log.debug("Setting temporary path to {}", path);
         recipeDirectoryPath = Paths.get(path).toAbsolutePath();
     }
 }

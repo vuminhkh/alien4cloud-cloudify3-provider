@@ -1,5 +1,11 @@
 package alien4cloud.paas.cloudify3.util;
 
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -42,21 +48,24 @@ import alien4cloud.tosca.normative.ToscaFunctionConstants;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
- * Some utilities method which help generating cloudify 3 blueprint
+ * Some utilities method which help transforming an alien deployment to a cloudify deployment
  *
  * @author Minh Khang VU
  */
 @AllArgsConstructor
 @Slf4j
-public class BlueprintGenerationUtil {
+public class CloudifyDeploymentUtil {
 
     private MappingConfiguration mappingConfiguration;
 
     private ProviderMappingConfiguration providerMappingConfiguration;
 
     private CloudifyDeployment alienDeployment;
+
+    private Path recipePath;
 
     public boolean mapHasEntries(Map<?, ?> map) {
         return map != null && !map.isEmpty();
@@ -132,6 +141,11 @@ public class BlueprintGenerationUtil {
         return inputParameters != null && !inputParameters.isEmpty();
     }
 
+    public boolean operationHasInputParameters(String interfaceName, Operation operation) {
+        Map<String, IOperationParameter> inputParameters = operation.getInputParameters();
+        return isStandardLifecycleInterface(interfaceName) && operationHasInputParameters(operation);
+    }
+
     private void enrichInterfaceOperationsWithDeploymentArtifacts(String artifactOwner, Map<String, DeploymentArtifact> artifacts,
             Map<String, Interface> interfaces) {
         if (artifacts == null || artifacts.isEmpty()) {
@@ -159,7 +173,8 @@ public class BlueprintGenerationUtil {
     }
 
     public Map<String, Interface> getNodeInterfaces(PaaSNodeTemplate node) {
-        return getInterfaces(node.getIndexedToscaElement().getInterfaces(), node.getIndexedToscaElement());
+        Map<String, Interface> nodeInterfaces = getInterfaces(node.getIndexedToscaElement().getInterfaces(), node.getIndexedToscaElement());
+        return nodeInterfaces;
     }
 
     /**
@@ -192,45 +207,39 @@ public class BlueprintGenerationUtil {
         return interfaces;
     }
 
+    public FunctionPropertyValue processRelationshipOperationInputFunction(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue,
+            boolean isSource) {
+        functionPropertyValue = resolveKeyWordInRelationshipFunction(relationship, functionPropertyValue);
+        functionPropertyValue = resolveNodeHasPropertyInRelationshipFunction(relationship, functionPropertyValue, isSource);
+        functionPropertyValue = resolvePropertyMappingInFunction(functionPropertyValue);
+        return functionPropertyValue;
+    }
+
+    /**
+     * Format operation parameter of a relationship
+     *
+     * @param relationship the relationship
+     * @param input the input which can be a function or a scalar
+     * @param isSource it's a source or target relationship
+     * @return the formatted parameter understandable by Cloudify 3
+     */
     public String formatRelationshipOperationInput(PaaSRelationshipTemplate relationship, IOperationParameter input, boolean isSource) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
-            String nodeName = functionPropertyValue.getTemplateName();
-            String attribute = functionPropertyValue.getPropertyOrAttributeName();
-            // SOURCE and TARGET
-            if (ToscaFunctionConstants.SOURCE.equals(nodeName)) {
-                nodeName = relationship.getSource();
-            } else if (ToscaFunctionConstants.TARGET.equals(nodeName)) {
-                nodeName = relationship.getRelationshipTemplate().getTarget();
-            }
-            // SELF only work for get_artifact
-            if ("get_artifact".equals(functionPropertyValue.getFunction())) {
-                String resolvedNodeName;
-                if (ToscaFunctionConstants.SELF.equals(nodeName)) {
-                    if (isSource) {
-                        resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_relationship_" + relationship.getId() + "_from_"
-                                + relationship.getSource() + "_on_source";
-                    } else {
-                        resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_relationship_" + relationship.getId() + "_from_"
-                                + relationship.getSource() + "_on_target";
-                    }
-                } else {
-                    resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_" + nodeName;
-                }
-                FunctionPropertyValue newFunctionPropertyValue = new FunctionPropertyValue();
-                newFunctionPropertyValue.setFunction(ToscaFunctionConstants.GET_ATTRIBUTE);
-                newFunctionPropertyValue.setParameters(functionPropertyValue.getParameters());
-                return formatFunctionPropertyInputValue(newFunctionPropertyValue, resolvedNodeName);
-            } else {
-                String resolvedNodeName = getNodeNameHasPropertyOrAttribute(relationship.getSource(), alienDeployment.getAllNodes().get(nodeName), attribute,
-                        functionPropertyValue.getFunction());
-                return formatFunctionPropertyInputValue(functionPropertyValue, resolvedNodeName);
-            }
+            functionPropertyValue = processRelationshipOperationInputFunction(relationship, functionPropertyValue, isSource);
+            return generateCloudifyFunction(functionPropertyValue);
         } else if (input instanceof ScalarPropertyValue) {
             return ((ScalarPropertyValue) input).getValue();
         } else {
             throw new NotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
         }
+    }
+
+    public FunctionPropertyValue processNodeOperationInputFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
+        functionPropertyValue = resolveKeyWordInNodeFunction(node, functionPropertyValue);
+        functionPropertyValue = resolveNodeHasPropertyInNodeFunction(node, functionPropertyValue);
+        functionPropertyValue = resolvePropertyMappingInFunction(functionPropertyValue);
+        return functionPropertyValue;
     }
 
     /**
@@ -243,31 +252,109 @@ public class BlueprintGenerationUtil {
     public String formatNodeOperationInput(PaaSNodeTemplate node, IOperationParameter input) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
-            String nodeName = functionPropertyValue.getTemplateName();
-            String attribute = functionPropertyValue.getPropertyOrAttributeName();
-            if (ToscaFunctionConstants.HOST.equals(nodeName)) {
-                // Resolve HOST
-                PaaSNodeTemplate host = node.getParent() != null ? node.getParent() : node;
-                nodeName = host.getId();
-            } else if (ToscaFunctionConstants.SELF.equals(nodeName)) {
-                nodeName = node.getId();
-            }
-            if ("get_artifact".equals(functionPropertyValue.getFunction())) {
-                String resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_" + nodeName;
-                FunctionPropertyValue newFunctionPropertyValue = new FunctionPropertyValue();
-                newFunctionPropertyValue.setFunction(ToscaFunctionConstants.GET_ATTRIBUTE);
-                newFunctionPropertyValue.setParameters(functionPropertyValue.getParameters());
-                return formatFunctionPropertyInputValue(newFunctionPropertyValue, resolvedNodeName);
-            } else {
-                String resolvedNodeName = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(nodeName), attribute,
-                        functionPropertyValue.getFunction());
-                return formatFunctionPropertyInputValue(functionPropertyValue, resolvedNodeName);
-            }
+            functionPropertyValue = processNodeOperationInputFunction(node, functionPropertyValue);
+            return generateCloudifyFunction(functionPropertyValue);
         } else if (input instanceof ScalarPropertyValue) {
             return ((ScalarPropertyValue) input).getValue();
         } else {
             throw new NotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
         }
+    }
+
+    private FunctionPropertyValue resolveKeyWordInNodeFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
+        String nodeName = functionPropertyValue.getTemplateName();
+        if (ToscaFunctionConstants.HOST.equals(nodeName)) {
+            // Resolve HOST
+            PaaSNodeTemplate host = node.getParent() != null ? node.getParent() : node;
+            nodeName = host.getId();
+        } else if (ToscaFunctionConstants.SELF.equals(nodeName)) {
+            nodeName = node.getId();
+        }
+        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
+                .getParameters()));
+        resolved.getParameters().set(0, nodeName);
+        return resolved;
+    }
+
+    private FunctionPropertyValue resolveKeyWordInRelationshipFunction(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
+        String nodeName = functionPropertyValue.getTemplateName();
+        // SOURCE and TARGET
+        if (ToscaFunctionConstants.SOURCE.equals(nodeName)) {
+            nodeName = relationship.getSource();
+        } else if (ToscaFunctionConstants.TARGET.equals(nodeName)) {
+            nodeName = relationship.getRelationshipTemplate().getTarget();
+        }
+        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
+                .getParameters()));
+        resolved.getParameters().set(0, nodeName);
+        return resolved;
+    }
+
+    private FunctionPropertyValue resolveNodeHasPropertyInNodeFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
+        String nodeName = functionPropertyValue.getTemplateName();
+        String attribute = functionPropertyValue.getPropertyOrAttributeName();
+        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
+                .getParameters()));
+        String resolvedNodeName;
+        if ("get_artifact".equals(functionPropertyValue.getFunction())) {
+            resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_" + nodeName;
+            resolved.setFunction(ToscaFunctionConstants.GET_ATTRIBUTE);
+        } else {
+            resolvedNodeName = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(nodeName), attribute,
+                    functionPropertyValue.getFunction());
+        }
+        resolved.getParameters().set(0, resolvedNodeName);
+        return resolved;
+    }
+
+    private FunctionPropertyValue resolveNodeHasPropertyInRelationshipFunction(PaaSRelationshipTemplate relationship,
+            FunctionPropertyValue functionPropertyValue, boolean isSource) {
+        String nodeName = functionPropertyValue.getTemplateName();
+        String attribute = functionPropertyValue.getPropertyOrAttributeName();
+        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
+                .getParameters()));
+        String resolvedNodeName;
+        if ("get_artifact".equals(functionPropertyValue.getFunction())) {
+            resolved.setFunction(ToscaFunctionConstants.GET_ATTRIBUTE);
+            if (ToscaFunctionConstants.SELF.equals(nodeName)) {
+                if (isSource) {
+                    resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_relationship_" + relationship.getId() + "_from_"
+                            + relationship.getSource() + "_on_source";
+                } else {
+                    resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_relationship_" + relationship.getId() + "_from_"
+                            + relationship.getSource() + "_on_target";
+                }
+            } else {
+                resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_" + nodeName;
+            }
+        } else {
+            resolvedNodeName = getNodeNameHasPropertyOrAttribute(relationship.getSource(), alienDeployment.getAllNodes().get(nodeName), attribute,
+                    functionPropertyValue.getFunction());
+        }
+        resolved.getParameters().set(0, resolvedNodeName);
+        return resolved;
+    }
+
+    private FunctionPropertyValue resolvePropertyMappingInFunction(FunctionPropertyValue functionPropertyValue) {
+        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
+                .getParameters()));
+        String nativeType = getNativeType(resolved.getTemplateName());
+        for (int i = 1; i < resolved.getParameters().size(); i++) {
+            String attributeName = resolved.getParameters().get(i);
+            resolved.getParameters().set(i, mapPropAttName(functionPropertyValue.getFunction(), attributeName, nativeType));
+        }
+        return resolved;
+    }
+
+    private String generateCloudifyFunction(FunctionPropertyValue functionPropertyValue) {
+        StringBuilder formattedInput = new StringBuilder("{ ").append(functionPropertyValue.getFunction()).append(": [");
+        for (int i = 0; i < functionPropertyValue.getParameters().size(); i++) {
+            formattedInput.append(functionPropertyValue.getParameters().get(i)).append(", ");
+        }
+        // Remove the last ','
+        formattedInput.setLength(formattedInput.length() - 2);
+        formattedInput.append("] }");
+        return formattedInput.toString();
     }
 
     private String getNodeNameHasPropertyOrAttribute(String parentNodeName, PaaSNodeTemplate node, String attributeName, String functionName) {
@@ -301,26 +388,6 @@ public class BlueprintGenerationUtil {
         } else {
             return node.getId();
         }
-    }
-
-    private String formatFunctionPropertyInputValue(FunctionPropertyValue functionPropertyValue, String resolvedNodeName) {
-        FunctionPropertyValue filteredFunctionPropertyValue = new FunctionPropertyValue();
-        String functionName = functionPropertyValue.getFunction();
-        filteredFunctionPropertyValue.setFunction(functionName);
-        List<String> newParameters = Lists.newArrayList(functionPropertyValue.getParameters());
-        newParameters.set(0, resolvedNodeName);
-        filteredFunctionPropertyValue.setParameters(newParameters);
-        String nativeType = getNativeType(resolvedNodeName);
-        StringBuilder formattedInput = new StringBuilder("{ ").append(filteredFunctionPropertyValue.getFunction()).append(": [");
-        for (int i = 0; i < filteredFunctionPropertyValue.getParameters().size(); i++) {
-            String attributeName = filteredFunctionPropertyValue.getParameters().get(i);
-            attributeName = mapPropAttName(functionPropertyValue.getFunction(), attributeName, nativeType);
-            formattedInput.append(attributeName).append(", ");
-        }
-        // Remove the last ','
-        formattedInput.setLength(formattedInput.length() - 2);
-        formattedInput.append("] }");
-        return formattedInput.toString();
     }
 
     private String mapPropAttName(String function, String propAttName, String nativeType) {
@@ -436,8 +503,12 @@ public class BlueprintGenerationUtil {
         return mappingConfiguration.getNormativeTypes().containsKey(toscaType);
     }
 
+    public boolean isStandardLifecycleInterface(String interfaceName) {
+        return ToscaNodeLifecycleConstants.STANDARD.equals(interfaceName) || ToscaNodeLifecycleConstants.STANDARD_SHORT.equals(interfaceName);
+    }
+
     public String tryToMapToCloudifyInterface(String interfaceName) {
-        if (ToscaNodeLifecycleConstants.STANDARD.equals(interfaceName) || ToscaNodeLifecycleConstants.STANDARD_SHORT.equals(interfaceName)) {
+        if (isStandardLifecycleInterface(interfaceName)) {
             return "cloudify.interfaces.lifecycle";
         } else {
             return interfaceName;
@@ -637,6 +708,28 @@ public class BlueprintGenerationUtil {
         }
     }
 
+    public boolean isArtifactDirectory(String artifactPath) {
+        return Files.isDirectory(recipePath.resolve(artifactPath));
+    }
+
+    public Set<String> listArtifactDirectory(final String artifactPath) throws IOException {
+        final Set<String> children = Sets.newHashSet();
+        Files.walkFileTree(recipePath.resolve(artifactPath), new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                log.warn("Do not support for the moment directory artifact with nested directory");
+                return super.preVisitDirectory(dir, attrs);
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                children.add(recipePath.relativize(file).toString());
+                return super.visitFile(file, attrs);
+            }
+        });
+        return children;
+    }
+
     public String getRelationshipArtifactPath(String sourceId, String relationshipId, String artifactId, IArtifact artifact) {
         Map<String, DeploymentArtifact> topologyArtifacts = alienDeployment.getAllNodes().get(sourceId).getRelationshipTemplate(relationshipId, sourceId)
                 .getRelationshipTemplate().getArtifacts();
@@ -647,5 +740,16 @@ public class BlueprintGenerationUtil {
         } else {
             return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
         }
+    }
+
+    public String formatVolumeSize(Long size) {
+        if (size == null) {
+            throw new IllegalArgumentException("Volume size is required");
+        }
+        long sizeInGib = size / (1024L * 1024L * 1024L);
+        if (sizeInGib <= 0) {
+            sizeInGib = 1;
+        }
+        return String.valueOf(sizeInGib);
     }
 }

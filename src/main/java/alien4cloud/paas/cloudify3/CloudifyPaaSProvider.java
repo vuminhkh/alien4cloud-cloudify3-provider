@@ -7,6 +7,7 @@ import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
@@ -18,6 +19,7 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
+import alien4cloud.paas.cloudify3.service.CustomWorkflowService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
@@ -50,6 +52,9 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
+
+    @Resource(name = "cloudify-custom-workflow-service")
+    private CustomWorkflowService customWorkflowService;
 
     @Resource(name = "cloudify-configuration-holder")
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -96,6 +101,15 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      */
 
     @Override
+    public void init(Map<String, PaaSTopologyDeploymentContext> activeDeployments) {
+        if (activeDeployments == null) {
+            return;
+        } else {
+            eventService.init(activeDeployments);
+        }
+    }
+
+    @Override
     public void setConfiguration(CloudConfiguration newConfiguration) throws PluginConfigurationException {
         if (newConfiguration == null) {
             throw new PluginConfigurationException("Configuration is null");
@@ -114,13 +128,13 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public void getStatus(PaaSDeploymentContext deploymentContext, IPaaSCallback<DeploymentStatus> callback) {
-        statusService.getStatus(deploymentContext.getDeploymentId(), callback);
+        statusService.getStatus(deploymentContext.getDeploymentPaaSId(), callback);
     }
 
     @Override
     public void getInstancesInformation(PaaSDeploymentContext deploymentContext, Topology topology,
             IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
-        statusService.getInstancesInformation(deploymentContext.getDeploymentId(), topology, callback);
+        statusService.getInstancesInformation(deploymentContext.getDeploymentPaaSId(), topology, callback);
     }
 
     @Override
@@ -174,8 +188,20 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
     }
 
     @Override
-    public void executeOperation(PaaSDeploymentContext deploymentContext, NodeOperationExecRequest nodeOperationExecRequest,
+    public void executeOperation(PaaSTopologyDeploymentContext deploymentContext, NodeOperationExecRequest nodeOperationExecRequest,
             IPaaSCallback<Map<String, String>> callback) throws OperationExecutionException {
-        throw new NotSupportedException("executeOperation is not supported yet");
+        CloudifyDeployment deployment = cloudifyDeploymentBuilderService.buildCloudifyDeployment(deploymentContext);
+        ListenableFuture<Map<String, String>> executionFutureResult = customWorkflowService.executeOperation(deployment, nodeOperationExecRequest);
+        FutureUtil.associateFutureToPaaSCallback(executionFutureResult, callback);
+    }
+
+    @Override
+    public void switchInstanceMaintenanceMode(PaaSDeploymentContext arg0, String arg1, String arg2, boolean arg3) {
+        throw new NotImplementedException();
+    }
+
+    @Override
+    public void switchMaintenanceMode(PaaSDeploymentContext arg0, boolean arg1) {
+        throw new NotImplementedException();
     }
 }

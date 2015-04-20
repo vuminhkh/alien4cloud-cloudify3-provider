@@ -11,7 +11,7 @@ import alien4cloud.ui.form.annotation.FormValidValues;
 @Getter
 @Setter
 @SuppressWarnings("PMD.UnusedPrivateField")
-@FormProperties({ "provider", "url" })
+@FormProperties({ "provider", "url", "debugScript" })
 public class CloudConfiguration {
 
     /**
@@ -25,4 +25,6 @@ public class CloudConfiguration {
     @NotNull
     private String url = "http://yourManagerIP:8100";
 
+    @NotNull
+    private Boolean debugScript = false;
 }

@@ -50,7 +50,20 @@ node_templates:
       public_internet:
         type: tosca.relationships.Network
         target: NetPub
-
+  Artifact_Directory_Test:
+    type: alien.nodes.TestArtifactDirectory
+    name: Artifact_Directory_Test
+    artifacts:
+      confs_directory:
+        artifact_type: tosca.artifacts.File
+        artifact_ref: conf
+        artifact_name: confs_directory
+        archive_name: artifact-test-types
+        archive_version: 1.0.0-SNAPSHOT
+    relationships:
+      hostedOnServer:
+        type: tosca.relationships.HostedOn
+        target: Server
 dependencies:
   - name: tosca-normative-types
     version: 1.0.0.wd03-SNAPSHOT
