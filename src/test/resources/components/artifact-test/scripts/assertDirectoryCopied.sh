@@ -19,3 +19,10 @@ else
     echo "confs_directory/settings.properties is not copied"
     exit 1
 fi
+
+if [ -f "$confs_directory/test/nestedDirTest.txt" ]; then
+    echo "confs_directory/test/nestedDirTest.txt is copied"
+else
+    echo "confs_directory/test/nestedDirTest.txt is not copied"
+    exit 1
+fi

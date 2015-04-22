@@ -112,8 +112,12 @@ node_templates:
     properties:
       artifacts:
         confs_directory:
-          - artifact-test-types/conf/log.properties
-          - artifact-test-types/conf/settings.properties
+          - relative_path: test/nestedDirTest.txt
+            absolute_path: artifact-test-types/conf/test/nestedDirTest.txt
+          - relative_path: log.properties
+            absolute_path: artifact-test-types/conf/log.properties
+          - relative_path: settings.properties
+            absolute_path: artifact-test-types/conf/settings.properties
     relationships:
       - type: cloudify.relationships.contained_in
         target: Server

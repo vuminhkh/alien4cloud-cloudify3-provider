@@ -48,7 +48,6 @@ import alien4cloud.tosca.normative.ToscaFunctionConstants;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * Some utilities method which help transforming an alien deployment to a cloudify deployment
@@ -712,18 +711,13 @@ public class CloudifyDeploymentUtil {
         return Files.isDirectory(recipePath.resolve(artifactPath));
     }
 
-    public Set<String> listArtifactDirectory(final String artifactPath) throws IOException {
-        final Set<String> children = Sets.newHashSet();
-        Files.walkFileTree(recipePath.resolve(artifactPath), new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                log.warn("Do not support for the moment directory artifact with nested directory");
-                return super.preVisitDirectory(dir, attrs);
-            }
-
+    public Map<String, String> listArtifactDirectory(final String artifactPath) throws IOException {
+        final Map<String, String> children = Maps.newHashMap();
+        final Path realArtifactPath = recipePath.resolve(artifactPath);
+        Files.walkFileTree(realArtifactPath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                children.add(recipePath.relativize(file).toString());
+                children.put(realArtifactPath.relativize(file).toString(), recipePath.relativize(file).toString());
                 return super.visitFile(file, attrs);
             }
         });

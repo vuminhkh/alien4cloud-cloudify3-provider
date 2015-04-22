@@ -145,7 +145,8 @@ node_templates:
     properties:
       artifacts:
         configs:
-          - mysql-type/configs/mysqld_charset.cnf
+          - relative_path: mysqld_charset.cnf
+            absolute_path: mysql-type/configs/mysqld_charset.cnf
     relationships:
       - type: cloudify.relationships.contained_in
         target: Compute
