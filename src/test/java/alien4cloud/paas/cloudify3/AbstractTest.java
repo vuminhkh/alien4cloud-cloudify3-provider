@@ -125,7 +125,7 @@ public class AbstractTest {
         storageMapping.put(storageTemplate, null);
         matcherConfig.setStorageMapping(storageMapping);
 
-        computeTemplateMatcherService.configure(matcherConfig.getImageMapping(), matcherConfig.getFlavorMapping());
+        computeTemplateMatcherService.configure(matcherConfig.getImageMapping(), matcherConfig.getFlavorMapping(), matcherConfig.getAvailabilityZoneMapping());
         networkMatcherService.configure(matcherConfig.getNetworkMapping());
         storageTemplateMatcherService.configure(storageMapping);
         csarUtil.uploadAll();
