@@ -81,7 +81,7 @@ public class AbstractDeploymentTest extends AbstractTest {
         cleanDeployments();
     }
 
-    @After
+//    @After
     public void after() throws Exception {
         cleanDeployments();
     }

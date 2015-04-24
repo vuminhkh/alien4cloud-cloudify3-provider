@@ -1,6 +1,7 @@
 package alien4cloud.paas.cloudify3;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Value;
 
 import alien4cloud.model.application.DeploymentSetup;
+import alien4cloud.model.cloud.AvailabilityZone;
 import alien4cloud.model.cloud.CloudImage;
 import alien4cloud.model.cloud.CloudImageFlavor;
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
@@ -33,6 +35,7 @@ import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class AbstractTest {
 
@@ -50,6 +53,8 @@ public class AbstractTest {
 
     public static final String ARTIFACT_TEST_TOPOLOGY = "artifact_test";
 
+    public static final String HA_GROUPS_TOPOLOGY = "groups";
+
     @Value("${cloudify3.externalNetworkName}")
     private String externalNetworkName;
 
@@ -66,6 +71,10 @@ public class AbstractTest {
     private NetworkTemplate internalNetwork = new NetworkTemplate("internal-network", 4, false, "192.168.1.0/24", "192.168.1.1", null);
 
     private StorageTemplate storageTemplate = new StorageTemplate("small", 1073741824L, "/dev/vdb", null);
+
+    private AvailabilityZone zone1 = new AvailabilityZone("Fastconnect", "Fastconnect zone");
+
+    private AvailabilityZone zone2 = new AvailabilityZone("A4C-zone", "A4C zone");
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -125,6 +134,11 @@ public class AbstractTest {
         storageMapping.put(storageTemplate, null);
         matcherConfig.setStorageMapping(storageMapping);
 
+        Map<AvailabilityZone, String> availabilityZoneMapping = Maps.newHashMap();
+        availabilityZoneMapping.put(zone1, "Fastconnect");
+        availabilityZoneMapping.put(zone2, "A4C-zone");
+        matcherConfig.setAvailabilityZoneMapping(availabilityZoneMapping);
+
         computeTemplateMatcherService.configure(matcherConfig.getImageMapping(), matcherConfig.getFlavorMapping(), matcherConfig.getAvailabilityZoneMapping());
         networkMatcherService.configure(matcherConfig.getNetworkMapping());
         storageTemplateMatcherService.configure(storageMapping);
@@ -175,6 +189,9 @@ public class AbstractTest {
             storageMapping.put(storageId, storageTemplate);
         }
         deploymentSetup.setStorageMapping(storageMapping);
+        Map<String, Collection<AvailabilityZone>> availabilityZoneMapping = Maps.newHashMap();
+        availabilityZoneMapping.put("compute_ha_group", Sets.newHashSet(zone1, zone2));
+        deploymentSetup.setAvailabilityZoneMapping(availabilityZoneMapping);
         return deploymentSetup;
     }
 }

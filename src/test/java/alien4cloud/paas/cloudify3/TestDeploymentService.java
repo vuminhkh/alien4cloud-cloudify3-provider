@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.junit.Assert;
 import org.junit.Ignore;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -196,5 +197,11 @@ public class TestDeploymentService extends AbstractDeploymentTest {
         launchTest(context);
         httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
                 120000L);
+    }
+
+    @Test
+    @Ignore
+    public void testDeployHAGroup() throws Exception {
+        launchTest(HA_GROUPS_TOPOLOGY);
     }
 }

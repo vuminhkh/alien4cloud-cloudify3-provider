@@ -15,4 +15,3 @@ attributes:
     ip_address: ip
   volume:
     volume_id: external_id
-    

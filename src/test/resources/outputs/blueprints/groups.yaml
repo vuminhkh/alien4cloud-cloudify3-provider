@@ -1,0 +1,47 @@
+
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
+
+node_types:
+
+  _a4c_generated_type.openstack.Compute:
+    derived_from: cloudify.openstack.nodes.Server
+    properties:
+      _a4c_native_property:
+        default: {}
+      _a4c_native_type:
+        default: compute
+
+
+
+
+
+
+node_templates:
+
+  compute1:
+    type: _a4c_generated_type.openstack.Compute
+    properties:
+      server:
+        image: 727df994-2e1b-404e-9276-b248223a835d
+        flavor: 2
+        availability_zone: A4C-zone
+    instances:
+      deploy: 1
+  compute2:
+    type: _a4c_generated_type.openstack.Compute
+    properties:
+      server:
+        image: 727df994-2e1b-404e-9276-b248223a835d
+        flavor: 2
+        availability_zone: fastconnect
+    instances:
+      deploy: 1
+
+
+
+
+

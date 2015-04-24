@@ -181,4 +181,9 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/tomcat_install_war.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/scripts/assertDirectoryCopied.sh")));
     }
+
+    @Test
+    public void testGenerateHAGroup() {
+        testGeneratedBlueprintFile(HA_GROUPS_TOPOLOGY);
+    }
 }
