@@ -190,7 +190,7 @@ public class AbstractTest {
         }
         deploymentSetup.setStorageMapping(storageMapping);
         Map<String, Collection<AvailabilityZone>> availabilityZoneMapping = Maps.newHashMap();
-        availabilityZoneMapping.put("compute_ha_group", Sets.newHashSet(zone1, zone2));
+        availabilityZoneMapping.put("compute_ha_group", Sets.newLinkedHashSet(zone1, zone2));
         deploymentSetup.setAvailabilityZoneMapping(availabilityZoneMapping);
         return deploymentSetup;
     }
