@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Resource;
 
@@ -190,7 +191,10 @@ public class AbstractTest {
         }
         deploymentSetup.setStorageMapping(storageMapping);
         Map<String, Collection<AvailabilityZone>> availabilityZoneMapping = Maps.newHashMap();
-        availabilityZoneMapping.put("compute_ha_group", Sets.newLinkedHashSet(zone1, zone2));
+        Set<AvailabilityZone> availabilityZoneSet = Sets.newLinkedHashSet();
+        availabilityZoneSet.add(zone1);
+        availabilityZoneSet.add(zone2);
+        availabilityZoneMapping.put("compute_ha_group", availabilityZoneSet);
         deploymentSetup.setAvailabilityZoneMapping(availabilityZoneMapping);
         return deploymentSetup;
     }
