@@ -37,7 +37,7 @@ node_templates:
       server:
         image: 727df994-2e1b-404e-9276-b248223a835d
         flavor: 2
-        availability_zone: fastconnect
+        availability_zone: Fastconnect
     instances:
       deploy: 1
 
