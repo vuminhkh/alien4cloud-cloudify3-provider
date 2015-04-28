@@ -1,7 +1,6 @@
 package alien4cloud.paas.cloudify3;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -190,7 +189,7 @@ public class AbstractTest {
             storageMapping.put(storageId, storageTemplate);
         }
         deploymentSetup.setStorageMapping(storageMapping);
-        Map<String, Collection<AvailabilityZone>> availabilityZoneMapping = Maps.newHashMap();
+        Map<String, Set<AvailabilityZone>> availabilityZoneMapping = Maps.newHashMap();
         Set<AvailabilityZone> availabilityZoneSet = Sets.newLinkedHashSet();
         availabilityZoneSet.add(zone1);
         availabilityZoneSet.add(zone2);
