@@ -175,6 +175,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
                 cloudResourceMatcherConfig.getAvailabilityZoneMapping());
         networkMatcherService.configure(cloudResourceMatcherConfig.getNetworkMapping());
         storageMatcherService.configure(cloudResourceMatcherConfig.getStorageMapping());
+        cloudifyDeploymentBuilderService.setCloudResourceMatcherConfig(cloudResourceMatcherConfig);
     }
 
     /**

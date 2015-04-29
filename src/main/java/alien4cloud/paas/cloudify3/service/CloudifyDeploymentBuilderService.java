@@ -5,9 +5,12 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import lombok.Setter;
+
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.AvailabilityZone;
+import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.NetworkTemplate;
 import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.DeploymentArtifact;
@@ -41,6 +44,9 @@ public class CloudifyDeploymentBuilderService {
 
     private AvailabilityZoneAllocator availabilityZoneAllocator = new AvailabilityZoneAllocator();
 
+    @Setter
+    private CloudResourceMatcherConfig cloudResourceMatcherConfig;
+
     private <T extends IMatchedPaaSTemplate> Map<String, T> buildTemplateMap(List<T> matchedPaaSTemplates) {
         Map<String, T> mapping = Maps.newHashMap();
         for (T matchedPaaSTemplate : matchedPaaSTemplates) {
@@ -59,7 +65,7 @@ public class CloudifyDeploymentBuilderService {
 
     public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
         Map<String, AvailabilityZone> availabilityZoneMap = availabilityZoneAllocator.processAllocation(deploymentContext.getPaaSTopology(),
-                deploymentContext.getDeploymentSetup());
+                deploymentContext.getDeploymentSetup(), cloudResourceMatcherConfig);
         List<MatchedPaaSComputeTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
                 deploymentContext.getDeploymentSetup().getCloudResourcesMapping(), availabilityZoneMap);
         List<MatchedPaaSTemplate<NetworkTemplate>> matchedNetworks = networkMatcherService.match(deploymentContext.getPaaSTopology().getNetworks(),
