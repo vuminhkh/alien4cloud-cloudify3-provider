@@ -595,6 +595,8 @@ public class CloudifyDeploymentUtil {
                         } else {
                             return volumeIdValueTokens[1];
                         }
+                    } else {
+                        return volumeIdValue;
                     }
                 }
             }
