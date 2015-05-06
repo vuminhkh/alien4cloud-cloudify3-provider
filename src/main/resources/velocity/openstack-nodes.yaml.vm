@@ -114,6 +114,10 @@
 #if(${matchedVolume.paaSResourceTemplate.size})
       volume:
         size: ${util.formatVolumeSize(${matchedVolume.paaSResourceTemplate.size})}
+#set($volumeAvailabilityZone = $util.getVolumeAvailabilityZone($matchedVolume))
+#if($volumeAvailabilityZone)
+        availability_zone: $volumeAvailabilityZone
+#end
 #end
 #if(!${util.isDeletableVolumeType(${matchedVolume.paaSNodeTemplate.indexedToscaElement})})
     interfaces:
