@@ -23,6 +23,7 @@ import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
+import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
 import alien4cloud.paas.cloudify3.service.StorageTemplateMatcherService;
@@ -93,6 +94,9 @@ public class AbstractTest {
     @Resource
     private CSARUtil csarUtil;
 
+    @Resource(name = "cloudify-deployment-builder-service")
+    private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
+
     @BeforeClass
     public static void cleanup() throws IOException {
         FileUtil.delete(CSARUtil.ARTIFACTS_DIRECTORY);
@@ -142,6 +146,7 @@ public class AbstractTest {
         computeTemplateMatcherService.configure(matcherConfig.getImageMapping(), matcherConfig.getFlavorMapping(), matcherConfig.getAvailabilityZoneMapping());
         networkMatcherService.configure(matcherConfig.getNetworkMapping());
         storageTemplateMatcherService.configure(storageMapping);
+        cloudifyDeploymentBuilderService.setCloudResourceMatcherConfig(matcherConfig);
         csarUtil.uploadAll();
     }
 
