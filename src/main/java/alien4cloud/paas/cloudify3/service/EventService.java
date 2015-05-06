@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
+import alien4cloud.common.AlienContants;
 import alien4cloud.paas.cloudify3.dao.DeploymentEventDAO;
 import alien4cloud.paas.cloudify3.dao.NodeDAO;
 import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
@@ -212,6 +213,13 @@ public class EventService {
                                         if (nativeType.equals(NativeType.VOLUME)) {
                                             String volumeId = attributes.get(NormativeBlockStorageConstants.VOLUME_ID);
                                             if (volumeId != null) {
+                                                Object rawVolumeProperties = node.getProperties().get("volume");
+                                                if (rawVolumeProperties != null && rawVolumeProperties instanceof Map) {
+                                                    Object rawAvailabilityZone = ((Map<String, Object>) rawVolumeProperties).get("availability_zone");
+                                                    if (rawAvailabilityZone != null && rawAvailabilityZone instanceof String) {
+                                                        volumeId = rawAvailabilityZone + AlienContants.STORAGE_AZ_VOLUMEID_SEPARATOR + volumeId;
+                                                    }
+                                                }
                                                 instanceStateMonitorEventIterator.remove();
                                                 PaaSInstanceStorageMonitorEvent storageEvent = new PaaSInstanceStorageMonitorEvent(instanceStateMonitorEvent,
                                                         volumeId, false);
