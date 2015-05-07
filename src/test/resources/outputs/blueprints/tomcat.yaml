@@ -121,7 +121,7 @@ node_templates:
         type: cloudify.relationships.depends_on
       - target: Tomcat
         type: alien.relationships.WarHostedOnTomcat
-        target_interfaces:
+        source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
             establish:
               implementation: tomcat-war-types/scripts/tomcat_install_war.sh
@@ -131,6 +131,7 @@ node_templates:
                     CONTEXT_PATH: { get_property: [War, context_path] }
                     TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
                     TOMCAT_PORT: { get_property: [Tomcat, tomcat_port] }
+                    war_file: { get_attribute: [_a4c_generated_node_artifacts_for_War, war_file] }
   Tomcat:
     type: alien.nodes.Tomcat
     instances:
