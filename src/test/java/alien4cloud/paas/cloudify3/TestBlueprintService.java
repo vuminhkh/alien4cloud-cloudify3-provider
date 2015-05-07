@@ -65,7 +65,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("volume/unmount.sh")));
     }
 
-    private static interface DeploymentContextVisitor {
+    private interface DeploymentContextVisitor {
         void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception;
     }
 
