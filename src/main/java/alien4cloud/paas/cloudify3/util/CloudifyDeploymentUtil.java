@@ -16,7 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
 
+import alien4cloud.common.AlienContants;
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
+import alien4cloud.exception.InvalidArgumentException;
 import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.DeploymentArtifact;
@@ -32,9 +34,11 @@ import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.cloudify3.service.model.NativeType;
 import alien4cloud.paas.exception.NotSupportedException;
+import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
@@ -48,7 +52,6 @@ import alien4cloud.tosca.normative.ToscaFunctionConstants;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * Some utilities method which help transforming an alien deployment to a cloudify deployment
@@ -581,15 +584,23 @@ public class CloudifyDeploymentUtil {
         } else {
             Map<String, AbstractPropertyValue> volumeProperties = matchedVolumeTemplate.getPaaSNodeTemplate().getNodeTemplate().getProperties();
             if (volumeProperties != null) {
-                AbstractPropertyValue volumeIdValue = volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID);
+                String volumeIdValue = FunctionEvaluator.getScalarValue(volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID));
                 if (volumeIdValue != null) {
-                    return formatNodeOperationInput(matchedVolumeTemplate.getPaaSNodeTemplate(), volumeIdValue);
-                } else {
-                    return null;
+                    if (volumeIdValue.contains(AlienContants.STORAGE_AZ_VOLUMEID_SEPARATOR)) {
+                        String[] volumeIdValueTokens = volumeIdValue.split(AlienContants.STORAGE_AZ_VOLUMEID_SEPARATOR);
+                        if (volumeIdValueTokens.length != 2) {
+                            // TODO Manage the case when we want to reuse a volume, must take into account the fact it can contain also availability zone
+                            // TODO And it can have multiple volumes if it's scaled
+                            throw new InvalidArgumentException("Volume id is not in good format");
+                        } else {
+                            return volumeIdValueTokens[1];
+                        }
+                    } else {
+                        return volumeIdValue;
+                    }
                 }
-            } else {
-                return null;
             }
+            return null;
         }
     }
 
@@ -712,18 +723,13 @@ public class CloudifyDeploymentUtil {
         return Files.isDirectory(recipePath.resolve(artifactPath));
     }
 
-    public Set<String> listArtifactDirectory(final String artifactPath) throws IOException {
-        final Set<String> children = Sets.newHashSet();
-        Files.walkFileTree(recipePath.resolve(artifactPath), new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                log.warn("Do not support for the moment directory artifact with nested directory");
-                return super.preVisitDirectory(dir, attrs);
-            }
-
+    public Map<String, String> listArtifactDirectory(final String artifactPath) throws IOException {
+        final Map<String, String> children = Maps.newHashMap();
+        final Path realArtifactPath = recipePath.resolve(artifactPath);
+        Files.walkFileTree(realArtifactPath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                children.add(recipePath.relativize(file).toString());
+                children.put(realArtifactPath.relativize(file).toString(), recipePath.relativize(file).toString());
                 return super.visitFile(file, attrs);
             }
         });
@@ -735,7 +741,7 @@ public class CloudifyDeploymentUtil {
                 .getRelationshipTemplate().getArtifacts();
         IArtifact topologyArtifact = topologyArtifacts != null ? topologyArtifacts.get(artifactId) : null;
         if (topologyArtifact != null && ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(topologyArtifact.getArtifactRepository())) {
-            // Overidden in the topology
+            // Overridden in the topology
             return mappingConfiguration.getTopologyArtifactDirectoryName() + "/" + sourceId + "/" + artifact.getArchiveName() + "/" + artifact.getArtifactRef();
         } else {
             return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
@@ -751,5 +757,23 @@ public class CloudifyDeploymentUtil {
             sizeInGib = 1;
         }
         return String.valueOf(sizeInGib);
+    }
+
+    /**
+     * Get the volume's availability zone from the compute (in the same zone)
+     * 
+     * @param matchedVolume the matched volume
+     * @return the availability zone, null if not defined in the parent compute
+     */
+    public String getVolumeAvailabilityZone(MatchedPaaSTemplate<StorageTemplate> matchedVolume) {
+        PaaSNodeTemplate compute = matchedVolume.getPaaSNodeTemplate().getParent();
+        if (compute == null) {
+            return null;
+        }
+        MatchedPaaSComputeTemplate matchedPaaSComputeTemplate = alienDeployment.getComputesMap().get(compute.getId());
+        if (matchedPaaSComputeTemplate == null) {
+            return null;
+        }
+        return matchedPaaSComputeTemplate.getPaaSComputeTemplate().getAvailabilityZone();
     }
 }

@@ -8,9 +8,12 @@ This template is used to generate cloudify 3 recipe from alien model
 #macro(deploymentArtifactEntry $artifactName $artifactPath)
 #if($util.isArtifactDirectory($artifactPath))
 #set ( $nodeArtifactChildrenPaths = $util.listArtifactDirectory($artifactPath) )
+#if($util.mapHasEntries($nodeArtifactChildrenPaths))
         $artifactName:
-#foreach($nodeArtifactChildPath in $nodeArtifactChildrenPaths)
-          - $nodeArtifactChildPath
+#foreach($nodeArtifactChildPathEntry in $nodeArtifactChildrenPaths.entrySet())
+          - relative_path: $nodeArtifactChildPathEntry.key
+            absolute_path: $nodeArtifactChildPathEntry.value
+#end
 #end
 #else
         $artifactName: $artifactPath
@@ -236,7 +239,7 @@ node_templates:
                     $inputEntry.key: $util.formatRelationshipOperationInput($relationship, $inputEntry.value, true)
 #end
 #else
-                    $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): ${operationEntry.value.implementationArtifact.archiveName}/${operationEntry.value.implementationArtifact.artifactRef}
+            $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): ${operationEntry.value.implementationArtifact.archiveName}/${operationEntry.value.implementationArtifact.artifactRef}
 #end
 #end
 #end

@@ -14,6 +14,9 @@
       server:
         image: ${matchedPaaSCompute.paaSComputeTemplate.image}
         flavor: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
+#if(${matchedPaaSCompute.paaSComputeTemplate.availabilityZone})
+        availability_zone: ${matchedPaaSCompute.paaSComputeTemplate.availabilityZone}
+#end
     instances:
       deploy: 1
 #set( $hasFloatingIp = ${util.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})} )
@@ -111,6 +114,10 @@
 #if(${matchedVolume.paaSResourceTemplate.size})
       volume:
         size: ${util.formatVolumeSize(${matchedVolume.paaSResourceTemplate.size})}
+#set($volumeAvailabilityZone = $util.getVolumeAvailabilityZone($matchedVolume))
+#if($volumeAvailabilityZone)
+        availability_zone: $volumeAvailabilityZone
+#end
 #end
 #if(!${util.isDeletableVolumeType(${matchedVolume.paaSNodeTemplate.indexedToscaElement})})
     interfaces:

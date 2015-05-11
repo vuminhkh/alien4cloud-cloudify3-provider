@@ -171,9 +171,11 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public void updateMatcherConfig(CloudResourceMatcherConfig cloudResourceMatcherConfig) {
-        computeTemplateMatcherService.configure(cloudResourceMatcherConfig.getImageMapping(), cloudResourceMatcherConfig.getFlavorMapping());
+        computeTemplateMatcherService.configure(cloudResourceMatcherConfig.getImageMapping(), cloudResourceMatcherConfig.getFlavorMapping(),
+                cloudResourceMatcherConfig.getAvailabilityZoneMapping());
         networkMatcherService.configure(cloudResourceMatcherConfig.getNetworkMapping());
         storageMatcherService.configure(cloudResourceMatcherConfig.getStorageMapping());
+        cloudifyDeploymentBuilderService.setCloudResourceMatcherConfig(cloudResourceMatcherConfig);
     }
 
     /**

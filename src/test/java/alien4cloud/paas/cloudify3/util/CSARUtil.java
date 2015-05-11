@@ -31,6 +31,7 @@ public class CSARUtil {
     public static final String MYSQL_TYPE_PATH = SAMPLES_TYPES_NAME + "/mysql";
     public static final String PHP_TYPE_PATH = SAMPLES_TYPES_NAME + "/php";
     public static final String WORDPRESS_TYPE_PATH = SAMPLES_TYPES_NAME + "/wordpress";
+    public static final String TOMCAT_TYPE_PATH = SAMPLES_TYPES_NAME + "/tomcat-war";
 
     public static final Path ARTIFACTS_DIRECTORY = Paths.get("./target/csars");
 
@@ -80,7 +81,7 @@ public class CSARUtil {
     }
 
     public void uploadTomcat() throws Exception {
-        uploadCSAR(Paths.get("./src/test/resources/components/tomcat-war"));
+        uploadCSAR(ARTIFACTS_DIRECTORY.resolve(TOMCAT_TYPE_PATH));
     }
 
     public void uploadArtifactTest() throws Exception {

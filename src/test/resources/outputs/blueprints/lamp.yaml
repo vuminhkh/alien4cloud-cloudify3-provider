@@ -231,7 +231,8 @@ node_templates:
     properties:
       artifacts:
         configs:
-          - mysql-type/configs/mysqld_charset.cnf
+          - relative_path: mysqld_charset.cnf
+            absolute_path: mysql-type/configs/mysqld_charset.cnf
     relationships:
       - type: cloudify.relationships.contained_in
         target: DataBase
@@ -315,7 +316,7 @@ node_templates:
         type: alien.relationships.WordpressConnectToPHP
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-                    preconfigure: wordpress-type/scripts/install_php_module.sh
+            preconfigure: wordpress-type/scripts/install_php_module.sh
   Mysql:
     type: alien.nodes.Mysql
     instances:

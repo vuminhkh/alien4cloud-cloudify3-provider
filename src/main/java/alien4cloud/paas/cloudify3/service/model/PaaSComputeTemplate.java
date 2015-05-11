@@ -17,4 +17,11 @@ public class PaaSComputeTemplate {
     private String image;
 
     private String flavor;
+
+    private String availabilityZone;
+
+    public PaaSComputeTemplate(String image, String flavor) {
+        this.image = image;
+        this.flavor = flavor;
+    }
 }

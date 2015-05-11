@@ -5,8 +5,12 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import lombok.Setter;
+
 import org.springframework.stereotype.Component;
 
+import alien4cloud.model.cloud.AvailabilityZone;
+import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.NetworkTemplate;
 import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.DeploymentArtifact;
@@ -17,6 +21,7 @@ import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.IMatchedPaaSTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
+import alien4cloud.paas.ha.AvailabilityZoneAllocator;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
@@ -37,6 +42,11 @@ public class CloudifyDeploymentBuilderService {
     @Resource(name = "cloudify-storage-matcher-service")
     private StorageTemplateMatcherService storageMatcherService;
 
+    private AvailabilityZoneAllocator availabilityZoneAllocator = new AvailabilityZoneAllocator();
+
+    @Setter
+    private CloudResourceMatcherConfig cloudResourceMatcherConfig;
+
     private <T extends IMatchedPaaSTemplate> Map<String, T> buildTemplateMap(List<T> matchedPaaSTemplates) {
         Map<String, T> mapping = Maps.newHashMap();
         for (T matchedPaaSTemplate : matchedPaaSTemplates) {
@@ -54,9 +64,10 @@ public class CloudifyDeploymentBuilderService {
     }
 
     public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
-
+        Map<String, AvailabilityZone> availabilityZoneMap = availabilityZoneAllocator.processAllocation(deploymentContext.getPaaSTopology(),
+                deploymentContext.getDeploymentSetup(), cloudResourceMatcherConfig);
         List<MatchedPaaSComputeTemplate> matchedComputes = computeTemplateMatcherService.match(deploymentContext.getPaaSTopology().getComputes(),
-                deploymentContext.getDeploymentSetup().getCloudResourcesMapping());
+                deploymentContext.getDeploymentSetup().getCloudResourcesMapping(), availabilityZoneMap);
         List<MatchedPaaSTemplate<NetworkTemplate>> matchedNetworks = networkMatcherService.match(deploymentContext.getPaaSTopology().getNetworks(),
                 deploymentContext.getDeploymentSetup().getNetworkMapping());
         List<MatchedPaaSTemplate<StorageTemplate>> matchedStorages = storageMatcherService.match(deploymentContext.getPaaSTopology().getVolumes(),
