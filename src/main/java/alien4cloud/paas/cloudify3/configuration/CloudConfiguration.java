@@ -17,7 +17,7 @@ public class CloudConfiguration {
     /**
      * Cloudify 3 Rest API URL
      */
-    @FormValidValues({ "openstack" })
+    @FormValidValues({ "openstack", "amazon" })
     @NotNull
     private String provider = "openstack";
 
