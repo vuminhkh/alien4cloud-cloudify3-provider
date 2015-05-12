@@ -91,7 +91,7 @@ public class DeploymentService extends RuntimeService {
             log.warn("Unable to delete generated blueprint for recipe " + deploymentContext.getDeploymentPaaSId(), e);
         }
         ListenableFuture<?> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentPaaSId(), Workflow.UNINSTALL, null,
-                false, false));
+                false, true));
         AsyncFunction deleteDeploymentFunction = new AsyncFunction() {
             @Override
             public ListenableFuture<?> apply(Object input) throws Exception {
