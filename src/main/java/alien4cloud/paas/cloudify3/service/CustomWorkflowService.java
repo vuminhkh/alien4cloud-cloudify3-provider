@@ -9,7 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.components.FunctionPropertyValue;
-import alien4cloud.model.components.IOperationParameter;
+import alien4cloud.model.components.IValue;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.ScalarPropertyValue;
@@ -75,8 +75,8 @@ public class CustomWorkflowService extends RuntimeService {
             workflowParameters.put("operation_kwargs", inputs);
             inputs.put("process", process);
             process.put("env", inputParameterValues);
-            Map<String, IOperationParameter> inputParameters = operation.getInputParameters();
-            for (Map.Entry<String, IOperationParameter> inputParameterEntry : inputParameters.entrySet()) {
+            Map<String, IValue> inputParameters = operation.getInputParameters();
+            for (Map.Entry<String, IValue> inputParameterEntry : inputParameters.entrySet()) {
                 String parameterName = inputParameterEntry.getKey();
                 String parameterValue = null;
                 if (inputParameterEntry.getValue() instanceof FunctionPropertyValue) {
