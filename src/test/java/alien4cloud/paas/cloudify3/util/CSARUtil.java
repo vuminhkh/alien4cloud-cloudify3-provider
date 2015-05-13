@@ -14,7 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.git.RepositoryManager;
-import alien4cloud.security.Role;
+import alien4cloud.security.model.Role;
 import alien4cloud.tosca.ArchiveUploadService;
 import alien4cloud.utils.FileUtil;
 
