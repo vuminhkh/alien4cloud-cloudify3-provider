@@ -88,7 +88,7 @@ public class CustomWorkflowService extends RuntimeService {
                     } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function.getFunction())) {
                         try {
                             Map<String, String> attributes = MapUtil.toString(runtimePropertiesService.evaluate(deployment.getDeploymentPaaSId(),
-                                    function.getTemplateName(), function.getPropertyOrAttributeName()).get());
+                                    function.getTemplateName(), function.getElementNameToFetch()).get());
                             if (MapUtils.isEmpty(attributes)) {
                                 throw new OperationExecutionException("Node " + node.getId() + " do not have any instance at this moment");
                             } else if (attributes.size() > 1) {

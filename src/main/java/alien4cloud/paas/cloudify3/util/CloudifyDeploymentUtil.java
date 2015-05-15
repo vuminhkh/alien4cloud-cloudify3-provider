@@ -295,7 +295,7 @@ public class CloudifyDeploymentUtil {
 
     private FunctionPropertyValue resolveNodeHasPropertyInNodeFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
         String nodeName = functionPropertyValue.getTemplateName();
-        String attribute = functionPropertyValue.getPropertyOrAttributeName();
+        String attribute = functionPropertyValue.getElementNameToFetch();
         FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
                 .getParameters()));
         String resolvedNodeName;
@@ -313,7 +313,7 @@ public class CloudifyDeploymentUtil {
     private FunctionPropertyValue resolveNodeHasPropertyInRelationshipFunction(PaaSRelationshipTemplate relationship,
             FunctionPropertyValue functionPropertyValue, boolean isSource) {
         String nodeName = functionPropertyValue.getTemplateName();
-        String attribute = functionPropertyValue.getPropertyOrAttributeName();
+        String attribute = functionPropertyValue.getElementNameToFetch();
         FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
                 .getParameters()));
         String resolvedNodeName;
