@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
 
-import alien4cloud.common.AlienContants;
+import alien4cloud.common.AlienConstants;
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.exception.InvalidArgumentException;
 import alien4cloud.model.cloud.StorageTemplate;
@@ -586,8 +586,8 @@ public class CloudifyDeploymentUtil {
             if (volumeProperties != null) {
                 String volumeIdValue = FunctionEvaluator.getScalarValue(volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID));
                 if (volumeIdValue != null) {
-                    if (volumeIdValue.contains(AlienContants.STORAGE_AZ_VOLUMEID_SEPARATOR)) {
-                        String[] volumeIdValueTokens = volumeIdValue.split(AlienContants.STORAGE_AZ_VOLUMEID_SEPARATOR);
+                    if (volumeIdValue.contains(AlienConstants.STORAGE_AZ_VOLUMEID_SEPARATOR)) {
+                        String[] volumeIdValueTokens = volumeIdValue.split(AlienConstants.STORAGE_AZ_VOLUMEID_SEPARATOR);
                         if (volumeIdValueTokens.length != 2) {
                             // TODO Manage the case when we want to reuse a volume, must take into account the fact it can contain also availability zone
                             // TODO And it can have multiple volumes if it's scaled
