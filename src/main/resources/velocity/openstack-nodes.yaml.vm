@@ -18,7 +18,9 @@
         availability_zone: ${matchedPaaSCompute.paaSComputeTemplate.availabilityZone}
 #end
     instances:
-      deploy: 1
+#if(${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances})
+      deploy: ${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances}
+#end
 #set( $hasFloatingIp = ${util.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})} )
 #set( $hasInternalNetwork = ${util.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.internalNetworks})} )
 #if($hasFloatingIp || $hasInternalNetwork)
