@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
 
-import alien4cloud.common.AlienContants;
+import alien4cloud.common.AlienConstants;
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.exception.InvalidArgumentException;
 import alien4cloud.model.cloud.StorageTemplate;
@@ -24,7 +24,7 @@ import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IArtifact;
-import alien4cloud.model.components.IOperationParameter;
+import alien4cloud.model.components.IValue;
 import alien4cloud.model.components.IndexedArtifactToscaElement;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.Interface;
@@ -140,12 +140,12 @@ public class CloudifyDeploymentUtil {
     }
 
     public boolean operationHasInputParameters(Operation operation) {
-        Map<String, IOperationParameter> inputParameters = operation.getInputParameters();
+        Map<String, IValue> inputParameters = operation.getInputParameters();
         return inputParameters != null && !inputParameters.isEmpty();
     }
 
     public boolean operationHasInputParameters(String interfaceName, Operation operation) {
-        Map<String, IOperationParameter> inputParameters = operation.getInputParameters();
+        Map<String, IValue> inputParameters = operation.getInputParameters();
         return isStandardLifecycleInterface(interfaceName) && operationHasInputParameters(operation);
     }
 
@@ -156,7 +156,7 @@ public class CloudifyDeploymentUtil {
         }
         for (Map.Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
             for (Map.Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
-                Map<String, IOperationParameter> parameters = operationEntry.getValue().getInputParameters();
+                Map<String, IValue> parameters = operationEntry.getValue().getInputParameters();
                 if (parameters == null) {
                     parameters = Maps.newHashMap();
                     operationEntry.getValue().setInputParameters(parameters);
@@ -226,7 +226,7 @@ public class CloudifyDeploymentUtil {
      * @param isSource it's a source or target relationship
      * @return the formatted parameter understandable by Cloudify 3
      */
-    public String formatRelationshipOperationInput(PaaSRelationshipTemplate relationship, IOperationParameter input, boolean isSource) {
+    public String formatRelationshipOperationInput(PaaSRelationshipTemplate relationship, IValue input, boolean isSource) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
             functionPropertyValue = processRelationshipOperationInputFunction(relationship, functionPropertyValue, isSource);
@@ -252,7 +252,7 @@ public class CloudifyDeploymentUtil {
      * @param input the input which can be a function or a scalar
      * @return the formatted parameter understandable by Cloudify 3
      */
-    public String formatNodeOperationInput(PaaSNodeTemplate node, IOperationParameter input) {
+    public String formatNodeOperationInput(PaaSNodeTemplate node, IValue input) {
         if (input instanceof FunctionPropertyValue) {
             FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
             functionPropertyValue = processNodeOperationInputFunction(node, functionPropertyValue);
@@ -295,7 +295,7 @@ public class CloudifyDeploymentUtil {
 
     private FunctionPropertyValue resolveNodeHasPropertyInNodeFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
         String nodeName = functionPropertyValue.getTemplateName();
-        String attribute = functionPropertyValue.getPropertyOrAttributeName();
+        String attribute = functionPropertyValue.getElementNameToFetch();
         FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
                 .getParameters()));
         String resolvedNodeName;
@@ -313,7 +313,7 @@ public class CloudifyDeploymentUtil {
     private FunctionPropertyValue resolveNodeHasPropertyInRelationshipFunction(PaaSRelationshipTemplate relationship,
             FunctionPropertyValue functionPropertyValue, boolean isSource) {
         String nodeName = functionPropertyValue.getTemplateName();
-        String attribute = functionPropertyValue.getPropertyOrAttributeName();
+        String attribute = functionPropertyValue.getElementNameToFetch();
         FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
                 .getParameters()));
         String resolvedNodeName;
@@ -586,8 +586,8 @@ public class CloudifyDeploymentUtil {
             if (volumeProperties != null) {
                 String volumeIdValue = FunctionEvaluator.getScalarValue(volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID));
                 if (volumeIdValue != null) {
-                    if (volumeIdValue.contains(AlienContants.STORAGE_AZ_VOLUMEID_SEPARATOR)) {
-                        String[] volumeIdValueTokens = volumeIdValue.split(AlienContants.STORAGE_AZ_VOLUMEID_SEPARATOR);
+                    if (volumeIdValue.contains(AlienConstants.STORAGE_AZ_VOLUMEID_SEPARATOR)) {
+                        String[] volumeIdValueTokens = volumeIdValue.split(AlienConstants.STORAGE_AZ_VOLUMEID_SEPARATOR);
                         if (volumeIdValueTokens.length != 2) {
                             // TODO Manage the case when we want to reuse a volume, must take into account the fact it can contain also availability zone
                             // TODO And it can have multiple volumes if it's scaled

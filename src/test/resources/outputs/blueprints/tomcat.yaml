@@ -123,7 +123,7 @@ node_templates:
         type: alien.relationships.WarHostedOnTomcat
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            establish:
+            postconfigure:
               implementation: tomcat-war-types/scripts/tomcat_install_war.sh
               inputs:
                 process:
