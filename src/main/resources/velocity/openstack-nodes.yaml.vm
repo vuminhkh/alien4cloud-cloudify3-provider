@@ -20,6 +20,8 @@
     instances:
 #if(${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances})
       deploy: ${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances}
+#else
+      deploy: 1
 #end
 #set( $hasFloatingIp = ${util.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})} )
 #set( $hasInternalNetwork = ${util.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.internalNetworks})} )
