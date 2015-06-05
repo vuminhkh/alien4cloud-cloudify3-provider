@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -729,7 +730,13 @@ public class CloudifyDeploymentUtil {
         Files.walkFileTree(realArtifactPath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                children.put(realArtifactPath.relativize(file).toString(), recipePath.relativize(file).toString());
+                String relativePath = realArtifactPath.relativize(file).toString();
+                String absolutePath = recipePath.relativize(file).toString();
+                if ('/' != File.separatorChar) {
+                    relativePath = relativePath.replace(File.separatorChar, '/');
+                    absolutePath = absolutePath.replace(File.separatorChar, '/');
+                }
+                children.put(relativePath, absolutePath);
                 return super.visitFile(file, attrs);
             }
         });
