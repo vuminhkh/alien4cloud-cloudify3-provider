@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.util;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -49,7 +50,6 @@ import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 import alien4cloud.tosca.normative.NormativeComputeConstants;
 import alien4cloud.tosca.normative.NormativeNetworkConstants;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
-import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -730,8 +730,12 @@ public class CloudifyDeploymentUtil {
         Files.walkFileTree(realArtifactPath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                String relativePath = FileUtil.convertToLinuxPath(realArtifactPath.relativize(file).toString());
-                String absolutePath = FileUtil.convertToLinuxPath(recipePath.relativize(file).toString());
+                String relativePath = realArtifactPath.relativize(file).toString();
+                String absolutePath = recipePath.relativize(file).toString();
+                if ('/' != File.separatorChar) {
+                    relativePath = relativePath.replace(File.separatorChar, '/');
+                    absolutePath = absolutePath.replace(File.separatorChar, '/');
+                }
                 children.put(relativePath, absolutePath);
                 return super.visitFile(file, attrs);
             }
