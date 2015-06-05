@@ -733,10 +733,6 @@ public class CloudifyDeploymentUtil {
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 String relativePath = FileUtil.getChildEntryRelativePath(realArtifactPath, file, true);
                 String absolutePath = FileUtil.getChildEntryRelativePath(recipePath, file, true);
-                if ('/' != File.separatorChar) {
-                    relativePath = relativePath.replace(File.separatorChar, '/');
-                    absolutePath = absolutePath.replace(File.separatorChar, '/');
-                }
                 children.put(relativePath, absolutePath);
                 return super.visitFile(file, attrs);
             }
