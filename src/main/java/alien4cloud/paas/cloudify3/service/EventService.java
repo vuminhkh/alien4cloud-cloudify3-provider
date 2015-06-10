@@ -371,7 +371,10 @@ public class EventService {
         instanceStateMonitorEvent.setInstanceStatus(statusService.getInstanceStatusFromState(nodeInstance.getState()));
         String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(nodeInstance.getDeploymentId());
         if (alienDeploymentId == null) {
-            log.warn("Alien deployment id is not found for paaS deployment {}, must ignore this node instance {}", nodeInstance.getDeploymentId(), nodeInstance);
+            if (log.isDebugEnabled()) {
+                log.debug("Alien deployment id is not found for paaS deployment {}, must ignore this node instance {}", nodeInstance.getDeploymentId(),
+                        nodeInstance);
+            }
             return null;
         }
         instanceStateMonitorEvent.setDeploymentId(nodeInstance.getDeploymentId());
@@ -427,8 +430,10 @@ public class EventService {
         alienEvent.setDate(DatatypeConverter.parseDateTime(cloudifyEvent.getTimestamp()).getTimeInMillis());
         String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(cloudifyEvent.getContext().getDeploymentId());
         if (alienDeploymentId == null) {
-            log.warn("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
-                    cloudifyEvent);
+            if (log.isDebugEnabled()) {
+                log.debug("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
+                        cloudifyEvent);
+            }
             return null;
         }
         alienEvent.setDeploymentId(alienDeploymentId);
