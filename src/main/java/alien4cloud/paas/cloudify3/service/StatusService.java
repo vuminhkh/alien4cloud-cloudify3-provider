@@ -10,10 +10,10 @@ import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.MapUtils;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.topology.NodeTemplate;
-import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
@@ -33,9 +33,11 @@ import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.util.DateUtil;
 import alien4cloud.paas.cloudify3.util.MapUtil;
+import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.InstanceStatus;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -176,14 +178,14 @@ public class StatusService {
         callback.onSuccess(deploymentStatuses.toArray(new DeploymentStatus[deploymentStatuses.size()]));
     }
 
-    public void getInstancesInformation(final String deploymentPaaSId, final Topology topology,
+    public void getInstancesInformation(final PaaSTopologyDeploymentContext deploymentContext,
             final IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
-        if (!statusCache.containsKey(deploymentPaaSId)) {
+        if (!statusCache.containsKey(deploymentContext.getDeploymentPaaSId())) {
             callback.onSuccess(Maps.<String, Map<String, InstanceInformation>> newHashMap());
             return;
         }
-        ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(deploymentPaaSId);
-        ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(deploymentPaaSId, null);
+        ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(deploymentContext.getDeploymentPaaSId());
+        ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(deploymentContext.getDeploymentPaaSId(), null);
         ListenableFuture<List<AbstractCloudifyModel[]>> combinedFutures = Futures.allAsList(instancesFuture, nodesFuture);
         Futures.addCallback(combinedFutures, new FutureCallback<List<AbstractCloudifyModel[]>>() {
             @Override
@@ -196,7 +198,7 @@ public class StatusService {
                 }
                 Map<String, Map<String, InstanceInformation>> information = Maps.newHashMap();
                 for (NodeInstance instance : instances) {
-                    NodeTemplate nodeTemplate = topology.getNodeTemplates().get(instance.getNodeId());
+                    NodeTemplate nodeTemplate = deploymentContext.getTopology().getNodeTemplates().get(instance.getNodeId());
                     if (nodeTemplate == null) {
                         // Sometimes we have generated instance that do not exist in alien topology
                         continue;
@@ -225,15 +227,32 @@ public class StatusService {
                             instanceInformation.setAttributes(attributes);
                         }
                     }
+                    if (MapUtils.isNotEmpty(nodeTemplate.getAttributes())) {
+                        if (instanceInformation.getAttributes() == null) {
+                            instanceInformation.setAttributes(Maps.<String, String> newHashMap());
+                        }
+                        instanceInformation.getAttributes().putAll(nodeTemplate.getAttributes());
+                    }
                     nodeInformation.put(instanceId, instanceInformation);
                 }
+                String floatingIpPrefix = mappingConfigurationHolder.getMappingConfiguration().getGeneratedNodePrefix() + "_floating_ip_";
+                for (NodeInstance instance : instances) {
+                    if (instance.getId().startsWith(floatingIpPrefix)) {
+                        // It's a floating ip then must fill the compute with public ip address
+                        String computeNodeId = instance.getNodeId().substring(floatingIpPrefix.length());
+                        InstanceInformation firstComputeInstanceFound = information.get(computeNodeId).values().iterator().next();
+                        firstComputeInstanceFound.getAttributes().put("public_ip_address",
+                                String.valueOf(instance.getRuntimeProperties().get("floating_ip_address")));
+                    }
+                }
+                FunctionEvaluator.postProcessInstanceInformation(information, deploymentContext.getTopology(), deploymentContext.getPaaSTopology());
                 callback.onSuccess(information);
             }
 
             @Override
             public void onFailure(Throwable t) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Problem retrieving instance information for deployment <" + deploymentPaaSId + "> ");
+                    log.debug("Problem retrieving instance information for deployment <" + deploymentContext.getDeploymentPaaSId() + "> ");
                 }
                 callback.onSuccess(Maps.<String, Map<String, InstanceInformation>> newHashMap());
             }
