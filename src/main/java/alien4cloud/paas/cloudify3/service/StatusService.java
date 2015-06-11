@@ -220,18 +220,18 @@ public class StatusService {
                     Map<String, String> runtimeProperties = MapUtil.toString(instance.getRuntimeProperties());
                     instanceInformation.setRuntimeProperties(runtimeProperties);
                     Node node = nodeMap.get(instance.getNodeId());
+                    if (MapUtils.isNotEmpty(nodeTemplate.getAttributes())) {
+                        instanceInformation.setAttributes(nodeTemplate.getAttributes());
+                    }
                     if (node != null && node.getProperties() != null) {
                         String nativeType = getNativeType(node);
                         if (nativeType != null && runtimeProperties != null) {
                             Map<String, String> attributes = getAttributesFromRuntimeProperties(nativeType, runtimeProperties);
-                            instanceInformation.setAttributes(attributes);
+                            if (instanceInformation.getAttributes() == null) {
+                                instanceInformation.setAttributes(Maps.<String, String> newHashMap());
+                            }
+                            instanceInformation.getAttributes().putAll(attributes);
                         }
-                    }
-                    if (MapUtils.isNotEmpty(nodeTemplate.getAttributes())) {
-                        if (instanceInformation.getAttributes() == null) {
-                            instanceInformation.setAttributes(Maps.<String, String> newHashMap());
-                        }
-                        instanceInformation.getAttributes().putAll(nodeTemplate.getAttributes());
                     }
                     nodeInformation.put(instanceId, instanceInformation);
                 }
@@ -240,9 +240,12 @@ public class StatusService {
                     if (instance.getId().startsWith(floatingIpPrefix)) {
                         // It's a floating ip then must fill the compute with public ip address
                         String computeNodeId = instance.getNodeId().substring(floatingIpPrefix.length());
-                        InstanceInformation firstComputeInstanceFound = information.get(computeNodeId).values().iterator().next();
-                        firstComputeInstanceFound.getAttributes().put("public_ip_address",
-                                String.valueOf(instance.getRuntimeProperties().get("floating_ip_address")));
+                        Map<String, InstanceInformation> computeNodeInformation = information.get(computeNodeId);
+                        if (MapUtils.isNotEmpty(computeNodeInformation)) {
+                            InstanceInformation firstComputeInstanceFound = computeNodeInformation.values().iterator().next();
+                            firstComputeInstanceFound.getAttributes().put("public_ip_address",
+                                    String.valueOf(instance.getRuntimeProperties().get("floating_ip_address")));
+                        }
                     }
                 }
                 FunctionEvaluator.postProcessInstanceInformation(information, deploymentContext.getTopology(), deploymentContext.getPaaSTopology());
