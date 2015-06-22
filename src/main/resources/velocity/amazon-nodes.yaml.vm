@@ -1,7 +1,7 @@
 ## Compute nodes
 #foreach($matchedPaaSCompute in ${deployment.computes})
   ${matchedPaaSCompute.paaSNodeTemplate.id}:
-    type: ${util.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.openstack.Compute")}
+    type: ${util.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.amazon.Compute")}
     properties:
 #if(${util.mapHasEntries(${matchedPaaSCompute.paaSNodeTemplate.nodeTemplate.properties})})
       ${mapping.nativePropertyParent}:
@@ -11,18 +11,10 @@
 #end
 #end
 #end
-      server:
-        image: ${matchedPaaSCompute.paaSComputeTemplate.image}
-        flavor: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
-#if(${matchedPaaSCompute.paaSComputeTemplate.availabilityZone})
-        availability_zone: ${matchedPaaSCompute.paaSComputeTemplate.availabilityZone}
-#end
+      image_id: ${matchedPaaSCompute.paaSComputeTemplate.image}
+      instance_type: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
     instances:
-#if(${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances})
-      deploy: ${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances}
-#else
       deploy: 1
-#end
 #set( $hasFloatingIp = ${util.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})} )
 #set( $hasInternalNetwork = ${util.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.internalNetworks})} )
 #if($hasFloatingIp || $hasInternalNetwork)
@@ -40,10 +32,7 @@
       - target: ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}
         type: ${providerMapping.nativeTypes.floatingIpRelationshipType}
   ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}:
-    type: ${mapping.generatedTypePrefix}.openstack.FloatingIP
-    properties:
-      floatingip:
-        floating_network_name: ${util.getExternalNetworkName(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})}
+    type: ${mapping.generatedTypePrefix}.amazon.FloatingIP
 #end
 #end
 #end
@@ -52,7 +41,7 @@
 #foreach($matchedNetwork in ${deployment.internalNetworks})
 #set( $network = ${matchedNetwork.paaSResourceTemplate} )
   ${matchedNetwork.paaSNodeTemplate.id}:
-    type: ${util.tryToMapNetworkType($matchedNetwork.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.openstack.Network")}
+    type: ${util.tryToMapNetworkType($matchedNetwork.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.amazon.Network")}
     properties:
       resource_id: ${network.id}
 #if(${util.mapHasEntries(${matchedNetwork.paaSNodeTemplate.nodeTemplate.properties})})
@@ -98,7 +87,7 @@
         target: ${matchedVolume.paaSNodeTemplate.parent.id}
 #end
   ${matchedVolume.paaSNodeTemplate.id}:
-    type: ${util.tryToMapVolumeType($matchedVolume.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.openstack.Volume")}
+    type: ${util.tryToMapVolumeType($matchedVolume.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.amazon.Volume")}
     properties:
 #if(${util.mapHasEntries(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties})})
       ${mapping.nativePropertyParent}:

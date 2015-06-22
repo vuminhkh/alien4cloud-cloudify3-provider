@@ -2,8 +2,8 @@
 tosca_definitions_version: cloudify_dsl_1_0
 
 imports:
-  - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
-  - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
+  - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/1.2/plugin.yaml
 
 node_types:
 
@@ -82,7 +82,7 @@ node_templates:
         os_arch: "x86_64"
         os_type: "linux"
       server:
-        image: 727df994-2e1b-404e-9276-b248223a835d
+        image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
         flavor: 2
     instances:
       deploy: 1

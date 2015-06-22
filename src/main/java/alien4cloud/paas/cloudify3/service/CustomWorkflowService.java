@@ -117,7 +117,8 @@ public class CustomWorkflowService extends RuntimeService {
 
     public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment, final NodeOperationExecRequest nodeOperationExecRequest) {
         CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
-                mappingConfigurationHolder.getProviderMappingConfiguration(), deployment, blueprintService.resolveBlueprintPath(deployment.getDeploymentPaaSId()));
+                mappingConfigurationHolder.getProviderMappingConfiguration(), deployment, blueprintService.resolveBlueprintPath(deployment
+                        .getDeploymentPaaSId()));
         if (MapUtils.isEmpty(deployment.getAllNodes()) || !deployment.getAllNodes().containsKey(nodeOperationExecRequest.getNodeTemplateName())) {
             throw new OperationExecutionException("Node " + nodeOperationExecRequest.getNodeTemplateName() + " do not exist in the deployment");
         }
@@ -167,5 +168,13 @@ public class CustomWorkflowService extends RuntimeService {
     private String fabricMessage(NodeOperationExecRequest request, NodeInstance nodeInstance) {
         return "Successfully executed " + request.getInterfaceName() + "." + request.getOperationName() + " on instance " + nodeInstance.getId() + " of node "
                 + nodeInstance.getNodeId();
+    }
+
+    public ListenableFuture scale(String deploymentPaaSId, String nodeId, int delta) {
+        Map<String, Object> scaleParameters = Maps.newHashMap();
+        scaleParameters.put("node_id", nodeId);
+        scaleParameters.put("delta", delta);
+        scaleParameters.put("scale_compute", true);
+        return waitForExecutionFinish(executionDAO.asyncStart(deploymentPaaSId, Workflow.SCALE, scaleParameters, true, false));
     }
 }

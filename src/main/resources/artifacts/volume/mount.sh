@@ -12,4 +12,4 @@ sudo mount ${filesys} ${fs_mount_path}
 
 user=$(whoami)
 ctx logger info "Changing ownership of ${fs_mount_path} to ${user}"
-sudo chown -R ${user} ${fs_mount_path}
+sudo chown ${user} ${fs_mount_path}

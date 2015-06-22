@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.CloudResourceType;
-import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IConfigurablePaaSProvider;
 import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
@@ -27,7 +26,6 @@ import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.StorageTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
-import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.exception.PluginConfigurationException;
 import alien4cloud.paas.model.AbstractMonitorEvent;
@@ -132,9 +130,8 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
     }
 
     @Override
-    public void getInstancesInformation(PaaSDeploymentContext deploymentContext, Topology topology,
-            IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
-        statusService.getInstancesInformation(deploymentContext.getDeploymentPaaSId(), topology, callback);
+    public void getInstancesInformation(PaaSTopologyDeploymentContext deploymentContext, IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
+        statusService.getInstancesInformation(deploymentContext, callback);
     }
 
     @Override
@@ -185,8 +182,8 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
      */
 
     @Override
-    public void scale(PaaSDeploymentContext deploymentContext, String nodeTemplateId, int instances, IPaaSCallback<?> callback) {
-        throw new NotSupportedException("scale is not supported yet");
+    public void scale(PaaSDeploymentContext deploymentContext, String nodeTemplateId, int instances, IPaaSCallback callback) {
+        FutureUtil.associateFutureToPaaSCallback(customWorkflowService.scale(deploymentContext.getDeploymentPaaSId(), nodeTemplateId, instances), callback);
     }
 
     @Override

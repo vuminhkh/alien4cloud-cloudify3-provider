@@ -58,7 +58,7 @@ public class TestDeploymentService extends AbstractDeploymentTest {
 
     private void getEvents(Date beginTestTimestamp, List<PaaSDeploymentStatusMonitorEvent> deploymentStatusEvents,
             List<PaaSInstanceStateMonitorEvent> instanceStateMonitorEvents) throws ExecutionException, InterruptedException {
-        AbstractMonitorEvent[] events = eventService.getEventsSince(beginTestTimestamp, Integer.MAX_VALUE).get();
+        AbstractMonitorEvent[] events = eventService.getEventsSince(beginTestTimestamp, 100).get();
         for (AbstractMonitorEvent event : events) {
             if (event instanceof PaaSDeploymentStatusMonitorEvent) {
                 deploymentStatusEvents.add((PaaSDeploymentStatusMonitorEvent) event);

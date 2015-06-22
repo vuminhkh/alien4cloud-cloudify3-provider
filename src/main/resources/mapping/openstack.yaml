@@ -1,5 +1,5 @@
 imports:
-  - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/1.2/plugin.yaml
 
 native_types:
   floating_ip_type: cloudify.openstack.nodes.FloatingIP
