@@ -47,6 +47,9 @@ public class DeploymentService extends RuntimeService {
     @Resource
     private EventService eventService;
 
+    @Resource
+    private StatusService statusService;
+
     public ListenableFuture<Execution> deploy(final CloudifyDeployment alienDeployment) {
         // Cloudify 3 will use recipe id to identify a blueprint and a deployment instead of deployment id
         log.info("Deploying {} for alien deployment {}", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId());
@@ -82,6 +85,10 @@ public class DeploymentService extends RuntimeService {
     }
 
     public ListenableFuture<?> undeploy(final PaaSDeploymentContext deploymentContext) {
+        DeploymentStatus currentStatus = statusService.getStatus(deploymentContext.getDeploymentPaaSId());
+        if (DeploymentStatus.UNDEPLOYED.equals(currentStatus) || DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS.equals(currentStatus)) {
+            log.info("Deployment " + deploymentContext.getDeploymentPaaSId() + " has already been undeployed");
+        }
         log.info("Undeploying recipe {} with alien's deployment id {}", deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId());
         eventService.registerDeploymentEvent(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
                 DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS);

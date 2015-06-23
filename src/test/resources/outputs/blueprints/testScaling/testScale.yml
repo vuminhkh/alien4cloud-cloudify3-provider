@@ -6,7 +6,7 @@ imports:
 
 node_templates:
 
-  DataBaseHost:
+  LoadBalancerCompute:
     type: cloudify.openstack.nodes.Server
     properties:
       server:
@@ -15,13 +15,13 @@ node_templates:
     instances:
       deploy: 1
 
-  DataBase:
-    type: cloudify.nodes.Database
+  LoadBalancer:
+    type: cloudify.nodes.ApplicationModule
     relationships:
-      - target: DataBaseHost
+      - target: LoadBalancerCompute
         type: cloudify.relationships.contained_in
 
-  Server:
+  WebAppCompute:
     type: cloudify.openstack.nodes.Server
     properties:
       server:
@@ -32,16 +32,14 @@ node_templates:
 
   WebApp:
     type: cloudify.nodes.ApplicationModule
+    instances:
+      deploy: 2
     relationships:
-      - target: Server
+      - target: WebAppCompute
         type: cloudify.relationships.contained_in
-      - target: DataBase
+      - target: LoadBalancer
         type: cloudify.relationships.connected_to
-        source_interfaces:
+        target_interfaces:
           cloudify.interfaces.relationship_lifecycle:
             preconfigure:
-              implementation: webAppConnectedToDatabase.py
-              inputs:
-                process:
-                  env:
-                    DATABASE_IP: { get_attribute: [DataBaseHost, ip] }
+              implementation: webAppConnectedToLoadBalancer.py
