@@ -4,6 +4,14 @@ imports:
   - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
   - http://www.getcloudify.org/spec/openstack-plugin/1.2/plugin.yaml
 
+node_types:
+
+  _a4c_generated_type.openstack.Compute:
+    derived_from: cloudify.openstack.nodes.Server
+    properties:
+      a_simple_test:
+        default: defaultTest
+
 node_templates:
 
   LoadBalancerCompute:
@@ -22,8 +30,9 @@ node_templates:
         type: cloudify.relationships.contained_in
 
   WebAppCompute:
-    type: cloudify.openstack.nodes.Server
+    type: _a4c_generated_type.openstack.Compute
     properties:
+      a_simple_test: test
       server:
         image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
         flavor: 2
@@ -32,8 +41,6 @@ node_templates:
 
   WebApp:
     type: cloudify.nodes.ApplicationModule
-    instances:
-      deploy: 2
     relationships:
       - target: WebAppCompute
         type: cloudify.relationships.contained_in

@@ -47,6 +47,7 @@ public abstract class AbstractEventDAO extends AbstractDAO {
         Map<String, Object> ascendingSort = Maps.newHashMap();
         sortByTimestampAsc.put("@timestamp", ascendingSort);
         ascendingSort.put("order", "asc");
+        ascendingSort.put("ignoreUnmapped", true);
         return sorts;
     }
 
