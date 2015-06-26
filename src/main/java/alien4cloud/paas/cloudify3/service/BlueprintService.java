@@ -75,6 +75,8 @@ public class BlueprintService {
 
     private Path recipeDirectoryPath;
 
+    private Path pluginResourcesPath;
+
     /**
      * Generate blueprint from an alien deployment request
      *

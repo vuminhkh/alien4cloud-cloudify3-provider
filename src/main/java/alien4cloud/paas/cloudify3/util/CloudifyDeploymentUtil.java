@@ -1,6 +1,5 @@
 package alien4cloud.paas.cloudify3.util;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -147,7 +146,6 @@ public class CloudifyDeploymentUtil {
     }
 
     public boolean operationHasInputParameters(String interfaceName, Operation operation) {
-        Map<String, IValue> inputParameters = operation.getInputParameters();
         return isStandardLifecycleInterface(interfaceName) && operationHasInputParameters(operation);
     }
 
