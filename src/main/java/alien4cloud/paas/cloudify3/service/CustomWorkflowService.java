@@ -82,7 +82,6 @@ public class CustomWorkflowService extends RuntimeService {
                 if (inputParameterEntry.getValue() instanceof FunctionPropertyValue) {
                     FunctionPropertyValue function = (FunctionPropertyValue) inputParameterEntry.getValue();
                     // Parse and process the function in order to suit cloudify blueprint
-                    function = util.processNodeOperationInputFunction(node, function);
                     if (ToscaFunctionConstants.GET_PROPERTY.equals(function.getFunction())) {
                         parameterValue = FunctionEvaluator.evaluateGetPropertyFunction(function, node, deployment.getAllNodes());
                     } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function.getFunction())) {

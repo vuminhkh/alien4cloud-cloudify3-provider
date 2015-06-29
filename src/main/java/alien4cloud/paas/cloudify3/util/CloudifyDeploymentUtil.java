@@ -25,11 +25,9 @@ import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IArtifact;
 import alien4cloud.model.components.IValue;
-import alien4cloud.model.components.IndexedArtifactToscaElement;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
-import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
@@ -37,6 +35,7 @@ import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.cloudify3.service.model.NativeType;
+import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.PaaSNodeTemplate;
@@ -79,16 +78,15 @@ public class CloudifyDeploymentUtil {
         return list != null && !list.isEmpty();
     }
 
-    public Map<String, Interface> getRelationshipSourceInterfaces(Map<String, Interface> interfaces) {
-        Map<String, Interface> sourceInterfaces = getRelationshipInterfaces(interfaces, true);
-        return sourceInterfaces;
+    public Map<String, Interface> filterRelationshipSourceInterfaces(Map<String, Interface> interfaces) {
+        return filterRelationshipInterfaces(interfaces, true);
     }
 
-    public Map<String, Interface> getRelationshipTargetInterfaces(Map<String, Interface> interfaces) {
-        return getRelationshipInterfaces(interfaces, false);
+    public Map<String, Interface> filterRelationshipTargetInterfaces(Map<String, Interface> interfaces) {
+        return filterRelationshipInterfaces(interfaces, false);
     }
 
-    private Map<String, Interface> getRelationshipInterfaces(Map<String, Interface> interfaces, boolean isSource) {
+    private Map<String, Interface> filterRelationshipInterfaces(Map<String, Interface> interfaces, boolean isSource) {
         Map<String, Interface> relationshipInterfaces = Maps.newHashMap();
         for (Map.Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
             Map<String, Operation> operations = Maps.newHashMap();
@@ -119,27 +117,6 @@ public class CloudifyDeploymentUtil {
         return relationshipInterfaces;
     }
 
-    public Map<String, Interface> getRelationshipInterfaces(PaaSRelationshipTemplate relationship) {
-        String source = relationship.getSource();
-        String target = relationship.getRelationshipTemplate().getTarget();
-        Map<String, DeploymentArtifact> sourceArtifacts = alienDeployment.getAllNodes().get(source).getIndexedToscaElement().getArtifacts();
-        Map<String, DeploymentArtifact> targetArtifacts = alienDeployment.getAllNodes().get(target).getIndexedToscaElement().getArtifacts();
-        Map<String, Interface> allInterfaces = relationship.getIndexedToscaElement().getInterfaces();
-        Map<String, Interface> sourceInterfaces = getRelationshipSourceInterfaces(allInterfaces);
-        Map<String, Interface> targetInterfaces = getRelationshipTargetInterfaces(allInterfaces);
-        enrichInterfaceOperationsWithDeploymentArtifacts("SOURCE", sourceArtifacts, sourceInterfaces);
-        enrichInterfaceOperationsWithDeploymentArtifacts("TARGET", targetArtifacts, targetInterfaces);
-        allInterfaces = Maps.newHashMap(sourceInterfaces);
-        for (Map.Entry<String, Interface> targetInterface : targetInterfaces.entrySet()) {
-            if (!allInterfaces.containsKey(targetInterface.getKey())) {
-                allInterfaces.put(targetInterface.getKey(), targetInterface.getValue());
-            } else {
-                allInterfaces.get(targetInterface.getKey()).getOperations().putAll(targetInterface.getValue().getOperations());
-            }
-        }
-        return getInterfaces(allInterfaces, relationship.getIndexedToscaElement());
-    }
-
     public boolean operationHasInputParameters(Operation operation) {
         Map<String, IValue> inputParameters = operation.getInputParameters();
         return inputParameters != null && !inputParameters.isEmpty();
@@ -149,46 +126,21 @@ public class CloudifyDeploymentUtil {
         return isStandardLifecycleInterface(interfaceName) && operationHasInputParameters(operation);
     }
 
-    private void enrichInterfaceOperationsWithDeploymentArtifacts(String artifactOwner, Map<String, DeploymentArtifact> artifacts,
-            Map<String, Interface> interfaces) {
-        if (artifacts == null || artifacts.isEmpty()) {
-            return;
-        }
-        for (Map.Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
-            for (Map.Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
-                Map<String, IValue> parameters = operationEntry.getValue().getInputParameters();
-                if (parameters == null) {
-                    parameters = Maps.newHashMap();
-                    operationEntry.getValue().setInputParameters(parameters);
-                }
-                for (Map.Entry<String, DeploymentArtifact> artifactEntry : artifacts.entrySet()) {
-                    if (!parameters.containsKey(artifactEntry.getKey())) {
-                        // TODO must not generate this kind of information
-                        // TODO instead it's the responsibility of the people which build the recipe to do so
-                        FunctionPropertyValue getArtifactFunction = new FunctionPropertyValue();
-                        getArtifactFunction.setFunction("get_artifact");
-                        getArtifactFunction.setParameters(Lists.newArrayList(artifactOwner, artifactEntry.getKey()));
-                        parameters.put(artifactEntry.getKey(), getArtifactFunction);
-                    }
-                }
-            }
-        }
+    public Map<String, Interface> getNodeInterfaces(PaaSNodeTemplate node) {
+        return getInterfaces(node.getIndexedToscaElement().getInterfaces());
     }
 
-    public Map<String, Interface> getNodeInterfaces(PaaSNodeTemplate node) {
-        Map<String, Interface> nodeInterfaces = getInterfaces(node.getIndexedToscaElement().getInterfaces(), node.getIndexedToscaElement());
-        return nodeInterfaces;
+    public Map<String, Interface> getRelationshipInterfaces(PaaSRelationshipTemplate relationship) {
+        return getInterfaces(relationship.getIndexedToscaElement().getInterfaces());
     }
 
     /**
-     * Extract all operations, interfaces that has input or do not have input from the give type.
+     * Extract interfaces that have implemented operations
      *
      * @param allInterfaces all interfaces
-     * @param type the tosca type
-     * @return only interfaces' operations that have input or don't have input
+     * @return interfaces that have implemented operations
      */
-    private Map<String, Interface> getInterfaces(Map<String, Interface> allInterfaces, IndexedArtifactToscaElement type) {
-        enrichInterfaceOperationsWithDeploymentArtifacts("SELF", type.getArtifacts(), allInterfaces);
+    private Map<String, Interface> getInterfaces(Map<String, Interface> allInterfaces) {
         Map<String, Interface> interfaces = Maps.newHashMap();
         for (Map.Entry<String, Interface> interfaceEntry : allInterfaces.entrySet()) {
             Map<String, Operation> operations = Maps.newHashMap();
@@ -210,61 +162,7 @@ public class CloudifyDeploymentUtil {
         return interfaces;
     }
 
-    public FunctionPropertyValue processRelationshipOperationInputFunction(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue,
-            boolean isSource) {
-        functionPropertyValue = resolveKeyWordInRelationshipFunction(relationship, functionPropertyValue);
-        functionPropertyValue = resolveNodeHasPropertyInRelationshipFunction(relationship, functionPropertyValue, isSource);
-        functionPropertyValue = resolvePropertyMappingInFunction(functionPropertyValue);
-        return functionPropertyValue;
-    }
-
-    /**
-     * Format operation parameter of a relationship
-     *
-     * @param relationship the relationship
-     * @param input the input which can be a function or a scalar
-     * @param isSource it's a source or target relationship
-     * @return the formatted parameter understandable by Cloudify 3
-     */
-    public String formatRelationshipOperationInput(PaaSRelationshipTemplate relationship, IValue input, boolean isSource) {
-        if (input instanceof FunctionPropertyValue) {
-            FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
-            functionPropertyValue = processRelationshipOperationInputFunction(relationship, functionPropertyValue, isSource);
-            return generateCloudifyFunction(functionPropertyValue);
-        } else if (input instanceof ScalarPropertyValue) {
-            return ((ScalarPropertyValue) input).getValue();
-        } else {
-            throw new NotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
-        }
-    }
-
-    public FunctionPropertyValue processNodeOperationInputFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
-        functionPropertyValue = resolveKeyWordInNodeFunction(node, functionPropertyValue);
-        functionPropertyValue = resolveNodeHasPropertyInNodeFunction(node, functionPropertyValue);
-        functionPropertyValue = resolvePropertyMappingInFunction(functionPropertyValue);
-        return functionPropertyValue;
-    }
-
-    /**
-     * Format operation parameter of a particular node
-     *
-     * @param node the node
-     * @param input the input which can be a function or a scalar
-     * @return the formatted parameter understandable by Cloudify 3
-     */
-    public String formatNodeOperationInput(PaaSNodeTemplate node, IValue input) {
-        if (input instanceof FunctionPropertyValue) {
-            FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) input;
-            functionPropertyValue = processNodeOperationInputFunction(node, functionPropertyValue);
-            return generateCloudifyFunction(functionPropertyValue);
-        } else if (input instanceof ScalarPropertyValue) {
-            return ((ScalarPropertyValue) input).getValue();
-        } else {
-            throw new NotSupportedException("Type of operation parameter not supported <" + input.getClass().getName() + ">");
-        }
-    }
-
-    private FunctionPropertyValue resolveKeyWordInNodeFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
+    private String resolveKeyWordInNodeFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
         String nodeName = functionPropertyValue.getTemplateName();
         if (ToscaFunctionConstants.HOST.equals(nodeName)) {
             // Resolve HOST
@@ -273,13 +171,10 @@ public class CloudifyDeploymentUtil {
         } else if (ToscaFunctionConstants.SELF.equals(nodeName)) {
             nodeName = node.getId();
         }
-        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
-                .getParameters()));
-        resolved.getParameters().set(0, nodeName);
-        return resolved;
+        return nodeName;
     }
 
-    private FunctionPropertyValue resolveKeyWordInRelationshipFunction(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
+    private String resolveKeyWordInRelationshipFunction(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
         String nodeName = functionPropertyValue.getTemplateName();
         // SOURCE and TARGET
         if (ToscaFunctionConstants.SOURCE.equals(nodeName)) {
@@ -287,77 +182,7 @@ public class CloudifyDeploymentUtil {
         } else if (ToscaFunctionConstants.TARGET.equals(nodeName)) {
             nodeName = relationship.getRelationshipTemplate().getTarget();
         }
-        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
-                .getParameters()));
-        resolved.getParameters().set(0, nodeName);
-        return resolved;
-    }
-
-    private FunctionPropertyValue resolveNodeHasPropertyInNodeFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
-        String nodeName = functionPropertyValue.getTemplateName();
-        String attribute = functionPropertyValue.getElementNameToFetch();
-        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
-                .getParameters()));
-        String resolvedNodeName;
-        if ("get_artifact".equals(functionPropertyValue.getFunction())) {
-            resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_" + nodeName;
-            resolved.setFunction(ToscaFunctionConstants.GET_ATTRIBUTE);
-        } else {
-            resolvedNodeName = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(nodeName), attribute,
-                    functionPropertyValue.getFunction());
-        }
-        resolved.getParameters().set(0, resolvedNodeName);
-        return resolved;
-    }
-
-    private FunctionPropertyValue resolveNodeHasPropertyInRelationshipFunction(PaaSRelationshipTemplate relationship,
-            FunctionPropertyValue functionPropertyValue, boolean isSource) {
-        String nodeName = functionPropertyValue.getTemplateName();
-        String attribute = functionPropertyValue.getElementNameToFetch();
-        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
-                .getParameters()));
-        String resolvedNodeName;
-        if ("get_artifact".equals(functionPropertyValue.getFunction())) {
-            resolved.setFunction(ToscaFunctionConstants.GET_ATTRIBUTE);
-            if (ToscaFunctionConstants.SELF.equals(nodeName)) {
-                if (isSource) {
-                    resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_relationship_" + relationship.getId() + "_from_"
-                            + relationship.getSource() + "_on_source";
-                } else {
-                    resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_relationship_" + relationship.getId() + "_from_"
-                            + relationship.getSource() + "_on_target";
-                }
-            } else {
-                resolvedNodeName = mappingConfiguration.getGeneratedNodePrefix() + "_artifacts_for_" + nodeName;
-            }
-        } else {
-            resolvedNodeName = getNodeNameHasPropertyOrAttribute(relationship.getSource(), alienDeployment.getAllNodes().get(nodeName), attribute,
-                    functionPropertyValue.getFunction());
-        }
-        resolved.getParameters().set(0, resolvedNodeName);
-        return resolved;
-    }
-
-    private FunctionPropertyValue resolvePropertyMappingInFunction(FunctionPropertyValue functionPropertyValue) {
-        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
-                .getParameters()));
-        String nativeType = getNativeType(resolved.getTemplateName());
-        for (int i = 1; i < resolved.getParameters().size(); i++) {
-            String attributeName = resolved.getParameters().get(i);
-            resolved.getParameters().set(i, mapPropAttName(functionPropertyValue.getFunction(), attributeName, nativeType));
-        }
-        return resolved;
-    }
-
-    private String generateCloudifyFunction(FunctionPropertyValue functionPropertyValue) {
-        StringBuilder formattedInput = new StringBuilder("{ ").append(functionPropertyValue.getFunction()).append(": [");
-        for (int i = 0; i < functionPropertyValue.getParameters().size(); i++) {
-            formattedInput.append(functionPropertyValue.getParameters().get(i)).append(", ");
-        }
-        // Remove the last ','
-        formattedInput.setLength(formattedInput.length() - 2);
-        formattedInput.append("] }");
-        return formattedInput.toString();
+        return nodeName;
     }
 
     private String getNodeNameHasPropertyOrAttribute(String parentNodeName, PaaSNodeTemplate node, String attributeName, String functionName) {
@@ -391,6 +216,63 @@ public class CloudifyDeploymentUtil {
         } else {
             return node.getId();
         }
+    }
+
+    public boolean isFunctionPropertyValue(IValue input) {
+        return input instanceof FunctionPropertyValue;
+    }
+
+    /**
+     * Format operation parameter of a node
+     *
+     * @param node the node which contains the function property value
+     * @param functionPropertyValue the input which can be a function or a scalar
+     * @return the formatted parameter understandable by Cloudify 3
+     */
+    public String formatNodeFunctionPropertyValue(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
+        String concreteNode = resolveKeyWordInNodeFunction(node, functionPropertyValue);
+        String concreteNodeWithAttribute = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(concreteNode),
+                functionPropertyValue.getElementNameToFetch(), functionPropertyValue.getFunction());
+        functionPropertyValue = resolvePropertyMappingInFunction(concreteNodeWithAttribute, functionPropertyValue);
+        if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(functionPropertyValue.getFunction())) {
+            return "get_attribute(ctx, '" + functionPropertyValue.getElementNameToFetch() + "')";
+        } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
+            return "get_property(ctx, '" + functionPropertyValue.getElementNameToFetch() + "')";
+        } else {
+            throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
+        }
+    }
+
+    /**
+     * Format operation parameter of a node
+     *
+     * @param relationship the relationship which contains the function property value
+     * @param functionPropertyValue the input which can be a function or a scalar
+     * @return the formatted parameter understandable by Cloudify 3
+     */
+    public String formatRelationshipFunctionPropertyValue(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
+        String concreteNode = resolveKeyWordInRelationshipFunction(relationship, functionPropertyValue);
+        String concreteNodeWithAttribute = getNodeNameHasPropertyOrAttribute(relationship.getId(), alienDeployment.getAllNodes().get(concreteNode),
+                functionPropertyValue.getElementNameToFetch(), functionPropertyValue.getFunction());
+        functionPropertyValue = resolvePropertyMappingInFunction(concreteNodeWithAttribute, functionPropertyValue);
+        if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(functionPropertyValue.getFunction())) {
+            return "get_attribute(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
+        } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
+            return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
+        } else {
+            throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
+        }
+    }
+
+    private FunctionPropertyValue resolvePropertyMappingInFunction(String realNodeName, FunctionPropertyValue functionPropertyValue) {
+        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
+                .getParameters()));
+        String nativeType = getNativeType(realNodeName);
+        for (int i = 1; i < resolved.getParameters().size(); i++) {
+            String attributeName = resolved.getParameters().get(i);
+            resolved.getParameters().set(i, mapPropAttName(functionPropertyValue.getFunction(), attributeName, nativeType));
+        }
+        return resolved;
     }
 
     private String mapPropAttName(String function, String propAttName, String nativeType) {
@@ -694,13 +576,12 @@ public class CloudifyDeploymentUtil {
 
     public boolean relationshipHasDeploymentArtifacts(PaaSRelationshipTemplate relationshipTemplate) {
         return alienDeployment.getAllRelationshipDeploymentArtifacts().containsKey(
-                new CloudifyDeployment.Relationship(relationshipTemplate.getId(), relationshipTemplate.getSource(), relationshipTemplate
-                        .getRelationshipTemplate().getTarget()));
+                new Relationship(relationshipTemplate.getId(), relationshipTemplate.getSource(), relationshipTemplate.getRelationshipTemplate().getTarget()));
     }
 
-    public List<CloudifyDeployment.Relationship> getAllRelationshipWithDeploymentArtifacts(PaaSNodeTemplate nodeTemplate) {
-        List<CloudifyDeployment.Relationship> relationships = Lists.newArrayList();
-        for (CloudifyDeployment.Relationship relationship : alienDeployment.getAllRelationshipDeploymentArtifacts().keySet()) {
+    public List<Relationship> getAllRelationshipWithDeploymentArtifacts(PaaSNodeTemplate nodeTemplate) {
+        List<Relationship> relationships = Lists.newArrayList();
+        for (Relationship relationship : alienDeployment.getAllRelationshipDeploymentArtifacts().keySet()) {
             if (relationship.getTarget().equals(nodeTemplate.getId())) {
                 relationships.add(relationship);
             }
@@ -777,5 +658,17 @@ public class CloudifyDeploymentUtil {
             return null;
         }
         return matchedPaaSComputeTemplate.getPaaSComputeTemplate().getAvailabilityZone();
+    }
+
+    public String getArtifactRelativePath(IArtifact artifact) {
+        return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
+    }
+
+    public String getArtifactWrapperPath(IArtifact artifact) {
+        String artifactCopiedPath = getArtifactRelativePath(artifact);
+        int lastSlashIndex = artifactCopiedPath.lastIndexOf('/');
+        String fileName = artifactCopiedPath.substring(lastSlashIndex + 1);
+        String parent = artifactCopiedPath.substring(0, lastSlashIndex);
+        return parent + "/" + mappingConfiguration.getGeneratedArtifactPrefix() + "_" + fileName.substring(0, fileName.lastIndexOf('.')) + ".py";
     }
 }

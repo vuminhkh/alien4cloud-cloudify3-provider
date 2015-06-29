@@ -49,7 +49,7 @@ new_script_process = {
     "env": {
 #foreach($inputEntry in $operation.inputParameters.entrySet())
 #if($util.isFunctionPropertyValue($inputEntry.value))
-        "$inputEntry.key": $util.formatFunctionPropertyValue($operation, $inputEntry.value)
+        "$inputEntry.key": $util.formatFunctionPropertyValue($inputEntry.value)
 #else
         "$inputEntry.key": "$inputEntry.value.value"
 #end

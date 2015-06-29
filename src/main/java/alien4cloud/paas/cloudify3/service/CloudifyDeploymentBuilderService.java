@@ -21,6 +21,7 @@ import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.IMatchedPaaSTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
+import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.ha.AvailabilityZoneAllocator;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
@@ -106,15 +107,15 @@ public class CloudifyDeploymentBuilderService {
             }
         }
 
-        Map<CloudifyDeployment.Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newHashMap();
+        Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newHashMap();
         for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
             List<PaaSRelationshipTemplate> relationships = nodeEntry.getValue().getRelationshipTemplates();
             if (relationships != null && !relationships.isEmpty()) {
                 for (PaaSRelationshipTemplate relationship : relationships) {
                     Map<String, DeploymentArtifact> artifacts = relationship.getIndexedToscaElement().getArtifacts();
                     if (artifacts != null && !artifacts.isEmpty()) {
-                        allRelationshipArtifacts.put(new CloudifyDeployment.Relationship(relationship.getId(), relationship.getSource(), relationship
-                                .getRelationshipTemplate().getTarget()), artifacts);
+                        allRelationshipArtifacts.put(new Relationship(relationship.getId(), relationship.getSource(), relationship.getRelationshipTemplate()
+                                .getTarget()), artifacts);
                     }
                 }
             }
