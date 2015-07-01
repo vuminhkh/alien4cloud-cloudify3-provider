@@ -7,7 +7,7 @@ imports:
 
 node_types:
 
-  _a4c_generated_type.openstack.Compute:
+  _a4c.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
       _a4c_native_property:
@@ -15,14 +15,14 @@ node_types:
       _a4c_native_type:
         default: compute
 
-  _a4c_generated_type.openstack.FloatingIP:
+  _a4c.openstack.FloatingIP:
     derived_from: cloudify.openstack.nodes.FloatingIP
     properties:
       _a4c_native_type:
         default: floating_ip
 
 
-  _a4c_generated_type.openstack.Network:
+  _a4c.openstack.Network:
     derived_from: cloudify.openstack.nodes.Network
     properties:
       _a4c_native_property:
@@ -30,15 +30,7 @@ node_types:
       _a4c_native_type:
         default: network
 
-  _a4c_generated_type.cloudify.nodes.DeploymentArtifacts:
-    derived_from: cloudify.nodes.Root
-    properties:
-      artifacts:
-        default: {}
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        create:
-          implementation: _a4c_cfy3_native_artifact/deployment_artifacts/download_artifacts.py
+
   alien.nodes.TestArtifactDirectory:
     derived_from: cloudify.nodes.SoftwareComponent
   alien.nodes.Java:
@@ -78,7 +70,7 @@ relationships:
 node_templates:
 
   Server:
-    type: _a4c_generated_type.openstack.Compute
+    type: _a4c.openstack.Compute
     properties:
       _a4c_native_property:
         os_arch: "x86_64"
@@ -89,55 +81,15 @@ node_templates:
     instances:
       deploy: 1
     relationships:
-      - target: _a4c_generated_node_floating_ip_Server
+      - target: _a4c_floating_ip_Server
         type: cloudify.openstack.server_connected_to_floating_ip
-  _a4c_generated_node_floating_ip_Server:
-    type: _a4c_generated_type.openstack.FloatingIP
+  _a4c_floating_ip_Server:
+    type: _a4c.openstack.FloatingIP
     properties:
       floatingip:
         floating_network_name: net-pub
 
 
-
-  _a4c_generated_node_artifacts_for_War:
-    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
-    properties:
-      artifacts:
-        war_file: tomcat-war-types/warFiles/helloWorld.war
-    relationships:
-      - type: cloudify.relationships.contained_in
-        target: Server
-  _a4c_generated_node_artifacts_for_Artifact_Directory_Test:
-    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
-    properties:
-      artifacts:
-        confs_directory:
-          - relative_path: test/nestedDirTest.txt
-            absolute_path: artifact-test-types/conf/test/nestedDirTest.txt
-          - relative_path: log.properties
-            absolute_path: artifact-test-types/conf/log.properties
-          - relative_path: settings.properties
-            absolute_path: artifact-test-types/conf/settings.properties
-    relationships:
-      - type: cloudify.relationships.contained_in
-        target: Server
-
-  _a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_source:
-    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
-    properties:
-      artifacts:
-        properties_file: artifact-test-types/conf/settings.properties
-    relationships:
-      - type: cloudify.relationships.contained_in
-        target: Server
-  _a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_target:
-    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
-    properties:
-      artifacts:
-        properties_file: artifact-test-types/conf/settings.properties
-    relationships:
-      - type: cloudify.relationships.contained_in
-        target: Server
 
   War:
     type: alien.nodes.WarWithLifeCycleScript
@@ -147,55 +99,26 @@ node_templates:
       context_path: "helloworld"
     interfaces:
       cloudify.interfaces.lifecycle:
-        create:
-          implementation: artifact-test-types/scripts/create.sh
-          inputs:
-            process:
-              env:
-                war_file: { get_attribute: [_a4c_generated_node_artifacts_for_War, war_file] }
+        create: artifact-test-types/scripts/_a4c_create.py
       custom:
-        update_war_file: tomcat-war-types/scripts/tomcat_install_war.sh
+        update_war_file: tomcat-war-types/scripts/_a4c_tomcat_install_war.py
     relationships:
-      - target: _a4c_generated_node_artifacts_for_War
-        type: cloudify.relationships.depends_on
-      - target: _a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_source
-        type: cloudify.relationships.depends_on
       - target: Tomcat
         type: alien.relationships.WarHostedOnTomcatWithProperties
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            postconfigure:
-              implementation: artifact-test-types/scripts/tomcat_install_war.sh
-              inputs:
-                process:
-                  env:
-                    CONTEXT_PATH: { get_property: [War, context_path] }
-                    TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
-                    war_file: { get_attribute: [_a4c_generated_node_artifacts_for_War, war_file] }
-                    properties_file: { get_attribute: [_a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_source, properties_file] }
+            postconfigure: artifact-test-types/scripts/_a4c_tomcat_install_war.py
         target_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            postconfigure:
-              implementation: artifact-test-types/scripts/configureProperties.sh
-              inputs:
-                process:
-                  env:
-                    properties_file: { get_attribute: [_a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_target, properties_file] }
+            postconfigure: artifact-test-types/scripts/_a4c_configureProperties.py
   Artifact_Directory_Test:
     type: alien.nodes.TestArtifactDirectory
     instances:
       deploy: 1
     interfaces:
       cloudify.interfaces.lifecycle:
-        create:
-          implementation: artifact-test-types/scripts/assertDirectoryCopied.sh
-          inputs:
-            process:
-              env:
-                confs_directory: { get_attribute: [_a4c_generated_node_artifacts_for_Artifact_Directory_Test, confs_directory] }
+        create: artifact-test-types/scripts/_a4c_assertDirectoryCopied.py
     relationships:
-      - target: _a4c_generated_node_artifacts_for_Artifact_Directory_Test
-        type: cloudify.relationships.depends_on
       - target: Server
         type: cloudify.relationships.contained_in
   Tomcat:
@@ -204,30 +127,10 @@ node_templates:
       deploy: 1
     interfaces:
       cloudify.interfaces.lifecycle:
-        stop:
-          implementation: tomcat-war-types/scripts/tomcat_stop.sh
-          inputs:
-            process:
-              env:
-                TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
-        start:
-          implementation: tomcat-war-types/scripts/tomcat_start.sh
-          inputs:
-            process:
-              env:
-                TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
-                TOMCAT_PORT: { get_property: [Tomcat, tomcat_port] }
-        create:
-          implementation: tomcat-war-types/scripts/tomcat_install.sh
-          inputs:
-            process:
-              env:
-                TOMCAT_HOME: { get_property: [Tomcat, tomcat_home] }
-                TOMCAT_PORT: { get_property: [Tomcat, tomcat_port] }
-                TOMCAT_URL: { get_property: [Tomcat, tomcat_url] }
+        stop: tomcat-war-types/scripts/_a4c_tomcat_stop.py
+        start: tomcat-war-types/scripts/_a4c_tomcat_start.py
+        create: tomcat-war-types/scripts/_a4c_tomcat_install.py
     relationships:
-      - target: _a4c_generated_node_artifacts_for_relationship_warHostedOnTomcat_from_War_on_target
-        type: cloudify.relationships.depends_on
       - target: Server
         type: cloudify.relationships.contained_in
       - target: Java
@@ -238,13 +141,7 @@ node_templates:
       deploy: 1
     interfaces:
       cloudify.interfaces.lifecycle:
-        create:
-          implementation: tomcat-war-types/scripts/java_install.sh
-          inputs:
-            process:
-              env:
-                JAVA_URL: { get_property: [Java, java_url] }
-                JAVA_HOME: { get_property: [Java, java_home] }
+        create: tomcat-war-types/scripts/_a4c_java_install.py
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in

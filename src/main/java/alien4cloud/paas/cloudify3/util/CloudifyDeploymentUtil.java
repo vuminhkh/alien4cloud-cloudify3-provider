@@ -14,6 +14,7 @@ import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import alien4cloud.common.AlienConstants;
@@ -28,6 +29,7 @@ import alien4cloud.model.components.IValue;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
+import alien4cloud.paas.IPaaSTemplate;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
@@ -35,6 +37,7 @@ import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.cloudify3.service.model.NativeType;
+import alien4cloud.paas.cloudify3.service.model.OperationWrapper;
 import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.paas.function.FunctionEvaluator;
@@ -220,6 +223,23 @@ public class CloudifyDeploymentUtil {
 
     public boolean isFunctionPropertyValue(IValue input) {
         return input instanceof FunctionPropertyValue;
+    }
+
+    public String formatFunctionPropertyValue(IPaaSTemplate<?> owner, FunctionPropertyValue functionPropertyValue) {
+        if (owner instanceof PaaSNodeTemplate) {
+            return formatNodeFunctionPropertyValue((PaaSNodeTemplate) owner, functionPropertyValue);
+        } else if (owner instanceof PaaSRelationshipTemplate) {
+            return formatRelationshipFunctionPropertyValue((PaaSRelationshipTemplate) owner, functionPropertyValue);
+        } else {
+            throw new NotSupportedException("Un-managed paaS template type " + owner.getClass().getSimpleName());
+        }
+    }
+
+    public FunctionPropertyValue processNodeOperationInputFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
+        String concreteNode = resolveKeyWordInNodeFunction(node, functionPropertyValue);
+        String concreteNodeWithAttribute = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(concreteNode),
+                functionPropertyValue.getElementNameToFetch(), functionPropertyValue.getFunction());
+        return resolvePropertyMappingInFunction(concreteNodeWithAttribute, functionPropertyValue);
     }
 
     /**
@@ -596,7 +616,7 @@ public class CloudifyDeploymentUtil {
             // Overidden in the topology
             return mappingConfiguration.getTopologyArtifactDirectoryName() + "/" + nodeId + "/" + artifact.getArchiveName() + "/" + artifact.getArtifactRef();
         } else {
-            return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
+            return getArtifactRelativePath(artifact);
         }
     }
 
@@ -627,7 +647,7 @@ public class CloudifyDeploymentUtil {
             // Overridden in the topology
             return mappingConfiguration.getTopologyArtifactDirectoryName() + "/" + sourceId + "/" + artifact.getArchiveName() + "/" + artifact.getArtifactRef();
         } else {
-            return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
+            return getArtifactRelativePath(artifact);
         }
     }
 
@@ -664,11 +684,26 @@ public class CloudifyDeploymentUtil {
         return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
     }
 
-    public String getArtifactWrapperPath(IArtifact artifact) {
+    public String getArtifactWrapperPath(IPaaSTemplate<?> owner, String interfaceName, String operationName, IArtifact artifact) {
         String artifactCopiedPath = getArtifactRelativePath(artifact);
         int lastSlashIndex = artifactCopiedPath.lastIndexOf('/');
         String fileName = artifactCopiedPath.substring(lastSlashIndex + 1);
         String parent = artifactCopiedPath.substring(0, lastSlashIndex);
-        return parent + "/" + mappingConfiguration.getGeneratedArtifactPrefix() + "_" + fileName.substring(0, fileName.lastIndexOf('.')) + ".py";
+        String wrapperPath = parent + "/" + mappingConfiguration.getGeneratedArtifactPrefix() + "_" + fileName.substring(0, fileName.lastIndexOf('.')) + ".py";
+        if (owner instanceof PaaSNodeTemplate) {
+            PaaSNodeTemplate ownerNode = (PaaSNodeTemplate) owner;
+            return ownerNode.getId() + "/" + interfaceName + "/" + operationName + wrapperPath;
+        } else if (owner instanceof PaaSRelationshipTemplate) {
+            PaaSRelationshipTemplate ownerRelationship = (PaaSRelationshipTemplate) owner;
+            return ownerRelationship.getSource() + "_" + ownerRelationship.getRelationshipTemplate().getTarget() + "/" + ownerRelationship.getId() + "/"
+                    + wrapperPath;
+        } else {
+            throw new NotSupportedException("Not supported template type " + owner.getId());
+        }
+    }
+
+    public boolean operationHasDeploymentArtifacts(OperationWrapper operationWrapper) {
+        return MapUtils.isNotEmpty(operationWrapper.getAllDeploymentArtifacts())
+                || MapUtils.isNotEmpty(operationWrapper.getAllRelationshipDeploymentArtifacts());
     }
 }

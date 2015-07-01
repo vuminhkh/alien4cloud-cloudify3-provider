@@ -7,7 +7,7 @@ imports:
 
 node_types:
 
-  _a4c_generated_type.openstack.Compute:
+  _a4c.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
       _a4c_native_property:
@@ -15,14 +15,14 @@ node_types:
       _a4c_native_type:
         default: compute
 
-  _a4c_generated_type.openstack.FloatingIP:
+  _a4c.openstack.FloatingIP:
     derived_from: cloudify.openstack.nodes.FloatingIP
     properties:
       _a4c_native_type:
         default: floating_ip
 
 
-  _a4c_generated_type.openstack.Network:
+  _a4c.openstack.Network:
     derived_from: cloudify.openstack.nodes.Network
     properties:
       _a4c_native_property:
@@ -32,10 +32,11 @@ node_types:
 
 
 
+
 node_templates:
 
   Compute:
-    type: _a4c_generated_type.openstack.Compute
+    type: _a4c.openstack.Compute
     properties:
       _a4c_native_property:
         os_arch: "x86_64"
@@ -50,16 +51,16 @@ node_templates:
         type: cloudify.relationships.connected_to
       - target: InternalNetwork_subnet
         type: cloudify.relationships.depends_on
-      - target: _a4c_generated_node_floating_ip_Compute
+      - target: _a4c_floating_ip_Compute
         type: cloudify.openstack.server_connected_to_floating_ip
-  _a4c_generated_node_floating_ip_Compute:
-    type: _a4c_generated_type.openstack.FloatingIP
+  _a4c_floating_ip_Compute:
+    type: _a4c.openstack.FloatingIP
     properties:
       floatingip:
         floating_network_name: net-pub
 
   InternalNetwork:
-    type: _a4c_generated_type.openstack.Network
+    type: _a4c.openstack.Network
     properties:
       resource_id: internal-network
       _a4c_native_property:
@@ -74,7 +75,5 @@ node_templates:
     relationships:
       - target: InternalNetwork
         type: cloudify.relationships.contained_in
-
-
 
 

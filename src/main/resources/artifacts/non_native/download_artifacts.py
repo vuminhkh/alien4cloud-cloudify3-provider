@@ -20,3 +20,4 @@ def download_artifacts(artifacts, download_dir):
             child_download_dir = os.path.join(download_dir, artifact_name)
             for child_path in artifact_ref:
                 downloaded_artifacts[artifact_name] = download(child_path['relative_path'], child_path['absolute_path'], child_download_dir)
+    return downloaded_artifacts

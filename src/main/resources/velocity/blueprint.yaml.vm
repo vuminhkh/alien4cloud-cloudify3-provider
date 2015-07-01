@@ -115,7 +115,7 @@ node_templates:
 #foreach($interfaceEntry in $nodeInterfaces.entrySet())
       $util.tryToMapToCloudifyInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-        $operationEntry.key: ${util.getArtifactWrapperPath(${operationEntry.value.implementationArtifact})}
+        $operationEntry.key: ${util.getArtifactWrapperPath($nonNativeNode, $interfaceEntry.key, $operationEntry.key, ${operationEntry.value.implementationArtifact})}
 #end
 #end
 #end
@@ -138,7 +138,7 @@ node_templates:
 #foreach($interfaceEntry in $relationshipSourceInterfaces.entrySet())
           $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-            $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): ${util.getArtifactWrapperPath(${operationEntry.value.implementationArtifact})}
+            $util.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): ${util.getArtifactWrapperPath($relationship, $interfaceEntry.key, $operationEntry.key, ${operationEntry.value.implementationArtifact})}
 #end
 #end
 #end
@@ -148,7 +148,7 @@ node_templates:
 #foreach($interfaceEntry in $relationshipTargetInterfaces.entrySet())
           $util.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
 #foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-            $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): ${util.getArtifactWrapperPath(${operationEntry.value.implementationArtifact})}
+            $util.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): ${util.getArtifactWrapperPath($relationship, $interfaceEntry.key, $operationEntry.key, ${operationEntry.value.implementationArtifact})}
 #end
 #end
 #end

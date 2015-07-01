@@ -85,11 +85,11 @@
 #if($externalVolumeId)
       use_external_resource: true
 #end
-#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system})
-      fs_type: ${util.formatNodeOperationInput($matchedVolume.paaSNodeTemplate, ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system})}
+#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system.value})
+      fs_type: "${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system.value}"
 #end
-#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location})
-      fs_mount_path: ${util.formatNodeOperationInput($matchedVolume.paaSNodeTemplate, ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location})}
+#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location.value})
+      fs_mount_path: "${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location.value}"
 #end
     relationships:
       - type: ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_depends_on_volume

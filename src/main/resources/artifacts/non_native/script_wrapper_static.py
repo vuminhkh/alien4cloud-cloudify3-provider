@@ -97,3 +97,20 @@ def execute(script_path, process):
         raise NonRecoverableError(error_message)
     else:
         ctx.logger.info(ok_message)
+
+
+class OutputConsumer(object):
+    def __init__(self, out):
+        self.out = out
+        self.buffer = StringIO()
+        self.consumer = threading.Thread(target=self.consume_output)
+        self.consumer.daemon = True
+        self.consumer.start()
+
+    def consume_output(self):
+        for line in iter(self.out.readline, b''):
+            self.buffer.write(line)
+        self.out.close()
+
+    def join(self):
+        self.consumer.join()

@@ -19,43 +19,25 @@
 #end
 #end
 
-#include("../artifacts/non_native/script_wrapper_static.py")
+#include("script_wrapper_static.py")
 
 #if($util.operationHasDeploymentArtifacts($operation))
-#include("../artifacts/non_native/download_artifacts.py")
+#include("download_artifacts.py")
 #end
-
-class OutputConsumer(object):
-    def __init__(self, out):
-        self.out = out
-        self.buffer = StringIO()
-        self.consumer = threading.Thread(target=self.consume_output)
-        self.consumer.daemon = True
-        self.consumer.start()
-
-    def consume_output(self):
-        for line in iter(self.out.readline, b''):
-#if($cloud.debugScript)
-            ctx.logger.info("${operation.implementationArtifact.artifactRef} : " + line)
-#end
-            self.buffer.write(line)
-        self.out.close()
-
-    def join(self):
-        self.consumer.join()
 
 new_script_process = {
 #if($util.operationHasInputParameters($operation))
     "env": {
 #foreach($inputEntry in $operation.inputParameters.entrySet())
 #if($util.isFunctionPropertyValue($inputEntry.value))
-        "$inputEntry.key": $util.formatFunctionPropertyValue($inputEntry.value)
+        "$inputEntry.key": $util.formatFunctionPropertyValue(${operation.owner}, $inputEntry.value)
 #else
         "$inputEntry.key": "$inputEntry.value.value"
 #end
+#if($foreach.count < $operation.inputParameters.size())
+        ,
 #end
-        "WEB_APP_HOST_IP": get_attribute(ctx.source, 'ip'),
-        "WEB_APP_HOST_TEST_PROPERTY": get_property(ctx.source, 'a_simple_test')
+#end
     }
 #end
 }
@@ -79,12 +61,13 @@ relationship_artifacts = {
 #end
 }
 
-artifacts = nodeArtifacts.copy()
+artifacts = node_artifacts.copy()
 artifacts.update(relationship_artifacts)
 
 download_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'downloads')
-os.makedirs(download_dir)
-new_script_process.get("env").update(download_artifacts(artifacts, download_dir))
+if new_script_process.get("env") is None:
+    new_script_process["env"] = {}
+new_script_process["env"].update(download_artifacts(artifacts, download_dir))
 #end
 
-execute(ctx.download_resource(${operation.implementationArtifact.artifactRef}), new_script_process)
+execute(ctx.download_resource("${util.getArtifactRelativePath(${operation.implementationArtifact})}"), new_script_process)

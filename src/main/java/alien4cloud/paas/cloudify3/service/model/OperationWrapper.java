@@ -2,23 +2,26 @@ package alien4cloud.paas.cloudify3.service.model;
 
 import java.util.Map;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IValue;
 import alien4cloud.model.components.ImplementationArtifact;
 import alien4cloud.model.components.Operation;
+import alien4cloud.paas.IPaaSTemplate;
 
 /**
  * Wrapper for a real operation, give extension to deployment artifacts and others
  */
+@AllArgsConstructor
 public class OperationWrapper extends Operation {
 
-    private Operation delegate;
+    @Getter
+    @Setter
+    private IPaaSTemplate<?> owner;
 
-    public OperationWrapper(Operation delegate) {
-        this.delegate = delegate;
-    }
+    private Operation delegate;
 
     /**
      * node id --> artifact_name --> artifact

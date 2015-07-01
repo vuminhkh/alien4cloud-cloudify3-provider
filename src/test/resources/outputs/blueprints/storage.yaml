@@ -7,7 +7,7 @@ imports:
 
 node_types:
 
-  _a4c_generated_type.openstack.Compute:
+  _a4c.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
       _a4c_native_property:
@@ -16,7 +16,7 @@ node_types:
         default: compute
 
 
-  _a4c_generated_type.openstack.Volume:
+  _a4c.openstack.Volume:
     derived_from: cloudify.openstack.nodes.Volume
     properties:
       _a4c_native_property:
@@ -25,7 +25,7 @@ node_types:
         default: volume
 
 
-  _a4c_generated_type.cloudify.nodes.FileSystem:
+  _a4c.cloudify.nodes.FileSystem:
     derived_from: cloudify.nodes.Root
     properties:
       use_external_resource:
@@ -51,16 +51,8 @@ node_types:
     interfaces:
       cloudify.interfaces.lifecycle:
         configure:
-          implementation: _a4c_cfy3_native_artifact/volume/mkfs.sh
-  _a4c_generated_type.cloudify.nodes.DeploymentArtifacts:
-    derived_from: cloudify.nodes.Root
-    properties:
-      artifacts:
-        default: {}
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        create:
-          implementation: _a4c_cfy3_native_artifact/deployment_artifacts/download_artifacts.py
+          implementation: _a4c_native_artifact/volume/mkfs.sh
+
   alien.nodes.Mysql:
     derived_from: cloudify.nodes.Database
     properties:
@@ -84,25 +76,25 @@ node_types:
         default: "/mountedStorage"
 
 relationships:
-  _a4c_generated_type.cloudify.relationships.file_system_depends_on_volume:
+  _a4c.cloudify.relationships.file_system_depends_on_volume:
     derived_from: cloudify.relationships.depends_on
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         preconfigure:
-          implementation: _a4c_cfy3_native_artifact/volume/fdisk.sh
-  _a4c_generated_type.cloudify.relationships.file_system_contained_in_compute:
+          implementation: _a4c_native_artifact/volume/fdisk.sh
+  _a4c.cloudify.relationships.file_system_contained_in_compute:
     derived_from: cloudify.relationships.contained_in
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
         establish:
-          implementation: _a4c_cfy3_native_artifact/volume/mount.sh
+          implementation: _a4c_native_artifact/volume/mount.sh
         unlink:
-          implementation: _a4c_cfy3_native_artifact/volume/unmount.sh
+          implementation: _a4c_native_artifact/volume/unmount.sh
 
 node_templates:
 
   Compute:
-    type: _a4c_generated_type.openstack.Compute
+    type: _a4c.openstack.Compute
     properties:
       _a4c_native_property:
         os_arch: "x86_64"
@@ -114,18 +106,18 @@ node_templates:
       deploy: 1
 
 
-  _a4c_generated_node_file_system_BlockStorage:
-    type: _a4c_generated_type.cloudify.nodes.FileSystem
+  _a4c_file_system_BlockStorage:
+    type: _a4c.cloudify.nodes.FileSystem
     properties:
-      fs_type: ext4
-      fs_mount_path: /var/mysql
+      fs_type: "ext4"
+      fs_mount_path: "/var/mysql"
     relationships:
-      - type: _a4c_generated_type.cloudify.relationships.file_system_depends_on_volume
+      - type: _a4c.cloudify.relationships.file_system_depends_on_volume
         target: BlockStorage
-      - type: _a4c_generated_type.cloudify.relationships.file_system_contained_in_compute
+      - type: _a4c.cloudify.relationships.file_system_contained_in_compute
         target: Compute
   BlockStorage:
-    type: _a4c_generated_type.openstack.Volume
+    type: _a4c.openstack.Volume
     properties:
       _a4c_native_property:
         file_system: "ext4"
@@ -140,18 +132,6 @@ node_templates:
       - target: Compute
         type: cloudify.openstack.volume_attached_to_server
 
-  _a4c_generated_node_artifacts_for_Mysql:
-    type: _a4c_generated_type.cloudify.nodes.DeploymentArtifacts
-    properties:
-      artifacts:
-        configs:
-          - relative_path: mysqld_charset.cnf
-            absolute_path: mysql-type/configs/mysqld_charset.cnf
-    relationships:
-      - type: cloudify.relationships.contained_in
-        target: Compute
-
-
   Mysql:
     type: alien.nodes.Mysql
     instances:
@@ -165,28 +145,10 @@ node_templates:
       db_password: "pass"
     interfaces:
       cloudify.interfaces.lifecycle:
-        start:
-          implementation: mysql-type/scripts/start_mysql.sh
-          inputs:
-            process:
-              env:
-                VOLUME_HOME: { get_property: [Mysql, storage_path] }
-                PORT: { get_property: [Mysql, db_port] }
-                DB_NAME: { get_property: [Mysql, db_name] }
-                DB_USER: { get_property: [Mysql, db_user] }
-                DB_PASSWORD: { get_property: [Mysql, db_password] }
-                BIND_ADRESS: { get_property: [Mysql, bind_address] }
-                configs: { get_attribute: [_a4c_generated_node_artifacts_for_Mysql, configs] }
-        create:
-          implementation: mysql-type/scripts/install_mysql.sh
-          inputs:
-            process:
-              env:
-                configs: { get_attribute: [_a4c_generated_node_artifacts_for_Mysql, configs] }
+        start: mysql-type/scripts/_a4c_start_mysql.py
+        create: mysql-type/scripts/_a4c_install_mysql.py
     relationships:
-      - target: _a4c_generated_node_file_system_BlockStorage
-        type: cloudify.relationships.depends_on
-      - target: _a4c_generated_node_artifacts_for_Mysql
+      - target: _a4c_file_system_BlockStorage
         type: cloudify.relationships.depends_on
       - target: Compute
         type: cloudify.relationships.contained_in

@@ -41,7 +41,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private MappingConfigurationHolder mappingConfigurationHolder;
 
-    private boolean record = false;
+    private boolean record = true;
 
     private String nativeDirectoryName;
 
@@ -133,7 +133,6 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     private void validateTomcatArtifacts(Path generated) {
-        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("deployment_artifacts/download_artifacts.py")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/java_install.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_install.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_start.sh")));
@@ -172,7 +171,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
                     }
                 });
         validateTomcatArtifacts(generated);
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("_a4c_cfy3_topology_artifact/War/tomcat-war-types/warFiles/helloWorld.war")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("_a4c_topology_artifact/War/tomcat-war-types/warFiles/helloWorld.war")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/settings.properties")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/log.properties")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/test/nestedDirTest.txt")));

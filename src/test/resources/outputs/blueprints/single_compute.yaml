@@ -7,7 +7,7 @@ imports:
 
 node_types:
 
-  _a4c_generated_type.openstack.Compute:
+  _a4c.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
       _a4c_native_property:
@@ -20,10 +20,11 @@ node_types:
 
 
 
+
 node_templates:
 
   compute:
-    type: _a4c_generated_type.openstack.Compute
+    type: _a4c.openstack.Compute
     properties:
       _a4c_native_property:
         os_arch: "x86_64"
@@ -33,8 +34,6 @@ node_templates:
         flavor: 2
     instances:
       deploy: 1
-
-
 
 
 
