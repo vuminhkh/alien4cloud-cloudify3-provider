@@ -228,8 +228,8 @@ node_templates:
       version: "2.4"
     interfaces:
       cloudify.interfaces.lifecycle:
-        start: apache-type/scripts/_a4c_start_apache.py
-        create: apache-type/scripts/_a4c_install_apache.py
+        start: Apache/tosca.interfaces.node.lifecycle.Standard/start/apache-type/scripts/_a4c_start_apache.py
+        create: Apache/tosca.interfaces.node.lifecycle.Standard/create/apache-type/scripts/_a4c_install_apache.py
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in
@@ -241,7 +241,7 @@ node_templates:
       version: "5"
     interfaces:
       cloudify.interfaces.lifecycle:
-        create: php-type/scripts/_a4c_install_php.py
+        create: PHP/tosca.interfaces.node.lifecycle.Standard/create/php-type/scripts/_a4c_install_php.py
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in
@@ -254,23 +254,23 @@ node_templates:
       zip_url: "https://wordpress.org/latest.zip"
     interfaces:
       cloudify.interfaces.lifecycle:
-        create: wordpress-type/scripts/_a4c_install_wordpress.py
+        create: Wordpress/tosca.interfaces.node.lifecycle.Standard/create/wordpress-type/scripts/_a4c_install_wordpress.py
     relationships:
       - target: Apache
         type: alien.relationships.WordpressHostedOnApache
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            preconfigure: wordpress-type/scripts/_a4c_config_wordpress.py
+            preconfigure: Wordpress_Apache/wordpressHostedOnApacheApache/wordpress-type/scripts/_a4c_config_wordpress.py
       - target: Mysql
         type: alien.relationships.WordpressConnectToMysql
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            preconfigure: wordpress-type/scripts/_a4c_config_wordpress_for_mysql.py
+            preconfigure: Wordpress_Mysql/wordpressConnectToMysqlMysql/wordpress-type/scripts/_a4c_config_wordpress_for_mysql.py
       - target: PHP
         type: alien.relationships.WordpressConnectToPHP
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            preconfigure: wordpress-type/scripts/_a4c_install_php_module.py
+            preconfigure: Wordpress_PHP/wordpressConnectToPHPPHP/wordpress-type/scripts/_a4c_install_php_module.py
   Mysql:
     type: alien.nodes.Mysql
     instances:
@@ -284,8 +284,8 @@ node_templates:
       db_password: "pass"
     interfaces:
       cloudify.interfaces.lifecycle:
-        start: mysql-type/scripts/_a4c_start_mysql.py
-        create: mysql-type/scripts/_a4c_install_mysql.py
+        start: Mysql/tosca.interfaces.node.lifecycle.Standard/start/mysql-type/scripts/_a4c_start_mysql.py
+        create: Mysql/tosca.interfaces.node.lifecycle.Standard/create/mysql-type/scripts/_a4c_install_mysql.py
     relationships:
       - target: _a4c_file_system_DataBaseStorage
         type: cloudify.relationships.depends_on

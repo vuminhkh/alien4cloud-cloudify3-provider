@@ -692,7 +692,7 @@ public class CloudifyDeploymentUtil {
         String wrapperPath = parent + "/" + mappingConfiguration.getGeneratedArtifactPrefix() + "_" + fileName.substring(0, fileName.lastIndexOf('.')) + ".py";
         if (owner instanceof PaaSNodeTemplate) {
             PaaSNodeTemplate ownerNode = (PaaSNodeTemplate) owner;
-            return ownerNode.getId() + "/" + interfaceName + "/" + operationName + wrapperPath;
+            return ownerNode.getId() + "/" + interfaceName + "/" + operationName + "/" + wrapperPath;
         } else if (owner instanceof PaaSRelationshipTemplate) {
             PaaSRelationshipTemplate ownerRelationship = (PaaSRelationshipTemplate) owner;
             return ownerRelationship.getSource() + "_" + ownerRelationship.getRelationshipTemplate().getTarget() + "/" + ownerRelationship.getId() + "/"

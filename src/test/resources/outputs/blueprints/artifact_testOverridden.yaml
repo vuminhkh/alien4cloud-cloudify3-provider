@@ -99,25 +99,25 @@ node_templates:
       context_path: "helloworld"
     interfaces:
       cloudify.interfaces.lifecycle:
-        create: artifact-test-types/scripts/_a4c_create.py
+        create: War/tosca.interfaces.node.lifecycle.Standard/create/artifact-test-types/scripts/_a4c_create.py
       custom:
-        update_war_file: tomcat-war-types/scripts/_a4c_tomcat_install_war.py
+        update_war_file: War/custom/update_war_file/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
     relationships:
       - target: Tomcat
         type: alien.relationships.WarHostedOnTomcatWithProperties
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            postconfigure: artifact-test-types/scripts/_a4c_tomcat_install_war.py
+            postconfigure: War_Tomcat/warHostedOnTomcat/artifact-test-types/scripts/_a4c_tomcat_install_war.py
         target_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            postconfigure: artifact-test-types/scripts/_a4c_configureProperties.py
+            postconfigure: War_Tomcat/warHostedOnTomcat/artifact-test-types/scripts/_a4c_configureProperties.py
   Artifact_Directory_Test:
     type: alien.nodes.TestArtifactDirectory
     instances:
       deploy: 1
     interfaces:
       cloudify.interfaces.lifecycle:
-        create: artifact-test-types/scripts/_a4c_assertDirectoryCopied.py
+        create: Artifact_Directory_Test/tosca.interfaces.node.lifecycle.Standard/create/artifact-test-types/scripts/_a4c_assertDirectoryCopied.py
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in
@@ -127,9 +127,9 @@ node_templates:
       deploy: 1
     interfaces:
       cloudify.interfaces.lifecycle:
-        stop: tomcat-war-types/scripts/_a4c_tomcat_stop.py
-        start: tomcat-war-types/scripts/_a4c_tomcat_start.py
-        create: tomcat-war-types/scripts/_a4c_tomcat_install.py
+        stop: Tomcat/tosca.interfaces.node.lifecycle.Standard/stop/tomcat-war-types/scripts/_a4c_tomcat_stop.py
+        start: Tomcat/tosca.interfaces.node.lifecycle.Standard/start/tomcat-war-types/scripts/_a4c_tomcat_start.py
+        create: Tomcat/tosca.interfaces.node.lifecycle.Standard/create/tomcat-war-types/scripts/_a4c_tomcat_install.py
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in
@@ -141,7 +141,7 @@ node_templates:
       deploy: 1
     interfaces:
       cloudify.interfaces.lifecycle:
-        create: tomcat-war-types/scripts/_a4c_java_install.py
+        create: Java/tosca.interfaces.node.lifecycle.Standard/create/tomcat-war-types/scripts/_a4c_java_install.py
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in

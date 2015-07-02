@@ -97,13 +97,13 @@ node_templates:
       context_path: "helloworld"
     interfaces:
       custom:
-        update_war_file: tomcat-war-types/scripts/_a4c_tomcat_install_war.py
+        update_war_file: War/custom/update_war_file/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
     relationships:
       - target: Tomcat
         type: alien.relationships.WarHostedOnTomcat
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            postconfigure: tomcat-war-types/scripts/_a4c_tomcat_install_war.py
+            postconfigure: War_Tomcat/warHostedOnTomcat/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
   Tomcat:
     type: alien.nodes.Tomcat
     instances:
@@ -114,9 +114,9 @@ node_templates:
       tomcat_url: "http://apache.crihan.fr/dist/tomcat/tomcat-8/v8.0.22/bin/apache-tomcat-8.0.22.tar.gz"
     interfaces:
       cloudify.interfaces.lifecycle:
-        stop: tomcat-war-types/scripts/_a4c_tomcat_stop.py
-        start: tomcat-war-types/scripts/_a4c_tomcat_start.py
-        create: tomcat-war-types/scripts/_a4c_tomcat_install.py
+        stop: Tomcat/tosca.interfaces.node.lifecycle.Standard/stop/tomcat-war-types/scripts/_a4c_tomcat_stop.py
+        start: Tomcat/tosca.interfaces.node.lifecycle.Standard/start/tomcat-war-types/scripts/_a4c_tomcat_start.py
+        create: Tomcat/tosca.interfaces.node.lifecycle.Standard/create/tomcat-war-types/scripts/_a4c_tomcat_install.py
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in
@@ -131,7 +131,7 @@ node_templates:
       java_url: "http://download.oracle.com/otn-pub/java/jdk/7u75-b13/jdk-7u75-linux-x64.tar.gz"
     interfaces:
       cloudify.interfaces.lifecycle:
-        create: tomcat-war-types/scripts/_a4c_java_install.py
+        create: Java/tosca.interfaces.node.lifecycle.Standard/create/tomcat-war-types/scripts/_a4c_java_install.py
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in

@@ -100,11 +100,9 @@ public class BlueprintService {
         Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/script_wrapper.vm"), velocityPath.resolve("script_wrapper.vm"),
                 StandardCopyOption.REPLACE_EXISTING);
         Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/non_native/download_artifacts.py"),
-                velocityPath.resolve("download_artifacts.py"),
-                StandardCopyOption.REPLACE_EXISTING);
+                velocityPath.resolve("download_artifacts.py"), StandardCopyOption.REPLACE_EXISTING);
         Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/non_native/script_wrapper_static.py"),
-                velocityPath.resolve("script_wrapper_static.py"),
-                StandardCopyOption.REPLACE_EXISTING);
+                velocityPath.resolve("script_wrapper_static.py"), StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
@@ -173,8 +171,7 @@ public class BlueprintService {
                             artifacts.put(node.getId(), node.getIndexedToscaElement().getArtifacts());
                         }
                         OperationWrapper operationWrapper = generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(), operationEntry.getValue(),
-                                node, util, context,
-                                generatedBlueprintDirectoryPath, artifacts, null);
+                                node, util, context, generatedBlueprintDirectoryPath, artifacts, null);
                         operationWrapper.setAllDeploymentArtifacts(artifacts);
                     }
                 }
@@ -189,7 +186,7 @@ public class BlueprintService {
                             Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(), relationship
                                     .getRelationshipTemplate().getTarget());
                             Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts = Maps.newHashMap();
-                            if (MapUtils.isNotEmpty(relationshipArtifacts)) {
+                            if (MapUtils.isNotEmpty(relationship.getIndexedToscaElement().getArtifacts())) {
                                 relationshipArtifacts.put(keyRelationship, relationship.getIndexedToscaElement().getArtifacts());
                             }
                             Map<String, Map<String, DeploymentArtifact>> artifacts = Maps.newHashMap();
@@ -204,8 +201,7 @@ public class BlueprintService {
                                 artifacts.put(relationship.getRelationshipTemplate().getTarget(), targetArtifacts);
                             }
                             OperationWrapper operationWrapper = generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(),
-                                    operationEntry.getValue(), relationship, util, context,
-                                    generatedBlueprintDirectoryPath, artifacts, relationshipArtifacts);
+                                    operationEntry.getValue(), relationship, util, context, generatedBlueprintDirectoryPath, artifacts, relationshipArtifacts);
                             operationWrapper.setAllDeploymentArtifacts(artifacts);
                             operationWrapper.setAllRelationshipDeploymentArtifacts(relationshipArtifacts);
                         }
@@ -219,19 +215,14 @@ public class BlueprintService {
     }
 
     private OperationWrapper generateOperationScriptWrapper(String interfaceName, String operationName, Operation operation, IPaaSTemplate<?> owner,
-            CloudifyDeploymentUtil util,
-            Map<String, Object> context,
-            Path generatedBlueprintDirectoryPath,
-            Map<String, Map<String, DeploymentArtifact>> artifacts,
-            Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts) throws IOException {
+            CloudifyDeploymentUtil util, Map<String, Object> context, Path generatedBlueprintDirectoryPath,
+            Map<String, Map<String, DeploymentArtifact>> artifacts, Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts)
+            throws IOException {
         OperationWrapper operationWrapper = new OperationWrapper(owner, operation, artifacts, relationshipArtifacts);
         Map<String, Object> operationContext = Maps.newHashMap(context);
         operationContext.put("operation", operationWrapper);
-        VelocityUtil
-                .generate(
-                        pluginResourcesPath.resolve("velocity/script_wrapper.vm"),
-                        generatedBlueprintDirectoryPath.resolve(util.getArtifactWrapperPath(owner, interfaceName, operationName,
-                                operation.getImplementationArtifact())), operationContext);
+        VelocityUtil.generate(pluginResourcesPath.resolve("velocity/script_wrapper.vm"), generatedBlueprintDirectoryPath.resolve(util.getArtifactWrapperPath(
+                owner, interfaceName, operationName, operation.getImplementationArtifact())), operationContext);
         return operationWrapper;
     }
 

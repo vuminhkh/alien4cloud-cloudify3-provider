@@ -145,8 +145,8 @@ node_templates:
       db_password: "pass"
     interfaces:
       cloudify.interfaces.lifecycle:
-        start: mysql-type/scripts/_a4c_start_mysql.py
-        create: mysql-type/scripts/_a4c_install_mysql.py
+        start: Mysql/tosca.interfaces.node.lifecycle.Standard/start/mysql-type/scripts/_a4c_start_mysql.py
+        create: Mysql/tosca.interfaces.node.lifecycle.Standard/create/mysql-type/scripts/_a4c_install_mysql.py
     relationships:
       - target: _a4c_file_system_BlockStorage
         type: cloudify.relationships.depends_on
