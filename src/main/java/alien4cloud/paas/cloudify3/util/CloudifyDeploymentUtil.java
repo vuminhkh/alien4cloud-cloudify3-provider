@@ -706,4 +706,18 @@ public class CloudifyDeploymentUtil {
         return MapUtils.isNotEmpty(operationWrapper.getAllDeploymentArtifacts())
                 || MapUtils.isNotEmpty(operationWrapper.getAllRelationshipDeploymentArtifacts());
     }
+
+    public String formatTextWithIndentation(int spaceNumber, String text) {
+        String[] lines = text.split("\n");
+        StringBuilder formattedTextBuffer = new StringBuilder();
+        StringBuilder indentationBuffer = new StringBuilder();
+        for (int i = 0; i < spaceNumber; i++) {
+            indentationBuffer.append(" ");
+        }
+        String indentation = indentationBuffer.toString();
+        for (String line : lines) {
+            formattedTextBuffer.append(indentation).append(line).append("\n");
+        }
+        return formattedTextBuffer.toString();
+    }
 }

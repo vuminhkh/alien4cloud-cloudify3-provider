@@ -11,11 +11,17 @@
 #end
 #end
 #end
+      image: ${matchedPaaSCompute.paaSComputeTemplate.image}
+      flavor: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
+#if(${matchedPaaSCompute.paaSComputeTemplate.availabilityZone} || ${cloud.cloudInit})
       server:
-        image: ${matchedPaaSCompute.paaSComputeTemplate.image}
-        flavor: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
 #if(${matchedPaaSCompute.paaSComputeTemplate.availabilityZone})
         availability_zone: ${matchedPaaSCompute.paaSComputeTemplate.availabilityZone}
+#end
+#if(${cloud.cloudInit})
+        userdata: |
+${util.formatTextWithIndentation(10, ${cloud.cloudInit})}
+#end
 #end
     instances:
 #if(${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances})
