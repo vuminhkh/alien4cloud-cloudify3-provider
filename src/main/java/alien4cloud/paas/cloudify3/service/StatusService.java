@@ -33,7 +33,6 @@ import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.util.DateUtil;
 import alien4cloud.paas.cloudify3.util.MapUtil;
-import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.InstanceStatus;
@@ -248,7 +247,6 @@ public class StatusService {
                         }
                     }
                 }
-                FunctionEvaluator.postProcessInstanceInformation(information, deploymentContext.getTopology(), deploymentContext.getPaaSTopology());
                 callback.onSuccess(information);
             }
 

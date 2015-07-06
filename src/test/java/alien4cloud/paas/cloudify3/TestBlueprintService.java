@@ -41,7 +41,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private MappingConfigurationHolder mappingConfigurationHolder;
 
-    private boolean record = true;
+    private boolean record = false;
 
     private String nativeDirectoryName;
 
