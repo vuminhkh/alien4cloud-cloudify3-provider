@@ -26,18 +26,18 @@ node_templates:
   compute1:
     type: _a4c.openstack.Compute
     properties:
+      image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
+      flavor: 2
       server:
-        image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
-        flavor: 2
         availability_zone: A4C-zone
     instances:
       deploy: 1
   compute2:
     type: _a4c.openstack.Compute
     properties:
+      image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
+      flavor: 2
       server:
-        image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
-        flavor: 2
         availability_zone: Fastconnect
     instances:
       deploy: 1

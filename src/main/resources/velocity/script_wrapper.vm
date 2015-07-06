@@ -21,16 +21,45 @@
 
 #include("script_wrapper_static.py")
 
+
+def get_attribute(entity, attribute_name):
+#if(${providerMapping.attributes.compute.public_ip_address})
+    if attribute_name == '${providerMapping.attributes.compute.public_ip_address}':
+        return get_public_ip(entity)
+    else:
+        return get_instance_data(entity, attribute_name, get_attribute_data)
+#else
+    return get_instance_data(entity, attribute_name, get_attribute_data)
+#end
+
+
+def get_property(entity, property_name):
+    return get_instance_data(entity, property_name, get_property_data)
+
+
+#if(${providerMapping.attributes.compute.public_ip_address})
+def get_public_ip(entity):
+    host = get_host(entity)
+    if host.instance.relationships:
+        for relationship in host.instance.relationships:
+            if 'cloudify.relationships.connected_to' in relationship.type_hierarchy:
+                if relationship.target.node.id == '${mapping.generatedTypePrefix}_floating_ip_' + host.node.id:
+                    return relationship.target.instance.runtime_properties['${providerMapping.attributes.compute.public_ip_address}']
+    return ""
+#end
+
+
 #if($util.operationHasDeploymentArtifacts($operation))
 #include("download_artifacts.py")
 #end
 
 new_script_process = {
-#if($util.operationHasInputParameters($operation))
     "env": {
 #foreach($inputEntry in $operation.inputParameters.entrySet())
 #if($util.isFunctionPropertyValue($inputEntry.value))
         "$inputEntry.key": $util.formatFunctionPropertyValue(${operation.owner}, $inputEntry.value)
+#elseif($util.isConcatPropertyValue($inputEntry.value))
+        "$inputEntry.key": $util.formatConcatPropertyValue(${operation.owner}, $inputEntry.value)
 #else
         "$inputEntry.key": "$inputEntry.value.value"
 #end
@@ -39,7 +68,6 @@ new_script_process = {
 #end
 #end
     }
-#end
 }
 
 #if($util.operationHasDeploymentArtifacts($operation))
@@ -65,9 +93,31 @@ artifacts = node_artifacts.copy()
 artifacts.update(relationship_artifacts)
 
 download_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'downloads')
-if new_script_process.get("env") is None:
-    new_script_process["env"] = {}
 new_script_process["env"].update(download_artifacts(artifacts, download_dir))
 #end
 
+ctx.logger.info("Operation is executed with inputs {0}".format(inputs))
+if inputs.get("process", None) is not None and inputs["process"].get("env", None) is not None:
+    ctx.logger.info("Operation is executed with environment variable {0}".format(inputs["process"]["env"]))
+    new_script_process["env"].update(inputs["process"]["env"])
+
 execute(ctx.download_resource("${util.getArtifactRelativePath(${operation.implementationArtifact})}"), new_script_process)
+
+#macro(setAttributes $owner $entity $attributes $context)
+#if($attributes)
+#foreach($attributeEntry in ${attributes.entrySet()})
+#if($util.isFunctionPropertyValue($attributeEntry.value))
+${entity}.runtime_properties["${attributeEntry.key}"] = ${util.formatFunctionPropertyValue($context, $owner, $attributeEntry.value)}
+#elseif($util.isConcatPropertyValue($attributeEntry.value))
+${entity}.runtime_properties["${attributeEntry.key}"] = ${util.formatConcatPropertyValue($context, $owner, $attributeEntry.value)}
+#else
+${entity}.runtime_properties["${attributeEntry.key}"] = "${attributeEntry.value.value}"
+#end
+#end
+${entity}.update()
+#end
+#end
+
+#setAttributes(${operation.owner}, "ctx.instance", $util.getNodeAttributes(${operation.owner}), "")
+#setAttributes(${util.getSourceNode(${operation.owner})}, "ctx.source.instance", $util.getSourceRelationshipAttributes(${operation.owner}), ".source")
+#setAttributes(${util.getTargetNode(${operation.owner})}, "ctx.target.instance", $util.getTargetRelationshipAttributes(${operation.owner}), ".target")

@@ -22,6 +22,7 @@ import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.exception.InvalidArgumentException;
 import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.AbstractPropertyValue;
+import alien4cloud.model.components.ConcatPropertyValue;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IArtifact;
@@ -29,6 +30,8 @@ import alien4cloud.model.components.IValue;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
+import alien4cloud.model.components.PropertyDefinition;
+import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.IPaaSTemplate;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
@@ -221,15 +224,92 @@ public class CloudifyDeploymentUtil {
         }
     }
 
+    public Map<String, IValue> getNodeAttributes(PaaSNodeTemplate nodeTemplate) {
+        if (MapUtils.isEmpty(nodeTemplate.getIndexedToscaElement().getAttributes())) {
+            return null;
+        }
+        Map<String, IValue> attributesThatCanBeSet = Maps.newHashMap();
+        for (Map.Entry<String, IValue> attributeEntry : nodeTemplate.getIndexedToscaElement().getAttributes().entrySet()) {
+            if (attributeEntry.getValue() instanceof ScalarPropertyValue || attributeEntry.getValue() instanceof FunctionPropertyValue
+                    || attributeEntry.getValue() instanceof ConcatPropertyValue) {
+                attributesThatCanBeSet.put(attributeEntry.getKey(), attributeEntry.getValue());
+            }
+        }
+        return attributesThatCanBeSet;
+    }
+
+    public PaaSNodeTemplate getSourceNode(PaaSRelationshipTemplate relationshipTemplate) {
+        return alienDeployment.getAllNodes().get(relationshipTemplate.getSource());
+    }
+
+    public PaaSNodeTemplate getTargetNode(PaaSRelationshipTemplate relationshipTemplate) {
+        return alienDeployment.getAllNodes().get(relationshipTemplate.getRelationshipTemplate().getTarget());
+    }
+
+    public Map<String, IValue> getSourceRelationshipAttributes(PaaSRelationshipTemplate owner) {
+        return getNodeAttributes(getSourceNode(owner));
+    }
+
+    public Map<String, IValue> getTargetRelationshipAttributes(PaaSRelationshipTemplate owner) {
+        return getNodeAttributes(getTargetNode(owner));
+    }
+
     public boolean isFunctionPropertyValue(IValue input) {
         return input instanceof FunctionPropertyValue;
     }
 
+    public boolean isConcatPropertyValue(IValue input) {
+        return input instanceof ConcatPropertyValue;
+    }
+
+    public String formatConcatPropertyValue(IPaaSTemplate<?> owner, ConcatPropertyValue concatPropertyValue) {
+        return formatConcatPropertyValue("", owner, concatPropertyValue);
+    }
+
+    public String formatConcatPropertyValue(String context, IPaaSTemplate<?> owner, ConcatPropertyValue concatPropertyValue) {
+        StringBuilder pythonCall = new StringBuilder();
+        if (concatPropertyValue.getParameters() == null || concatPropertyValue.getParameters().isEmpty()) {
+            throw new InvalidArgumentException("Parameter list for concat function is empty");
+        }
+        for (IValue concatParam : concatPropertyValue.getParameters()) {
+            // scalar type
+            if (concatParam instanceof ScalarPropertyValue) {
+                // scalar case
+                String value = ((ScalarPropertyValue) concatParam).getValue();
+                if (StringUtils.isNotEmpty(value)) {
+                    pythonCall.append("\"").append(value).append("\" + ");
+                }
+            } else if (concatParam instanceof PropertyDefinition) {
+                throw new NotSupportedException("Do not support property definition in a concat");
+            } else if (concatParam instanceof FunctionPropertyValue) {
+                // Function case
+                FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) concatParam;
+                switch (functionPropertyValue.getFunction()) {
+                case ToscaFunctionConstants.GET_ATTRIBUTE:
+                    pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
+                    break;
+                case ToscaFunctionConstants.GET_PROPERTY:
+                    pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
+                    break;
+                default:
+                    throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not yet supported");
+                }
+            }
+        }
+        // Remove the last " + "
+        pythonCall.setLength(pythonCall.length() - 3);
+        return pythonCall.toString();
+    }
+
     public String formatFunctionPropertyValue(IPaaSTemplate<?> owner, FunctionPropertyValue functionPropertyValue) {
+        return formatFunctionPropertyValue("", owner, functionPropertyValue);
+    }
+
+    public String formatFunctionPropertyValue(String context, IPaaSTemplate<?> owner, FunctionPropertyValue functionPropertyValue) {
         if (owner instanceof PaaSNodeTemplate) {
-            return formatNodeFunctionPropertyValue((PaaSNodeTemplate) owner, functionPropertyValue);
+            return formatNodeFunctionPropertyValue(context, (PaaSNodeTemplate) owner, functionPropertyValue);
         } else if (owner instanceof PaaSRelationshipTemplate) {
-            return formatRelationshipFunctionPropertyValue((PaaSRelationshipTemplate) owner, functionPropertyValue);
+            return formatRelationshipFunctionPropertyValue(context, (PaaSRelationshipTemplate) owner, functionPropertyValue);
         } else {
             throw new NotSupportedException("Un-managed paaS template type " + owner.getClass().getSimpleName());
         }
@@ -242,6 +322,10 @@ public class CloudifyDeploymentUtil {
         return resolvePropertyMappingInFunction(concreteNodeWithAttribute, functionPropertyValue);
     }
 
+    public String formatNodeFunctionPropertyValue(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
+        return formatNodeFunctionPropertyValue("", node, functionPropertyValue);
+    }
+
     /**
      * Format operation parameter of a node
      *
@@ -249,18 +333,22 @@ public class CloudifyDeploymentUtil {
      * @param functionPropertyValue the input which can be a function or a scalar
      * @return the formatted parameter understandable by Cloudify 3
      */
-    public String formatNodeFunctionPropertyValue(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
+    public String formatNodeFunctionPropertyValue(String context, PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
         String concreteNode = resolveKeyWordInNodeFunction(node, functionPropertyValue);
         String concreteNodeWithAttribute = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(concreteNode),
                 functionPropertyValue.getElementNameToFetch(), functionPropertyValue.getFunction());
         functionPropertyValue = resolvePropertyMappingInFunction(concreteNodeWithAttribute, functionPropertyValue);
         if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(functionPropertyValue.getFunction())) {
-            return "get_attribute(ctx, '" + functionPropertyValue.getElementNameToFetch() + "')";
+            return "get_attribute(ctx" + context + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
-            return "get_property(ctx, '" + functionPropertyValue.getElementNameToFetch() + "')";
+            return "get_property(ctx" + context + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
         } else {
             throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
         }
+    }
+
+    public String formatRelationshipFunctionPropertyValue(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
+        return formatRelationshipFunctionPropertyValue("", relationship, functionPropertyValue);
     }
 
     /**
@@ -270,15 +358,17 @@ public class CloudifyDeploymentUtil {
      * @param functionPropertyValue the input which can be a function or a scalar
      * @return the formatted parameter understandable by Cloudify 3
      */
-    public String formatRelationshipFunctionPropertyValue(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
+    public String formatRelationshipFunctionPropertyValue(String context, PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
         String concreteNode = resolveKeyWordInRelationshipFunction(relationship, functionPropertyValue);
         String concreteNodeWithAttribute = getNodeNameHasPropertyOrAttribute(relationship.getId(), alienDeployment.getAllNodes().get(concreteNode),
                 functionPropertyValue.getElementNameToFetch(), functionPropertyValue.getFunction());
         functionPropertyValue = resolvePropertyMappingInFunction(concreteNodeWithAttribute, functionPropertyValue);
         if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(functionPropertyValue.getFunction())) {
-            return "get_attribute(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
+            return "get_attribute(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
+                    + functionPropertyValue.getElementNameToFetch() + "')";
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
-            return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
+            return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
+                    + functionPropertyValue.getElementNameToFetch() + "')";
         } else {
             throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
         }

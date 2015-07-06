@@ -1,5 +1,6 @@
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
+from cloudify.state import ctx_parameters as inputs
 import subprocess
 import os
 import sys
@@ -27,20 +28,20 @@ def get_instance_data(entity, data_name, get_data_function):
         return ""
 
 
+def get_host(entity):
+    if entity.instance.relationships:
+        for relationship in entity.instance.relationships:
+            if 'cloudify.relationships.contained_in' in relationship.type_hierarchy:
+                return get_host(relationship.target)
+    return entity
+
+
 def get_attribute_data(entity, attribute_name):
     return entity.instance.runtime_properties.get(attribute_name, None)
 
 
 def get_property_data(entity, property_name):
     return entity.node.properties.get(property_name, None)
-
-
-def get_attribute(entity, attribute_name):
-    return get_instance_data(entity, attribute_name, get_attribute_data)
-
-
-def get_property(entity, property_name):
-    return get_instance_data(entity, property_name, get_property_data)
 
 
 def execute(script_path, process):
