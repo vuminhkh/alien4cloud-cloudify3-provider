@@ -345,7 +345,7 @@ public class CloudifyDeploymentUtil {
         } else {
             // throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
             log.warn(("Function " + functionPropertyValue.getFunction() + " is not supported"));
-            return "";
+            return "'Not supported'";
         }
     }
 
@@ -374,7 +374,7 @@ public class CloudifyDeploymentUtil {
         } else {
             // throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
             log.warn(("Function " + functionPropertyValue.getFunction() + " is not supported"));
-            return "";
+            return "'Not supported'";
         }
     }
 
