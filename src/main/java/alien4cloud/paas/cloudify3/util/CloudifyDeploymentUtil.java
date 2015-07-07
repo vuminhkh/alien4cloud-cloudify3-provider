@@ -343,7 +343,9 @@ public class CloudifyDeploymentUtil {
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
             return "get_property(ctx" + context + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
         } else {
-            throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
+            // throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
+            log.warn(("Function " + functionPropertyValue.getFunction() + " is not supported"));
+            return "";
         }
     }
 
@@ -370,7 +372,9 @@ public class CloudifyDeploymentUtil {
             return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
                     + functionPropertyValue.getElementNameToFetch() + "')";
         } else {
-            throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
+            // throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
+            log.warn(("Function " + functionPropertyValue.getFunction() + " is not supported"));
+            return "";
         }
     }
 
