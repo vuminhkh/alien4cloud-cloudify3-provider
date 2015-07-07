@@ -30,6 +30,7 @@ import alien4cloud.model.components.IValue;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
+import alien4cloud.model.components.OperationOutput;
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.IPaaSTemplate;
@@ -291,6 +292,9 @@ public class CloudifyDeploymentUtil {
                 case ToscaFunctionConstants.GET_PROPERTY:
                     pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
                     break;
+                case ToscaFunctionConstants.GET_OPERATION_OUTPUT:
+                    pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
+                    break;
                 default:
                     throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not yet supported");
                 }
@@ -342,6 +346,11 @@ public class CloudifyDeploymentUtil {
             return "get_attribute(ctx" + context + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
             return "get_property(ctx" + context + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
+        } else if (ToscaFunctionConstants.GET_OPERATION_OUTPUT.equals(functionPropertyValue.getFunction())) {
+            // a fake attribute is used in order to handle Operation Outputs
+            return "get_attribute(ctx" + context + ", '_a4c_OO:" + functionPropertyValue.getInterfaceName() + ':' + functionPropertyValue.getOperationName()
+                    + ":"
+                    + functionPropertyValue.getElementNameToFetch() + "')";
         } else {
             // throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
             log.warn(("Function " + functionPropertyValue.getFunction() + " is not supported"));
@@ -370,6 +379,10 @@ public class CloudifyDeploymentUtil {
                     + functionPropertyValue.getElementNameToFetch() + "')";
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
             return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
+                    + functionPropertyValue.getElementNameToFetch() + "')";
+        } else if (ToscaFunctionConstants.GET_OPERATION_OUTPUT.equals(functionPropertyValue.getFunction())) {
+            return "get_attribute(ctx" + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '_a4c_OO:"
+                    + functionPropertyValue.getInterfaceName() + ':' + functionPropertyValue.getOperationName() + ":"
                     + functionPropertyValue.getElementNameToFetch() + "')";
         } else {
             // throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
@@ -813,5 +826,20 @@ public class CloudifyDeploymentUtil {
             formattedTextBuffer.append(indentation).append(line).append("\n");
         }
         return formattedTextBuffer.toString();
+    }
+
+    public String getOperationOutputNames(Operation operation) {
+        if (operation.getOutputs() != null && !operation.getOutputs().isEmpty()) {
+            StringBuilder result = new StringBuilder();
+            for (OperationOutput operationOutput : operation.getOutputs()) {
+                if (result.length() > 0) {
+                    result.append(";");
+                }
+                result.append(operationOutput.getName());
+            }
+            return result.toString();
+        } else {
+            return null;
+        }
     }
 }

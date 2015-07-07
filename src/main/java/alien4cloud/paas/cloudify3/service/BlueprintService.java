@@ -103,6 +103,10 @@ public class BlueprintService {
                 velocityPath.resolve("download_artifacts.py"), StandardCopyOption.REPLACE_EXISTING);
         Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/non_native/script_wrapper_static.py"),
                 velocityPath.resolve("script_wrapper_static.py"), StandardCopyOption.REPLACE_EXISTING);
+        Path wrapperPath = pluginResourcesPath.resolve("wrapper");
+        Files.createDirectories(wrapperPath);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("wrapper/scriptWrapper.sh"), wrapperPath.resolve("scriptWrapper.sh"),
+                StandardCopyOption.REPLACE_EXISTING);
     }
 
     /**
@@ -209,6 +213,9 @@ public class BlueprintService {
                 }
             }
         }
+        if (!alienDeployment.getNonNatives().isEmpty()) {
+            Files.copy(pluginResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
+        }
         // Generate the blueprint at the end
         VelocityUtil.generate(pluginResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
@@ -218,7 +225,7 @@ public class BlueprintService {
             CloudifyDeploymentUtil util, Map<String, Object> context, Path generatedBlueprintDirectoryPath,
             Map<String, Map<String, DeploymentArtifact>> artifacts, Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts)
             throws IOException {
-        OperationWrapper operationWrapper = new OperationWrapper(owner, operation, artifacts, relationshipArtifacts);
+        OperationWrapper operationWrapper = new OperationWrapper(owner, operation, interfaceName, operationName, artifacts, relationshipArtifacts);
         Map<String, Object> operationContext = Maps.newHashMap(context);
         operationContext.put("operation", operationWrapper);
         VelocityUtil.generate(pluginResourcesPath.resolve("velocity/script_wrapper.vm"), generatedBlueprintDirectoryPath.resolve(util.getArtifactWrapperPath(

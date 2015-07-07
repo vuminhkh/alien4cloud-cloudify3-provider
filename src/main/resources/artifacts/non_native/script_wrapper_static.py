@@ -3,6 +3,7 @@ from cloudify.exceptions import NonRecoverableError
 from cloudify.state import ctx_parameters as inputs
 import subprocess
 import os
+import re
 import sys
 import time
 import threading
@@ -43,8 +44,25 @@ def get_attribute_data(entity, attribute_name):
 def get_property_data(entity, property_name):
     return entity.node.properties.get(property_name, None)
 
+def parse_output(output):
+    # by convention, the last output is the result of the operation
+    last_output = None
+    outputs = {}
+    pattern = re.compile('EXPECTED_OUTPUT_(\w+)=(.*)')
+    for line in output.splitlines():
+        match = pattern.match(line) 
+        if match is None:
+            last_output = line
+        else:
+            output_name = match.group(1)
+            output_value = match.group(2)
+            outputs[output_name] = output_value
+    return {'last_output':last_output, 'outputs':outputs}
 
-def execute(script_path, process):
+def execute(script_path, process, outputNames):
+    wrapper_path = ctx.download_resource("scriptWrapper.sh")
+    os.chmod(wrapper_path, 0755)
+
     os.chmod(script_path, 0755)
     on_posix = 'posix' in sys.builtin_module_names
 
@@ -52,26 +70,19 @@ def execute(script_path, process):
     process_env = process.get('env', {})
     env.update(process_env)
 
-    cwd = process.get('cwd')
-
-    command_prefix = process.get('command_prefix')
-    if command_prefix:
-        command = '{0} {1}'.format(command_prefix, script_path)
-    else:
-        command = script_path
-
-    args = process.get('args')
-    if args:
-        command = ' '.join([command] + args)
-
-    ctx.logger.info('Executing: {0}'.format(command))
+    if outputNames is not None:
+        env['EXPECTED_OUTPUTS'] = outputNames
+      
+    command = '{0} {1}'.format(wrapper_path, script_path)
+    
+    ctx.logger.info('Executing: {0} in env {1}'.format(command, env))
 
     process = subprocess.Popen(command,
                                shell=True,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE,
                                env=env,
-                               cwd=cwd,
+                               cwd=None,
                                bufsize=1,
                                close_fds=on_posix)
 
@@ -88,6 +99,13 @@ def execute(script_path, process):
 
     stdout_consumer.join()
     stderr_consumer.join()
+    
+    parsed_output = parse_output(stdout_consumer.buffer.getvalue())
+    if outputNames is not None:
+        outputNameList = outputNames.split(';')
+        for outputName in outputNameList:
+            ctx.logger.info('Ouput name: {0} value : {1}'.format(outputName, parsed_output['outputs'][outputName]))
+    
     ok_message = "Script {0} executed normally with standard output {1} and error output {2}".format(command, stdout_consumer.buffer.getvalue(),
                                                                                                      stderr_consumer.buffer.getvalue())
     error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,
@@ -99,6 +117,7 @@ def execute(script_path, process):
     else:
         ctx.logger.info(ok_message)
 
+    return parsed_output
 
 class OutputConsumer(object):
     def __init__(self, out):
