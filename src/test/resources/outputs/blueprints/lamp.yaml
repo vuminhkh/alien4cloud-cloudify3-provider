@@ -99,7 +99,7 @@ node_types:
         type: string
         default: "/mountedStorage"
   alien.nodes.Wordpress:
-    derived_from: cloudify.nodes.Root
+    derived_from: cloudify.nodes.ApplicationModule
     properties:
       zip_url:
         type: string

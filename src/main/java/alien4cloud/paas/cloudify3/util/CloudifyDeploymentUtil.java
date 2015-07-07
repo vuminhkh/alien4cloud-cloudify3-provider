@@ -842,4 +842,9 @@ public class CloudifyDeploymentUtil {
             return null;
         }
     }
+
+    public boolean isOperationOwnedByRelationship(OperationWrapper operationWrapper) {
+        return (operationWrapper.getOwner() instanceof PaaSRelationshipTemplate);
+    }
+
 }

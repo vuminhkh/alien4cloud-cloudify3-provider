@@ -126,5 +126,7 @@ ${entity}.update()
 #end
 
 #setAttributes(${operation.owner}, "ctx.instance", $util.getNodeAttributes(${operation.owner}), "")
+#if($util.isOperationOwnedByRelationship(${operation}))
 #setAttributes(${util.getSourceNode(${operation.owner})}, "ctx.source.instance", $util.getSourceRelationshipAttributes(${operation.owner}), ".source")
 #setAttributes(${util.getTargetNode(${operation.owner})}, "ctx.target.instance", $util.getTargetRelationshipAttributes(${operation.owner}), ".target")
+#end
