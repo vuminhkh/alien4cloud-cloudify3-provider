@@ -222,14 +222,16 @@ public class StatusService {
                     if (MapUtils.isNotEmpty(nodeTemplate.getAttributes())) {
                         instanceInformation.setAttributes(nodeTemplate.getAttributes());
                     }
-                    if (node != null && node.getProperties() != null) {
-                        String nativeType = getNativeType(node);
-                        if (nativeType != null && runtimeProperties != null) {
+                    if (node != null && runtimeProperties != null) {
+                        String nativeType = node.getProperties() != null ? getNativeType(node) : null;
+                        if (nativeType != null) {
                             Map<String, String> attributes = getAttributesFromRuntimeProperties(nativeType, runtimeProperties);
                             if (instanceInformation.getAttributes() == null) {
                                 instanceInformation.setAttributes(Maps.<String, String> newHashMap());
                             }
                             instanceInformation.getAttributes().putAll(attributes);
+                        } else {
+                            instanceInformation.getAttributes().putAll(runtimeProperties);
                         }
                     }
                     nodeInformation.put(instanceId, instanceInformation);
