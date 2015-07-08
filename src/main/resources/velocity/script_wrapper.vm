@@ -56,16 +56,10 @@ def get_public_ip(entity):
 new_script_process = {
     "env": {
 #foreach($inputEntry in $operation.inputParameters.entrySet())
-#if($util.isFunctionPropertyValue($inputEntry.value))
-        "$inputEntry.key": $util.formatFunctionPropertyValue(${operation.owner}, $inputEntry.value)
-#elseif($util.isConcatPropertyValue($inputEntry.value))
-        "$inputEntry.key": $util.formatConcatPropertyValue(${operation.owner}, $inputEntry.value)
-#else
-        "$inputEntry.key": "$inputEntry.value.value"
+        "$inputEntry.key": $util.formatValue(${operation.owner}, $inputEntry.value)
 #end
 #if($foreach.count < $operation.inputParameters.size())
         ,
-#end
 #end
     }
 }

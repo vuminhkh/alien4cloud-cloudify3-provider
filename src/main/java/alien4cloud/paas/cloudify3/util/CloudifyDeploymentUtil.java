@@ -37,6 +37,7 @@ import alien4cloud.paas.IPaaSTemplate;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
+import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
@@ -76,6 +77,8 @@ public class CloudifyDeploymentUtil {
     private CloudifyDeployment alienDeployment;
 
     private Path recipePath;
+
+    private PropertyEvaluatorService propertyEvaluatorService;
 
     public boolean mapHasEntries(Map<?, ?> map) {
         return map != null && !map.isEmpty();
@@ -233,7 +236,9 @@ public class CloudifyDeploymentUtil {
         for (Map.Entry<String, IValue> attributeEntry : nodeTemplate.getIndexedToscaElement().getAttributes().entrySet()) {
             if (attributeEntry.getValue() instanceof ScalarPropertyValue || attributeEntry.getValue() instanceof FunctionPropertyValue
                     || attributeEntry.getValue() instanceof ConcatPropertyValue) {
-                attributesThatCanBeSet.put(attributeEntry.getKey(), attributeEntry.getValue());
+                // Replace all get_property with the static value in all attributes
+                attributesThatCanBeSet.put(attributeEntry.getKey(),
+                        propertyEvaluatorService.process(attributeEntry.getValue(), nodeTemplate, alienDeployment.getAllNodes()));
             }
         }
         return attributesThatCanBeSet;
@@ -261,6 +266,18 @@ public class CloudifyDeploymentUtil {
 
     public boolean isConcatPropertyValue(IValue input) {
         return input instanceof ConcatPropertyValue;
+    }
+
+    public String formatValue(IPaaSTemplate<?> owner, IValue input) {
+        if (input instanceof FunctionPropertyValue) {
+            return formatFunctionPropertyValue(owner, (FunctionPropertyValue) input);
+        } else if (input instanceof ConcatPropertyValue) {
+            return formatConcatPropertyValue(owner, (ConcatPropertyValue) input);
+        } else if (input instanceof ScalarPropertyValue) {
+            return "'" + ((ScalarPropertyValue) input).getValue() + "'";
+        } else {
+            throw new NotSupportedException("The value " + input + "'s type is not supported as input");
+        }
     }
 
     public String formatConcatPropertyValue(IPaaSTemplate<?> owner, ConcatPropertyValue concatPropertyValue) {
@@ -298,6 +315,8 @@ public class CloudifyDeploymentUtil {
                 default:
                     throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not yet supported");
                 }
+            } else {
+                throw new NotSupportedException("Do not support nested concat in a concat, please simplify your usage");
             }
         }
         // Remove the last " + "
@@ -349,12 +368,9 @@ public class CloudifyDeploymentUtil {
         } else if (ToscaFunctionConstants.GET_OPERATION_OUTPUT.equals(functionPropertyValue.getFunction())) {
             // a fake attribute is used in order to handle Operation Outputs
             return "get_attribute(ctx" + context + ", '_a4c_OO:" + functionPropertyValue.getInterfaceName() + ':' + functionPropertyValue.getOperationName()
-                    + ":"
-                    + functionPropertyValue.getElementNameToFetch() + "')";
+                    + ":" + functionPropertyValue.getElementNameToFetch() + "')";
         } else {
-            // throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
-            log.warn(("Function " + functionPropertyValue.getFunction() + " is not supported"));
-            return "'Not supported'";
+            throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not yet supported");
         }
     }
 
@@ -385,9 +401,7 @@ public class CloudifyDeploymentUtil {
                     + functionPropertyValue.getInterfaceName() + ':' + functionPropertyValue.getOperationName() + ":"
                     + functionPropertyValue.getElementNameToFetch() + "')";
         } else {
-            // throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
-            log.warn(("Function " + functionPropertyValue.getFunction() + " is not supported"));
-            return "'Not supported'";
+            throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
         }
     }
 

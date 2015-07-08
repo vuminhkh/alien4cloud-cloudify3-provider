@@ -174,9 +174,8 @@ public class BlueprintService {
                         if (MapUtils.isNotEmpty(node.getIndexedToscaElement().getArtifacts())) {
                             artifacts.put(node.getId(), node.getIndexedToscaElement().getArtifacts());
                         }
-                        OperationWrapper operationWrapper = generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(), operationEntry.getValue(),
-                                node, util, context, generatedBlueprintDirectoryPath, artifacts, null);
-                        operationWrapper.setAllDeploymentArtifacts(artifacts);
+                        generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(), operationEntry.getValue(), node, util, context,
+                                generatedBlueprintDirectoryPath, artifacts, null);
                     }
                 }
             }
@@ -204,10 +203,8 @@ public class BlueprintService {
                             if (MapUtils.isNotEmpty(targetArtifacts)) {
                                 artifacts.put(relationship.getRelationshipTemplate().getTarget(), targetArtifacts);
                             }
-                            OperationWrapper operationWrapper = generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(),
-                                    operationEntry.getValue(), relationship, util, context, generatedBlueprintDirectoryPath, artifacts, relationshipArtifacts);
-                            operationWrapper.setAllDeploymentArtifacts(artifacts);
-                            operationWrapper.setAllRelationshipDeploymentArtifacts(relationshipArtifacts);
+                            generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(), operationEntry.getValue(), relationship, util, context,
+                                    generatedBlueprintDirectoryPath, artifacts, relationshipArtifacts);
                         }
                     }
                 }
