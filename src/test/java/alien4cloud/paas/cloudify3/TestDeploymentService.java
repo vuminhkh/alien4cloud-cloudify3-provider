@@ -183,7 +183,7 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     }
 
     @org.junit.Test
-    @Ignore
+    // @Ignore
     public void testDeployArtifactTest() throws Exception {
         String deploymentId = launchTest(ARTIFACT_TEST_TOPOLOGY);
         httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);

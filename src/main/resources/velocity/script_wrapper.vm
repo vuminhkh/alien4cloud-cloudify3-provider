@@ -54,12 +54,12 @@ def get_public_ip(entity):
 #end
 
 new_script_process = {
-    "env": {
+    'env': {
 #foreach($inputEntry in $operation.inputParameters.entrySet())
-        "$inputEntry.key": $util.formatValue(${operation.owner}, $inputEntry.value)
-#end
+        '$inputEntry.key': $util.formatValue(${operation.owner}, $inputEntry.value)
 #if($foreach.count < $operation.inputParameters.size())
         ,
+#end
 #end
     }
 }
@@ -87,32 +87,32 @@ artifacts = node_artifacts.copy()
 artifacts.update(relationship_artifacts)
 
 download_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'downloads')
-new_script_process["env"].update(download_artifacts(artifacts, download_dir))
+new_script_process['env'].update(download_artifacts(artifacts, download_dir))
 #end
 
-ctx.logger.info("Operation is executed with inputs {0}".format(inputs))
-if inputs.get("process", None) is not None and inputs["process"].get("env", None) is not None:
-    ctx.logger.info("Operation is executed with environment variable {0}".format(inputs["process"]["env"]))
-    new_script_process["env"].update(inputs["process"]["env"])
+ctx.logger.info('Operation is executed with inputs {0}'.format(inputs))
+if inputs.get('process', None) is not None and inputs['process'].get('env', None) is not None:
+    ctx.logger.info('Operation is executed with environment variable {0}'.format(inputs['process']['env']))
+    new_script_process['env'].update(inputs['process']['env'])
 
 operationOutputNames = None
 #if(${operation.getOutputs()} && !${operation.getOutputs().isEmpty()})
-operationOutputNames = "${util.getOperationOutputNames(${operation})}"
+operationOutputNames = '${util.getOperationOutputNames(${operation})}'
 #end
-parsed_output = execute(ctx.download_resource("${util.getArtifactRelativePath(${operation.implementationArtifact})}"), new_script_process, operationOutputNames)
+parsed_output = execute(ctx.download_resource('${util.getArtifactRelativePath(${operation.implementationArtifact})}'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))
-    ctx.instance.runtime_properties["_a4c_OO:${operation.interfaceName}:${operation.operationName}:{0}".format(k)] = v
+    ctx.instance.runtime_properties['_a4c_OO:${operation.interfaceName}:${operation.operationName}:{0}'.format(k)] = v
 
 #macro(setAttributes $owner $entity $attributes $context)
 #if($attributes)
 #foreach($attributeEntry in ${attributes.entrySet()})
 #if($util.isFunctionPropertyValue($attributeEntry.value))
-${entity}.runtime_properties["${attributeEntry.key}"] = ${util.formatFunctionPropertyValue($context, $owner, $attributeEntry.value)}
+${entity}.runtime_properties['${attributeEntry.key}'] = ${util.formatFunctionPropertyValue($context, $owner, $attributeEntry.value)}
 #elseif($util.isConcatPropertyValue($attributeEntry.value))
-${entity}.runtime_properties["${attributeEntry.key}"] = ${util.formatConcatPropertyValue($context, $owner, $attributeEntry.value)}
+${entity}.runtime_properties['${attributeEntry.key}'] = ${util.formatConcatPropertyValue($context, $owner, $attributeEntry.value)}
 #else
-${entity}.runtime_properties["${attributeEntry.key}"] = "${attributeEntry.value.value}"
+${entity}.runtime_properties['${attributeEntry.key}'] = '${attributeEntry.value.value}'
 #end
 #end
 ${entity}.update()

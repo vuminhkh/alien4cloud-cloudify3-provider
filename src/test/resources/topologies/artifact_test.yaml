@@ -58,13 +58,15 @@ node_templates:
         type: alien.capabilities.TestCapability
         properties:
           test_capability_property:
-            value: "Test requirement"
+            value: "Test requirement i'm great"
     capabilities:
       test_capability:
         type: alien.capabilities.TestCapability
         properties:
           test_capability_property:
-            value: "Test capability"
+            value: |
+              It's really a great day to begin
+              to love
     artifacts:
       confs_directory:
         artifact_type: tosca.artifacts.File

@@ -1,6 +1,8 @@
 package alien4cloud.paas.cloudify3.util;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.MapUtils;
@@ -274,12 +277,27 @@ public class CloudifyDeploymentUtil {
         } else if (input instanceof ConcatPropertyValue) {
             return formatConcatPropertyValue(owner, (ConcatPropertyValue) input);
         } else if (input instanceof ScalarPropertyValue) {
-            return "'''" + ((ScalarPropertyValue) input).getValue() + "'''";
+            return formatTextValueToPython(((ScalarPropertyValue) input).getValue());
         } else if (input instanceof PropertyDefinition) {
             // Custom command do nothing
             return "''";
         } else {
             throw new NotSupportedException("The value " + input + "'s type is not supported as input");
+        }
+    }
+
+    @SneakyThrows
+    public String formatTextValueToPython(String text) {
+        if (text.contains("'")) {
+            text = text.replace("'", "\\'");
+        }
+        if (StringUtils.isEmpty(text)) {
+            return "''";
+        }
+        if (text.contains("\n") || text.contains("\r")) {
+            return "r'''" + text + "'''";
+        } else {
+            return "r'" + text + "'";
         }
     }
 
@@ -298,7 +316,7 @@ public class CloudifyDeploymentUtil {
                 // scalar case
                 String value = ((ScalarPropertyValue) concatParam).getValue();
                 if (StringUtils.isNotEmpty(value)) {
-                    pythonCall.append("'''").append(value).append("''' + ");
+                    pythonCall.append(formatTextValueToPython(value)).append(" + ");
                 }
             } else if (concatParam instanceof PropertyDefinition) {
                 throw new NotSupportedException("Do not support property definition in a concat");
