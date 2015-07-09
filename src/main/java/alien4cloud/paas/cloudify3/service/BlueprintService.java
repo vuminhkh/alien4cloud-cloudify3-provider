@@ -68,6 +68,9 @@ public class BlueprintService {
     @Resource
     private ArtifactLocalRepository artifactRepository;
 
+    @Resource
+    private PropertyEvaluatorService propertyEvaluatorService;
+
     private Path recipeDirectoryPath;
 
     private Path pluginResourcesPath;
@@ -121,7 +124,7 @@ public class BlueprintService {
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
         CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
-                mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment, generatedBlueprintDirectoryPath);
+                mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment, generatedBlueprintDirectoryPath, propertyEvaluatorService);
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
@@ -175,7 +178,7 @@ public class BlueprintService {
                             artifacts.put(node.getId(), node.getIndexedToscaElement().getArtifacts());
                         }
                         generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(), operationEntry.getValue(), node, util, context,
-                                generatedBlueprintDirectoryPath, artifacts, null);
+                                generatedBlueprintDirectoryPath, artifacts, null, alienDeployment.getAllNodes());
                     }
                 }
             }
@@ -204,7 +207,7 @@ public class BlueprintService {
                                 artifacts.put(relationship.getRelationshipTemplate().getTarget(), targetArtifacts);
                             }
                             generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(), operationEntry.getValue(), relationship, util, context,
-                                    generatedBlueprintDirectoryPath, artifacts, relationshipArtifacts);
+                                    generatedBlueprintDirectoryPath, artifacts, relationshipArtifacts, alienDeployment.getAllNodes());
                         }
                     }
                 }
@@ -220,9 +223,11 @@ public class BlueprintService {
 
     private OperationWrapper generateOperationScriptWrapper(String interfaceName, String operationName, Operation operation, IPaaSTemplate<?> owner,
             CloudifyDeploymentUtil util, Map<String, Object> context, Path generatedBlueprintDirectoryPath,
-            Map<String, Map<String, DeploymentArtifact>> artifacts, Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts)
+            Map<String, Map<String, DeploymentArtifact>> artifacts, Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts,
+            Map<String, PaaSNodeTemplate> allNodes)
             throws IOException {
-        OperationWrapper operationWrapper = new OperationWrapper(owner, operation, interfaceName, operationName, artifacts, relationshipArtifacts);
+        OperationWrapper operationWrapper = new OperationWrapper(owner, operation, interfaceName, operationName, artifacts, relationshipArtifacts,
+                propertyEvaluatorService, allNodes);
         Map<String, Object> operationContext = Maps.newHashMap(context);
         operationContext.put("operation", operationWrapper);
         VelocityUtil.generate(pluginResourcesPath.resolve("velocity/script_wrapper.vm"), generatedBlueprintDirectoryPath.resolve(util.getArtifactWrapperPath(

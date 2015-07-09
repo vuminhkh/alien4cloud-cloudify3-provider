@@ -274,7 +274,10 @@ public class CloudifyDeploymentUtil {
         } else if (input instanceof ConcatPropertyValue) {
             return formatConcatPropertyValue(owner, (ConcatPropertyValue) input);
         } else if (input instanceof ScalarPropertyValue) {
-            return "'" + ((ScalarPropertyValue) input).getValue() + "'";
+            return "'''" + ((ScalarPropertyValue) input).getValue() + "'''";
+        } else if (input instanceof PropertyDefinition) {
+            // Custom command do nothing
+            return "''";
         } else {
             throw new NotSupportedException("The value " + input + "'s type is not supported as input");
         }
@@ -295,7 +298,7 @@ public class CloudifyDeploymentUtil {
                 // scalar case
                 String value = ((ScalarPropertyValue) concatParam).getValue();
                 if (StringUtils.isNotEmpty(value)) {
-                    pythonCall.append("\"").append(value).append("\" + ");
+                    pythonCall.append("'''").append(value).append("''' + ");
                 }
             } else if (concatParam instanceof PropertyDefinition) {
                 throw new NotSupportedException("Do not support property definition in a concat");
