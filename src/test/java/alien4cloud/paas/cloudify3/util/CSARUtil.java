@@ -6,8 +6,12 @@ import java.nio.file.Paths;
 
 import javax.annotation.Resource;
 
+import alien4cloud.model.components.Csar;
+import alien4cloud.tosca.parser.ParsingError;
+import alien4cloud.tosca.parser.ParsingResult;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections.MapUtils;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -52,7 +56,13 @@ public class CSARUtil {
         FileUtil.zip(path, zipPath);
         Authentication auth = new TestingAuthenticationToken(Role.ADMIN, "", Role.ADMIN.name());
         SecurityContextHolder.getContext().setAuthentication(auth);
-        archiveUploadService.upload(zipPath);
+        ParsingResult<Csar> result = archiveUploadService.upload(zipPath);
+        if(result.getContext().getParsingErrors() != null && !result.getContext().getParsingErrors().isEmpty()) {
+            for(ParsingError error: result.getContext().getParsingErrors()) {
+                log.error("Parsing error: " + error);
+            }
+            throw new RuntimeException("Parsing of csar failed");
+        }
     }
 
     public void uploadNormativeTypes() throws Exception {

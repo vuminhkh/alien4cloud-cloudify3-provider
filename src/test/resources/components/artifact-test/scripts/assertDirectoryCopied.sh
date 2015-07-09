@@ -5,7 +5,18 @@ if [ -z "$confs_directory" ]; then
 else
     echo "confs_directory is ${confs_directory}"
 fi
-
+if [ -z "$REQUIREMENT_PROPERTY" ]; then
+    echo "REQUIREMENT_PROPERTY is not set"
+    exit 1
+else
+    echo "CAPABILITY_PROPERTY is ${REQUIREMENT_PROPERTY}"
+fi
+if [ -z "$CAPABILITY_PROPERTY" ]; then
+    echo "CAPABILITY_PROPERTY is not set"
+    exit 1
+else
+    echo "CAPABILITY_PROPERTY is ${CAPABILITY_PROPERTY}"
+fi
 if [ -f "$confs_directory/log.properties" ]; then
     echo "confs_directory/log.properties is copied"
 else

@@ -57,6 +57,9 @@ public class CustomWorkflowService extends RuntimeService {
     @Resource
     private BlueprintService blueprintService;
 
+    @Resource
+    private PropertyEvaluatorService propertyEvaluatorService;
+
     private Map<String, Object> buildWorkflowParameters(CloudifyDeployment deployment, CloudifyDeploymentUtil util,
             NodeOperationExecRequest nodeOperationExecRequest, PaaSNodeTemplate node, Operation operation) {
         Map<String, Object> workflowParameters = Maps.newHashMap();
@@ -118,7 +121,7 @@ public class CustomWorkflowService extends RuntimeService {
     public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment, final NodeOperationExecRequest nodeOperationExecRequest) {
         CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
                 mappingConfigurationHolder.getProviderMappingConfiguration(), deployment, blueprintService.resolveBlueprintPath(deployment
-                        .getDeploymentPaaSId()));
+                        .getDeploymentPaaSId()), propertyEvaluatorService);
         if (MapUtils.isEmpty(deployment.getAllNodes()) || !deployment.getAllNodes().containsKey(nodeOperationExecRequest.getNodeTemplateName())) {
             throw new OperationExecutionException("Node " + nodeOperationExecRequest.getNodeTemplateName() + " do not exist in the deployment");
         }

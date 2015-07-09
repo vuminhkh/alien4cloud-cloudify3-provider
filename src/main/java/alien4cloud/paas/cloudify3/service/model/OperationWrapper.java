@@ -12,6 +12,10 @@ import alien4cloud.model.components.ImplementationArtifact;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.OperationOutput;
 import alien4cloud.paas.IPaaSTemplate;
+import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
+import alien4cloud.paas.model.PaaSNodeTemplate;
+
+import com.google.common.collect.Maps;
 
 /**
  * Wrapper for a real operation, give extension to deployment artifacts and others
@@ -45,6 +49,10 @@ public class OperationWrapper extends Operation {
     @Setter
     private Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipDeploymentArtifacts;
 
+    private PropertyEvaluatorService propertyEvaluatorService;
+
+    private Map<String, PaaSNodeTemplate> allNodes;
+
     @Override
     public ImplementationArtifact getImplementationArtifact() {
         return delegate.getImplementationArtifact();
@@ -52,7 +60,14 @@ public class OperationWrapper extends Operation {
 
     @Override
     public Map<String, IValue> getInputParameters() {
-        return delegate.getInputParameters();
+        if (delegate.getInputParameters() == null) {
+            return Maps.newHashMap();
+        }
+        Map<String, IValue> inputs = Maps.newHashMap(delegate.getInputParameters());
+        for (Map.Entry<String, IValue> input : inputs.entrySet()) {
+            input.setValue(propertyEvaluatorService.process(input.getValue(), owner, allNodes));
+        }
+        return inputs;
     }
 
     public Set<OperationOutput> getOutputs() {
