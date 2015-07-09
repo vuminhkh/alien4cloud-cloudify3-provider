@@ -90,10 +90,6 @@ public class BlueprintService {
                 StandardCopyOption.REPLACE_EXISTING);
         Path velocityPath = pluginResourcesPath.resolve("velocity");
         Files.createDirectories(velocityPath);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/amazon_nodes.yaml.vm"), velocityPath.resolve("amazon_nodes.yaml.vm"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/amazon_types.yaml.vm"), velocityPath.resolve("amazon_types.yaml.vm"),
-                StandardCopyOption.REPLACE_EXISTING);
         Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), velocityPath.resolve("blueprint.yaml.vm"),
                 StandardCopyOption.REPLACE_EXISTING);
         Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/openstack_nodes.yaml.vm"), velocityPath.resolve("openstack_nodes.yaml.vm"),

@@ -51,18 +51,6 @@ node_types:
 #foreach($nonNativeType in ${deployment.nonNativesTypes})
   ${nonNativeType.elementId}:
     derived_from: $util.getDerivedFromType($nonNativeType.derivedFrom)
-#if($util.mapHasEntries($nonNativeType.properties))
-    properties:
-#foreach($propertyEntry in ${nonNativeType.properties.entrySet()})
-      $propertyEntry.key:
-        type: string
-#if ($propertyEntry.value.default)
-        default: "$propertyEntry.value.default"
-#else
-        default: ""
-#end
-#end
-#end
 #end
 #end
 
@@ -101,14 +89,6 @@ node_templates:
     type: $nonNativeNode.indexedToscaElement.elementId
     instances:
       deploy: 1
-#if($util.mapHasEntries($nonNativeNode.nodeTemplate.properties))
-    properties:
-#foreach($property in $nonNativeNode.nodeTemplate.properties.entrySet())
-#if($property.value.value)
-      $property.key: "$property.value.value"
-#end
-#end
-#end
 #set( $nodeInterfaces = $util.getNodeInterfaces($nonNativeNode) )
 #if($util.mapHasEntries($nodeInterfaces))
     interfaces:

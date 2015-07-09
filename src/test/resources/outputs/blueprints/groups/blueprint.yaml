@@ -10,8 +10,6 @@ node_types:
   _a4c.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
-      _a4c_native_property:
-        default: {}
       _a4c_native_type:
         default: compute
 

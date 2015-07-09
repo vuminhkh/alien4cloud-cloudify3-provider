@@ -2,9 +2,9 @@ package alien4cloud.paas.cloudify3.configuration;
 
 import javax.validation.constraints.NotNull;
 
-import alien4cloud.ui.form.annotation.FormCustomType;
 import lombok.Getter;
 import lombok.Setter;
+import alien4cloud.ui.form.annotation.FormCustomType;
 import alien4cloud.ui.form.annotation.FormProperties;
 import alien4cloud.ui.form.annotation.FormPropertyConstraint;
 import alien4cloud.ui.form.annotation.FormValidValues;
@@ -18,7 +18,7 @@ public class CloudConfiguration {
     /**
      * Cloudify 3 Rest API URL
      */
-    @FormValidValues({ "openstack", "amazon" })
+    @FormValidValues({ "openstack" })
     @NotNull
     private String provider = "openstack";
 

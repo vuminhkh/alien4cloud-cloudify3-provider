@@ -10,8 +10,6 @@ node_types:
   _a4c.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
-      _a4c_native_property:
-        default: {}
       _a4c_native_type:
         default: compute
 
@@ -24,16 +22,12 @@ node_types:
   _a4c.openstack.Volume:
     derived_from: cloudify.openstack.nodes.Volume
     properties:
-      _a4c_native_property:
-        default: {}
       _a4c_native_type:
         default: volume
 
   _a4c.openstack.Network:
     derived_from: cloudify.openstack.nodes.Network
     properties:
-      _a4c_native_property:
-        default: {}
       _a4c_native_type:
         default: network
 
@@ -67,52 +61,12 @@ node_types:
 
   alien.nodes.Apache:
     derived_from: cloudify.nodes.WebServer
-    properties:
-      version:
-        type: string
-        default: "2.4"
-      port:
-        type: string
-        default: "80"
-      document_root:
-        type: string
-        default: "/var/www"
   alien.nodes.Mysql:
     derived_from: cloudify.nodes.Database
-    properties:
-      db_port:
-        type: string
-        default: "3306"
-      db_name:
-        type: string
-        default: "wordpress"
-      db_user:
-        type: string
-        default: "pass"
-      db_password:
-        type: string
-        default: "pass"
-      bind_address:
-        type: string
-        default: "true"
-      storage_path:
-        type: string
-        default: "/mountedStorage"
   alien.nodes.Wordpress:
     derived_from: cloudify.nodes.ApplicationModule
-    properties:
-      zip_url:
-        type: string
-        default: "https://wordpress.org/latest.zip"
-      context_path:
-        type: string
-        default: "/"
   alien.nodes.PHP:
     derived_from: cloudify.nodes.SoftwareComponent
-    properties:
-      version:
-        type: string
-        default: "5"
 
 relationships:
   _a4c.cloudify.relationships.file_system_depends_on_volume:
@@ -141,9 +95,6 @@ node_templates:
   DataBase:
     type: _a4c.openstack.Compute
     properties:
-      _a4c_native_property:
-        os_arch: "x86_64"
-        os_type: "linux"
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
       flavor: 2
     instances:
@@ -156,9 +107,6 @@ node_templates:
   Server:
     type: _a4c.openstack.Compute
     properties:
-      _a4c_native_property:
-        os_arch: "x86_64"
-        os_type: "linux"
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
       flavor: 2
     instances:
@@ -180,8 +128,6 @@ node_templates:
     type: _a4c.openstack.Network
     properties:
       resource_id: internal-network
-      _a4c_native_property:
-        network_name: "internal-network"
   InternalNetwork_subnet:
     type: cloudify.openstack.nodes.Subnet
     properties:
@@ -206,9 +152,6 @@ node_templates:
   DataBaseStorage:
     type: _a4c.openstack.Volume
     properties:
-      _a4c_native_property:
-        file_system: "ext4"
-        location: "/var/mysql"
       device_name: /dev/vdb
       volume:
         size: 1
@@ -220,10 +163,6 @@ node_templates:
     type: alien.nodes.Apache
     instances:
       deploy: 1
-    properties:
-      port: "80"
-      document_root: "/var/www"
-      version: "2.4"
     interfaces:
       cloudify.interfaces.lifecycle:
         start: Apache/tosca.interfaces.node.lifecycle.Standard/start/apache-type/scripts/_a4c_start_apache.py
@@ -235,8 +174,6 @@ node_templates:
     type: alien.nodes.PHP
     instances:
       deploy: 1
-    properties:
-      version: "5"
     interfaces:
       cloudify.interfaces.lifecycle:
         create: PHP/tosca.interfaces.node.lifecycle.Standard/create/php-type/scripts/_a4c_install_php.py
@@ -247,9 +184,6 @@ node_templates:
     type: alien.nodes.Wordpress
     instances:
       deploy: 1
-    properties:
-      context_path: "/"
-      zip_url: "https://wordpress.org/latest.zip"
     interfaces:
       cloudify.interfaces.lifecycle:
         create: Wordpress/tosca.interfaces.node.lifecycle.Standard/create/wordpress-type/scripts/_a4c_install_wordpress.py
@@ -273,13 +207,6 @@ node_templates:
     type: alien.nodes.Mysql
     instances:
       deploy: 1
-    properties:
-      bind_address: "true"
-      storage_path: "/mountedStorage"
-      db_port: "3306"
-      db_name: "wordpress"
-      db_user: "pass"
-      db_password: "pass"
     interfaces:
       cloudify.interfaces.lifecycle:
         start: Mysql/tosca.interfaces.node.lifecycle.Standard/start/mysql-type/scripts/_a4c_start_mysql.py

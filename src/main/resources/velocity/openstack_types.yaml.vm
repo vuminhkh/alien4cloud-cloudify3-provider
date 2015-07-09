@@ -4,10 +4,6 @@
   ${util.tryToMapComputeType($computeType, "${mapping.generatedTypePrefix}.openstack.Compute")}:
     derived_from: ${util.tryToMapComputeTypeDerivedFrom($computeType)}
     properties:
-#if($util.mapHasEntries(${computeType.properties}))
-      ${mapping.nativePropertyParent}:
-        default: {}
-#end
       ${mapping.nativeTypePropertyName}:
         default: compute
 #end
@@ -28,10 +24,6 @@
   ${util.tryToMapVolumeType($volumeType, "${mapping.generatedTypePrefix}.openstack.Volume")}:
     derived_from: ${util.tryToMapVolumeTypeDerivedFrom($volumeType)}
     properties:
-#if($util.mapHasEntries(${volumeType.properties}))
-      ${mapping.nativePropertyParent}:
-        default: {}
-#end
       ${mapping.nativeTypePropertyName}:
         default: volume
 #end
@@ -43,10 +35,6 @@
   ${util.tryToMapNetworkType($networkType, "${mapping.generatedTypePrefix}.openstack.Network")}:
     derived_from: ${util.tryToMapNetworkTypeDerivedFrom($networkType)}
     properties:
-#if($util.mapHasEntries(${networkType.properties}))
-      ${mapping.nativePropertyParent}:
-        default: {}
-#end
       ${mapping.nativeTypePropertyName}:
         default: network
 #end

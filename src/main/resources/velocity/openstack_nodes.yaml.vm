@@ -3,14 +3,6 @@
   ${matchedPaaSCompute.paaSNodeTemplate.id}:
     type: ${util.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.openstack.Compute")}
     properties:
-#if(${util.mapHasEntries(${matchedPaaSCompute.paaSNodeTemplate.nodeTemplate.properties})})
-      ${mapping.nativePropertyParent}:
-#foreach($property in ${matchedPaaSCompute.paaSNodeTemplate.nodeTemplate.properties.entrySet()})
-#if($property.value.value)
-        $property.getKey(): "$property.value.value"
-#end
-#end
-#end
       image: ${matchedPaaSCompute.paaSComputeTemplate.image}
       flavor: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
 #if(${matchedPaaSCompute.paaSComputeTemplate.availabilityZone} || ${cloud.cloudInit})
@@ -61,14 +53,6 @@ ${util.formatTextWithIndentation(10, ${cloud.cloudInit})}
     type: ${util.tryToMapNetworkType($matchedNetwork.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.openstack.Network")}
     properties:
       resource_id: ${network.id}
-#if(${util.mapHasEntries(${matchedNetwork.paaSNodeTemplate.nodeTemplate.properties})})
-      ${mapping.nativePropertyParent}:
-#foreach($property in ${matchedNetwork.paaSNodeTemplate.nodeTemplate.properties.entrySet()})
-#if($property.value.value)
-        $property.getKey(): "$property.value.value"
-#end
-#end
-#end
   ${matchedNetwork.paaSNodeTemplate.id}_subnet:
     type: ${providerMapping.nativeTypes.subnetType}
     properties:
@@ -106,14 +90,6 @@ ${util.formatTextWithIndentation(10, ${cloud.cloudInit})}
   ${matchedVolume.paaSNodeTemplate.id}:
     type: ${util.tryToMapVolumeType($matchedVolume.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.openstack.Volume")}
     properties:
-#if(${util.mapHasEntries(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties})})
-      ${mapping.nativePropertyParent}:
-#foreach($property in ${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.entrySet()})
-#if($property.value.value)
-        $property.getKey(): "$property.value.value"
-#end
-#end
-#end
 #if($externalVolumeId)
       resource_id: $externalVolumeId
       use_external_resource: true
