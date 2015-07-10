@@ -12,7 +12,7 @@ import alien4cloud.ui.form.annotation.FormValidValues;
 @Getter
 @Setter
 @SuppressWarnings("PMD.UnusedPrivateField")
-@FormProperties({ "provider", "url", "debugScript", "cloudInit" })
+@FormProperties({ "provider", "url", "cloudInit" })
 public class CloudConfiguration {
 
     /**
@@ -25,9 +25,6 @@ public class CloudConfiguration {
     @FormPropertyConstraint(pattern = "http\\:.+(?:\\d+)")
     @NotNull
     private String url = "http://yourManagerIP:8100";
-
-    @NotNull
-    private Boolean debugScript = false;
 
     /**
      * Normally the cloud init is associated to template, it's here just to be a workaround to wait for the solution
