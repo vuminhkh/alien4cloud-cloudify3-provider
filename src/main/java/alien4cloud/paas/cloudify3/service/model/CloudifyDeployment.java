@@ -70,4 +70,6 @@ public class CloudifyDeployment {
      * (id of the relationship, source node id) --> artifact_name --> artifact
      */
     private Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipDeploymentArtifacts;
+
+    private Map<String, String> providerDeploymentProperties;
 }

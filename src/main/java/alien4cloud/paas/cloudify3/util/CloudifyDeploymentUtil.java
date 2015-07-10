@@ -1,8 +1,6 @@
 package alien4cloud.paas.cloudify3.util;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,6 +35,7 @@ import alien4cloud.model.components.OperationOutput;
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.IPaaSTemplate;
+import alien4cloud.paas.cloudify3.CloudifyPaaSProviderFactory;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
@@ -882,4 +881,16 @@ public class CloudifyDeploymentUtil {
         return (operationWrapper.getOwner() instanceof PaaSRelationshipTemplate);
     }
 
+    /**
+     * @return true if the provider deployment property 'deletable_blockstorage' is true.
+     */
+    public boolean hasDeletableBlockstorageOptionEnabled(CloudifyDeployment cloudifyDeployment) {
+        if (cloudifyDeployment.getProviderDeploymentProperties() != null) {
+            String value = cloudifyDeployment.getProviderDeploymentProperties().get(CloudifyPaaSProviderFactory.DELETABLE_BLOCKSTORAGE);
+            if (value != null) {
+                return Boolean.parseBoolean(value);
+            }
+        }
+        return false;
+    }
 }

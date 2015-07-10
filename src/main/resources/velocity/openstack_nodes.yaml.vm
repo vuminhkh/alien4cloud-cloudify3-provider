@@ -105,7 +105,7 @@ ${util.formatTextWithIndentation(10, ${cloud.cloudInit})}
         availability_zone: $volumeAvailabilityZone
 #end
 #end
-#if(!${util.isDeletableVolumeType(${matchedVolume.paaSNodeTemplate.indexedToscaElement})})
+#if(!(${util.isDeletableVolumeType(${matchedVolume.paaSNodeTemplate.indexedToscaElement})} || ${util.hasDeletableBlockstorageOptionEnabled($deployment)}))
     interfaces:
       cloudify.interfaces.lifecycle:
         delete: {}

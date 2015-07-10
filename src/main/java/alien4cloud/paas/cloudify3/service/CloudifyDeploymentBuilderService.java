@@ -128,7 +128,7 @@ public class CloudifyDeploymentBuilderService {
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), getTypesOrderedByDerivedFromHierarchy(deploymentContext
                         .getPaaSTopology().getComputes()), getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()),
                 getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()), deploymentContext.getPaaSTopology().getAllNodes(),
-                allArtifacts, allRelationshipArtifacts);
+                allArtifacts, allRelationshipArtifacts, deploymentContext.getDeploymentSetup().getProviderDeploymentProperties());
         return deployment;
     }
 }
