@@ -36,7 +36,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Handle custom workflow (non lifecycle workflow) which permit to modify the deployment at runtime
- * 
+ *
  * @author Minh Khang VU
  */
 @Component("cloudify-custom-workflow-service")
@@ -56,6 +56,9 @@ public class CustomWorkflowService extends RuntimeService {
 
     @Resource
     private BlueprintService blueprintService;
+
+    @Resource
+    private PropertyEvaluatorService propertyEvaluatorService;
 
     private Map<String, Object> buildWorkflowParameters(CloudifyDeployment deployment, CloudifyDeploymentUtil util,
             NodeOperationExecRequest nodeOperationExecRequest, PaaSNodeTemplate node, Operation operation) {
@@ -118,7 +121,7 @@ public class CustomWorkflowService extends RuntimeService {
     public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment, final NodeOperationExecRequest nodeOperationExecRequest) {
         CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
                 mappingConfigurationHolder.getProviderMappingConfiguration(), deployment, blueprintService.resolveBlueprintPath(deployment
-                        .getDeploymentPaaSId()));
+                        .getDeploymentPaaSId()), propertyEvaluatorService);
         if (MapUtils.isEmpty(deployment.getAllNodes()) || !deployment.getAllNodes().containsKey(nodeOperationExecRequest.getNodeTemplateName())) {
             throw new OperationExecutionException("Node " + nodeOperationExecRequest.getNodeTemplateName() + " do not exist in the deployment");
         }

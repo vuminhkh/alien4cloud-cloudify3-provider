@@ -15,12 +15,21 @@ node_types:
 
   alien.nodes.TestArtifactDirectory:
     derived_from: tosca.nodes.SoftwareComponent
+    requirements:
+      - test_requirement: alien.capabilities.TestCapability
+    capabilities:
+      test_capability:
+        type: alien.capabilities.TestCapability
     artifacts:
       - confs_directory: conf
         type: tosca.artifacts.File
     interfaces:
       Standard:
-        create: scripts/assertDirectoryCopied.sh
+        create:
+          inputs:
+            REQUIREMENT_PROPERTY: { get_property: [SELF, test_requirement, test_capability_property] }
+            CAPABILITY_PROPERTY: { get_property: [SELF, test_capability, test_capability_property] }
+          implementation: scripts/assertDirectoryCopied.sh
 
   alien.nodes.WarWithLifeCycleScript:
     derived_from: alien.nodes.War
@@ -28,6 +37,14 @@ node_types:
     interfaces:
       Standard:
         create: scripts/create.sh
+
+capability_types:
+
+  alien.capabilities.TestCapability:
+    derived_from: tosca.capabilities.Root
+    properties:
+      test_capability_property:
+        type: string
 
 relationship_types:
 

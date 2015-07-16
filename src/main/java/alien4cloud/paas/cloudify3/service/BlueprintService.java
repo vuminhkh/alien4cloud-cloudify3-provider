@@ -1,9 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -12,11 +9,11 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -34,16 +31,18 @@ import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.topology.AbstractTemplate;
+import alien4cloud.paas.IPaaSTemplate;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.cloudify3.service.model.OperationWrapper;
+import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.cloudify3.util.CloudifyDeploymentUtil;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.utils.FileUtil;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 
 /**
@@ -53,10 +52,6 @@ import com.google.common.collect.Maps;
  */
 @Component("cloudify-blueprint-service")
 public class BlueprintService {
-
-    public static final String SHELL_SCRIPT_ARTIFACT = "tosca.artifacts.ShellScript";
-
-    public static final Pattern SCRIPT_ECHO_PATTERN = Pattern.compile("^\\s*echo ((?:([\"'])[^\"]*\\2)|(?:[\\p{Alnum}\\p{Blank}]*))$");
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -73,7 +68,45 @@ public class BlueprintService {
     @Resource
     private ArtifactLocalRepository artifactRepository;
 
+    @Resource
+    private PropertyEvaluatorService propertyEvaluatorService;
+
     private Path recipeDirectoryPath;
+
+    private Path pluginResourcesPath;
+
+    @PostConstruct
+    public void postConstruct() throws IOException {
+        Path artifactsPath = pluginResourcesPath.resolve("artifacts");
+        Path volumeScriptPath = artifactsPath.resolve("volume");
+        Files.createDirectories(volumeScriptPath);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Path velocityPath = pluginResourcesPath.resolve("velocity");
+        Files.createDirectories(velocityPath);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), velocityPath.resolve("blueprint.yaml.vm"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/openstack_nodes.yaml.vm"), velocityPath.resolve("openstack_nodes.yaml.vm"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/openstack_types.yaml.vm"), velocityPath.resolve("openstack_types.yaml.vm"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/script_wrapper.vm"), velocityPath.resolve("script_wrapper.vm"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/non_native/download_artifacts.py"),
+                velocityPath.resolve("download_artifacts.py"), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/non_native/script_wrapper_static.py"),
+                velocityPath.resolve("script_wrapper_static.py"), StandardCopyOption.REPLACE_EXISTING);
+        Path wrapperPath = pluginResourcesPath.resolve("wrapper");
+        Files.createDirectories(wrapperPath);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("wrapper/scriptWrapper.sh"), wrapperPath.resolve("scriptWrapper.sh"),
+                StandardCopyOption.REPLACE_EXISTING);
+    }
 
     /**
      * Generate blueprint from an alien deployment request
@@ -87,7 +120,7 @@ public class BlueprintService {
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
         CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
-                mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment, generatedBlueprintDirectoryPath);
+                mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment, generatedBlueprintDirectoryPath, propertyEvaluatorService);
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
@@ -96,12 +129,8 @@ public class BlueprintService {
         context.put("util", util);
         context.put("deployment", alienDeployment);
         context.put("newline", "\n");
-        context.put("provider_nodes_file",
-                resourceLoaderService.loadResourceFromClasspath("velocity/" + cloudConfigurationHolder.getConfiguration().getProvider() + "-nodes.yaml.vm")
-                        .getFileName().toString());
-        context.put("provider_types_file",
-                resourceLoaderService.loadResourceFromClasspath("velocity/" + cloudConfigurationHolder.getConfiguration().getProvider() + "-types.yaml.vm")
-                        .getFileName().toString());
+        context.put("provider_nodes_file", cloudConfigurationHolder.getConfiguration().getProvider() + "_nodes.yaml.vm");
+        context.put("provider_types_file", cloudConfigurationHolder.getConfiguration().getProvider() + "_types.yaml.vm");
         // Copy artifacts
         List<PaaSNodeTemplate> nonNatives = alienDeployment.getNonNatives();
         if (nonNatives != null) {
@@ -128,55 +157,78 @@ public class BlueprintService {
         if (util.hasConfiguredVolume(alienDeployment.getVolumes())) {
             Path volumeScriptPath = nativeArtifactDirectory.resolve("volume");
             Files.createDirectories(volumeScriptPath);
-            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
-            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
-            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
-            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
+            Files.copy(pluginResourcesPath.resolve("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
+            Files.copy(pluginResourcesPath.resolve("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
+            Files.copy(pluginResourcesPath.resolve("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
+            Files.copy(pluginResourcesPath.resolve("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
         }
-        if (util.mapHasEntries(alienDeployment.getAllDeploymentArtifacts())) {
-            Path deploymentArtifactsScriptPath = nativeArtifactDirectory.resolve("deployment_artifacts");
-            Files.createDirectories(deploymentArtifactsScriptPath);
-            Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/deployment_artifacts/download_artifacts.py"),
-                    deploymentArtifactsScriptPath.resolve("download_artifacts.py"));
+        for (PaaSNodeTemplate node : alienDeployment.getNonNatives()) {
+            Map<String, Interface> interfaces = util.getNodeInterfaces(node);
+            if (MapUtils.isNotEmpty(interfaces)) {
+                for (Map.Entry<String, Interface> inter : interfaces.entrySet()) {
+                    Map<String, Operation> operations = inter.getValue().getOperations();
+                    for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
+                        Map<String, Map<String, DeploymentArtifact>> artifacts = Maps.newHashMap();
+                        // Special case when it's a node operation, then the only artifacts that are being injected is of the node it-self
+                        if (MapUtils.isNotEmpty(node.getIndexedToscaElement().getArtifacts())) {
+                            artifacts.put(node.getId(), node.getIndexedToscaElement().getArtifacts());
+                        }
+                        generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(), operationEntry.getValue(), node, util, context,
+                                generatedBlueprintDirectoryPath, artifacts, null, alienDeployment.getAllNodes());
+                    }
+                }
+            }
+            List<PaaSRelationshipTemplate> relationships = util.getSourceRelationships(node);
+            for (PaaSRelationshipTemplate relationship : relationships) {
+                Map<String, Interface> relationshipInterfaces = util.getRelationshipInterfaces(relationship);
+                if (MapUtils.isNotEmpty(relationshipInterfaces)) {
+                    for (Map.Entry<String, Interface> inter : relationshipInterfaces.entrySet()) {
+                        Map<String, Operation> operations = inter.getValue().getOperations();
+                        for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
+                            Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(), relationship
+                                    .getRelationshipTemplate().getTarget());
+                            Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts = Maps.newHashMap();
+                            if (MapUtils.isNotEmpty(relationship.getIndexedToscaElement().getArtifacts())) {
+                                relationshipArtifacts.put(keyRelationship, relationship.getIndexedToscaElement().getArtifacts());
+                            }
+                            Map<String, Map<String, DeploymentArtifact>> artifacts = Maps.newHashMap();
+                            Map<String, DeploymentArtifact> sourceArtifacts = alienDeployment.getAllNodes().get(relationship.getSource())
+                                    .getIndexedToscaElement().getArtifacts();
+                            if (MapUtils.isNotEmpty(sourceArtifacts)) {
+                                artifacts.put(relationship.getSource(), sourceArtifacts);
+                            }
+                            Map<String, DeploymentArtifact> targetArtifacts = alienDeployment.getAllNodes()
+                                    .get(relationship.getRelationshipTemplate().getTarget()).getIndexedToscaElement().getArtifacts();
+                            if (MapUtils.isNotEmpty(targetArtifacts)) {
+                                artifacts.put(relationship.getRelationshipTemplate().getTarget(), targetArtifacts);
+                            }
+                            generateOperationScriptWrapper(inter.getKey(), operationEntry.getKey(), operationEntry.getValue(), relationship, util, context,
+                                    generatedBlueprintDirectoryPath, artifacts, relationshipArtifacts, alienDeployment.getAllNodes());
+                        }
+                    }
+                }
+            }
+        }
+        if (!alienDeployment.getNonNatives().isEmpty()) {
+            Files.copy(pluginResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
         }
         // Generate the blueprint at the end
-        VelocityUtil.generate(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
+        VelocityUtil.generate(pluginResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
     }
 
-    private void copyShellScriptImplementationArtifact(Path artifactPath, Path artifactCopiedPath) throws IOException {
-        BufferedReader artifactReader = null;
-        OutputStream artifactOutput = null;
-        try {
-            artifactReader = Files.newBufferedReader(artifactPath, Charsets.UTF_8);
-            artifactOutput = new BufferedOutputStream(Files.newOutputStream(artifactCopiedPath));
-            String line;
-            while ((line = artifactReader.readLine()) != null) {
-                Matcher matcher = SCRIPT_ECHO_PATTERN.matcher(line);
-                if (matcher.matches()) {
-                    String logContent = matcher.group(1);
-                    if (!logContent.startsWith("\"") && !logContent.startsWith("'")) {
-                        logContent = "\"" + logContent + "\"";
-                    }
-                    artifactOutput.write(("ctx logger info " + logContent + "\n").getBytes(Charsets.UTF_8));
-                } else {
-                    artifactOutput.write((line + "\n").getBytes(Charsets.UTF_8));
-                }
-            }
-        } finally {
-            if (artifactReader != null) {
-                try {
-                    artifactReader.close();
-                } catch (IOException e) {
-                }
-            }
-            if (artifactOutput != null) {
-                try {
-                    artifactOutput.close();
-                } catch (IOException e) {
-                }
-            }
-        }
+    private OperationWrapper generateOperationScriptWrapper(String interfaceName, String operationName, Operation operation, IPaaSTemplate<?> owner,
+            CloudifyDeploymentUtil util, Map<String, Object> context, Path generatedBlueprintDirectoryPath,
+            Map<String, Map<String, DeploymentArtifact>> artifacts, Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts,
+            Map<String, PaaSNodeTemplate> allNodes)
+            throws IOException {
+        OperationWrapper operationWrapper = new OperationWrapper(owner, operation, interfaceName, operationName, artifacts, relationshipArtifacts,
+                propertyEvaluatorService, allNodes);
+        Map<String, Object> operationContext = Maps.newHashMap(context);
+        operationContext.put("operation", operationWrapper);
+        VelocityUtil.generate(pluginResourcesPath.resolve("velocity/script_wrapper.vm"), generatedBlueprintDirectoryPath.resolve(util.getArtifactWrapperPath(
+                owner, interfaceName, operationName, operation.getImplementationArtifact())), operationContext);
+        return operationWrapper;
     }
 
     private void copyArtifact(Path generatedBlueprintDirectoryPath, Path csarPath, String pathToNode, IArtifact artifact, IArtifact originalArtifact)
@@ -203,17 +255,10 @@ public class BlueprintService {
             return;
         }
         Files.createDirectories(artifactCopiedPath.getParent());
-        // For shell script we try to match all echo command and replace them with ctx logger info (cloudify 3 API for logging)
-        // Only enabled for debugging purpose
-        if (cloudConfigurationHolder.getConfiguration().getDebugScript() && SHELL_SCRIPT_ARTIFACT.equals(artifact.getArtifactType())
-                && artifact instanceof ImplementationArtifact) {
-            copyShellScriptImplementationArtifact(artifactPath, artifactCopiedPath);
+        if (Files.isDirectory(artifactPath)) {
+            FileUtil.copy(artifactPath, artifactCopiedPath, StandardCopyOption.REPLACE_EXISTING);
         } else {
-            if (Files.isDirectory(artifactPath)) {
-                FileUtil.copy(artifactPath, artifactCopiedPath, StandardCopyOption.REPLACE_EXISTING);
-            } else {
-                Files.copy(artifactPath, artifactCopiedPath);
-            }
+            Files.copy(artifactPath, artifactCopiedPath);
         }
     }
 
@@ -262,7 +307,11 @@ public class BlueprintService {
 
     @Required
     @Value("${directories.alien}/cloudify3")
-    public void setRecipeDirectoryPath(final String path) {
-        recipeDirectoryPath = Paths.get(path).toAbsolutePath();
+    public void setCloudifyPath(final String path) throws IOException {
+        Path cloudifyPath = Paths.get(path).toAbsolutePath();
+        recipeDirectoryPath = cloudifyPath.resolve("recipes");
+        Files.createDirectories(recipeDirectoryPath);
+        pluginResourcesPath = cloudifyPath.resolve("resources");
+        Files.createDirectories(pluginResourcesPath);
     }
 }

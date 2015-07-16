@@ -13,5 +13,6 @@ native_types:
 attributes:
   compute:
     ip_address: ip
+    public_ip_address: floating_ip_address
   volume:
     volume_id: external_id

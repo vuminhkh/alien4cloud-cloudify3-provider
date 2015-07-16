@@ -53,6 +53,20 @@ node_templates:
   Artifact_Directory_Test:
     type: alien.nodes.TestArtifactDirectory
     name: Artifact_Directory_Test
+    requirements:
+      test_requirement:
+        type: alien.capabilities.TestCapability
+        properties:
+          test_capability_property:
+            value: "Test requirement i'm great"
+    capabilities:
+      test_capability:
+        type: alien.capabilities.TestCapability
+        properties:
+          test_capability_property:
+            value: |
+              It's really a great day to begin
+              to love
     artifacts:
       confs_directory:
         artifact_type: tosca.artifacts.File

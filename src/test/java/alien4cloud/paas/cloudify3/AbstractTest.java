@@ -115,7 +115,6 @@ public class AbstractTest {
             cloudifyURL = apiUrl;
         }
         cloudConfiguration.setUrl(cloudifyURL);
-        cloudConfiguration.setDebugScript(true);
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         CloudResourceMatcherConfig matcherConfig = new CloudResourceMatcherConfig();
 

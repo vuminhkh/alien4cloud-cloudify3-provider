@@ -15,6 +15,8 @@ public class MappingConfiguration {
 
     private String generatedNodePrefix;
 
+    private String generatedArtifactPrefix;
+
     private String nativeTypePropertyName;
 
     private String nativePropertyParent;

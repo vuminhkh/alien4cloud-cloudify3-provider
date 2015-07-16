@@ -4,6 +4,7 @@ import javax.validation.constraints.NotNull;
 
 import lombok.Getter;
 import lombok.Setter;
+import alien4cloud.ui.form.annotation.FormCustomType;
 import alien4cloud.ui.form.annotation.FormProperties;
 import alien4cloud.ui.form.annotation.FormPropertyConstraint;
 import alien4cloud.ui.form.annotation.FormValidValues;
@@ -11,13 +12,13 @@ import alien4cloud.ui.form.annotation.FormValidValues;
 @Getter
 @Setter
 @SuppressWarnings("PMD.UnusedPrivateField")
-@FormProperties({ "provider", "url", "debugScript" })
+@FormProperties({ "provider", "url", "cloudInit" })
 public class CloudConfiguration {
 
     /**
      * Cloudify 3 Rest API URL
      */
-    @FormValidValues({ "openstack", "amazon" })
+    @FormValidValues({ "openstack" })
     @NotNull
     private String provider = "openstack";
 
@@ -25,6 +26,9 @@ public class CloudConfiguration {
     @NotNull
     private String url = "http://yourManagerIP:8100";
 
-    @NotNull
-    private Boolean debugScript = false;
+    /**
+     * Normally the cloud init is associated to template, it's here just to be a workaround to wait for the solution
+     */
+    @FormCustomType("text")
+    private String cloudInit;
 }

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -72,13 +71,5 @@ public class CloudifyDeployment {
      */
     private Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipDeploymentArtifacts;
 
-    @EqualsAndHashCode
-    @Getter
-    @Setter
-    @AllArgsConstructor
-    public static class Relationship {
-        private String id;
-        private String source;
-        private String target;
-    }
+    private Map<String, String> providerDeploymentProperties;
 }

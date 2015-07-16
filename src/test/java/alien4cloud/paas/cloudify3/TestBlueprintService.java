@@ -1,6 +1,5 @@
 package alien4cloud.paas.cloudify3;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -8,7 +7,6 @@ import java.nio.file.StandardCopyOption;
 
 import javax.annotation.Resource;
 
-import junitx.framework.FileAssert;
 import lombok.SneakyThrows;
 
 import org.junit.Assert;
@@ -23,7 +21,9 @@ import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
+import alien4cloud.paas.cloudify3.util.FileTestUtil;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.utils.FileUtil;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
@@ -82,11 +82,12 @@ public class TestBlueprintService extends AbstractDeploymentTest {
             contextVisitor.visitDeploymentContext(context);
         }
         Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(context));
-        String recordedFile = "src/test/resources/outputs/blueprints/" + outputFile + ".yaml";
+        Path generatedDirectory = generated.getParent();
+        String recordedDirectory = "src/test/resources/outputs/blueprints/" + outputFile;
         if (record) {
-            Files.copy(generated, Paths.get(recordedFile), StandardCopyOption.REPLACE_EXISTING);
+            FileUtil.copy(generatedDirectory, Paths.get(recordedDirectory), StandardCopyOption.REPLACE_EXISTING);
         } else {
-            FileAssert.assertEquals(new File(recordedFile), generated.toFile());
+            FileTestUtil.assertFilesAreSame(Paths.get(recordedDirectory), generatedDirectory);
         }
         // Check if cloudify accept the blueprint
         blueprintDAO.create(topology, generated.toString());
@@ -133,7 +134,6 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     private void validateTomcatArtifacts(Path generated) {
-        Assert.assertTrue(Files.exists(generated.getParent().resolve(nativeDirectoryName).resolve("deployment_artifacts/download_artifacts.py")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/java_install.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_install.sh")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("tomcat-war-types/scripts/tomcat_start.sh")));
@@ -172,7 +172,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
                     }
                 });
         validateTomcatArtifacts(generated);
-        Assert.assertTrue(Files.exists(generated.getParent().resolve("_a4c_cfy3_topology_artifact/War/tomcat-war-types/warFiles/helloWorld.war")));
+        Assert.assertTrue(Files.exists(generated.getParent().resolve("_a4c_topology_artifact/War/tomcat-war-types/warFiles/helloWorld.war")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/settings.properties")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/log.properties")));
         Assert.assertTrue(Files.exists(generated.getParent().resolve("artifact-test-types/conf/test/nestedDirTest.txt")));

@@ -151,7 +151,6 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     }
 
     @org.junit.Test
-    @Ignore
     public void testDeployBlockStorage() throws Exception {
         launchTest(STORAGE_TOPOLOGY);
     }

@@ -33,7 +33,6 @@ import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.util.DateUtil;
 import alien4cloud.paas.cloudify3.util.MapUtil;
-import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.InstanceStatus;
@@ -223,14 +222,16 @@ public class StatusService {
                     if (MapUtils.isNotEmpty(nodeTemplate.getAttributes())) {
                         instanceInformation.setAttributes(nodeTemplate.getAttributes());
                     }
-                    if (node != null && node.getProperties() != null) {
-                        String nativeType = getNativeType(node);
-                        if (nativeType != null && runtimeProperties != null) {
+                    if (node != null && runtimeProperties != null) {
+                        String nativeType = node.getProperties() != null ? getNativeType(node) : null;
+                        if (nativeType != null) {
                             Map<String, String> attributes = getAttributesFromRuntimeProperties(nativeType, runtimeProperties);
                             if (instanceInformation.getAttributes() == null) {
                                 instanceInformation.setAttributes(Maps.<String, String> newHashMap());
                             }
                             instanceInformation.getAttributes().putAll(attributes);
+                        } else {
+                            instanceInformation.getAttributes().putAll(runtimeProperties);
                         }
                     }
                     nodeInformation.put(instanceId, instanceInformation);
@@ -248,7 +249,6 @@ public class StatusService {
                         }
                     }
                 }
-                FunctionEvaluator.postProcessInstanceInformation(information, deploymentContext.getTopology(), deploymentContext.getPaaSTopology());
                 callback.onSuccess(information);
             }
 
