@@ -1,0 +1,10 @@
+## Compute types
+#if($util.collectionHasElement(${deployment.computeTypes}))
+#foreach($computeType in ${deployment.computeTypes})
+  ${util.tryToMapComputeType($computeType, "${mapping.generatedTypePrefix}.byon.Compute")}:
+    derived_from: ${util.tryToMapComputeTypeDerivedFrom($computeType)}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: compute
+#end
+#end

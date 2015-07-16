@@ -1,5 +1,7 @@
 package alien4cloud.paas.cloudify3.service.model;
 
+import java.util.Map;
+
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -20,8 +22,6 @@ public class PaaSComputeTemplate {
 
     private String availabilityZone;
 
-    public PaaSComputeTemplate(String image, String flavor) {
-        this.image = image;
-        this.flavor = flavor;
-    }
+    // TODO it's ugly, for byon only while waiting for paaS provider refactoring
+    private Map<String, String> userData;
 }

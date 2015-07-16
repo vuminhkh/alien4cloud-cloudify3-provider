@@ -77,6 +77,7 @@ public class BlueprintService {
 
     @PostConstruct
     public void postConstruct() throws IOException {
+        // TODO How to do this recursively
         Path artifactsPath = pluginResourcesPath.resolve("artifacts");
         Path volumeScriptPath = artifactsPath.resolve("volume");
         Files.createDirectories(volumeScriptPath);
@@ -95,6 +96,10 @@ public class BlueprintService {
         Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/openstack_nodes.yaml.vm"), velocityPath.resolve("openstack_nodes.yaml.vm"),
                 StandardCopyOption.REPLACE_EXISTING);
         Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/openstack_types.yaml.vm"), velocityPath.resolve("openstack_types.yaml.vm"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/byon_nodes.yaml.vm"), velocityPath.resolve("byon_nodes.yaml.vm"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/byon_types.yaml.vm"), velocityPath.resolve("byon_types.yaml.vm"),
                 StandardCopyOption.REPLACE_EXISTING);
         Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/script_wrapper.vm"), velocityPath.resolve("script_wrapper.vm"),
                 StandardCopyOption.REPLACE_EXISTING);
@@ -220,8 +225,7 @@ public class BlueprintService {
     private OperationWrapper generateOperationScriptWrapper(String interfaceName, String operationName, Operation operation, IPaaSTemplate<?> owner,
             CloudifyDeploymentUtil util, Map<String, Object> context, Path generatedBlueprintDirectoryPath,
             Map<String, Map<String, DeploymentArtifact>> artifacts, Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts,
-            Map<String, PaaSNodeTemplate> allNodes)
-            throws IOException {
+            Map<String, PaaSNodeTemplate> allNodes) throws IOException {
         OperationWrapper operationWrapper = new OperationWrapper(owner, operation, interfaceName, operationName, artifacts, relationshipArtifacts,
                 propertyEvaluatorService, allNodes);
         Map<String, Object> operationContext = Maps.newHashMap(context);
