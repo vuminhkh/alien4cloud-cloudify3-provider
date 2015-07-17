@@ -11,7 +11,7 @@ if [ -z "${use_external_resource}" ]; then
     (echo n; echo p; echo ${partition_number}; echo ; echo ; echo t; echo ${partition_type}; echo w) | sudo fdisk ${device_name}
 
 else
-    ctx logger info "Not paritioning device since 'use_external_resource' is set to true"
+    ctx logger info "Not partitioning device since 'use_external_resource' is set to true"
 fi
 
 # Set this runtime property on the source (the filesystem)

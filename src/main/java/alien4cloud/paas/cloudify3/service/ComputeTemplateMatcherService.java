@@ -101,6 +101,9 @@ public class ComputeTemplateMatcherService {
 
     private Map<String, String> getUserData(String image, String flavor, String desc) {
         ComputeTemplateConfiguration[] templateConfigurations = cloudConfigurationHolder.getConfiguration().getTemplateConfigurations();
+        if (templateConfigurations == null) {
+            return null;
+        }
         for (ComputeTemplateConfiguration templateConfiguration : templateConfigurations) {
             if (templateConfiguration.getFlavorId() == null || templateConfiguration.getImageId() == null) {
                 continue;
