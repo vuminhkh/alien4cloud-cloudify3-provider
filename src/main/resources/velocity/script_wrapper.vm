@@ -46,10 +46,10 @@ def get_property(entity, property_name):
 #if(${providerMapping.attributes.compute.public_ip_address})
 def get_public_ip(entity):
     host = get_host(entity)
-    public_ip = entity.instance.runtime_properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
+    public_ip = host.instance.runtime_properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
     if public_ip is not None:
         return public_ip
-    public_ip = entity.node.properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
+    public_ip = host.node.properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
     if public_ip is not None:
         return public_ip
     if host.instance.relationships:
