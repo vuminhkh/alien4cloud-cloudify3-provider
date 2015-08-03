@@ -12,13 +12,13 @@ import alien4cloud.ui.form.annotation.FormValidValues;
 @Getter
 @Setter
 @SuppressWarnings("PMD.UnusedPrivateField")
-@FormProperties({ "provider", "url", "cloudInit" })
+@FormProperties({ "provider", "url", "cloudInit", "templateConfigurations" })
 public class CloudConfiguration {
 
     /**
      * Cloudify 3 Rest API URL
      */
-    @FormValidValues({ "openstack" })
+    @FormValidValues({ "openstack", "byon" })
     @NotNull
     private String provider = "openstack";
 
@@ -31,4 +31,6 @@ public class CloudConfiguration {
      */
     @FormCustomType("text")
     private String cloudInit;
+
+    private ComputeTemplateConfiguration[] templateConfigurations;
 }

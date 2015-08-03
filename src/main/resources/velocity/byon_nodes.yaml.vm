@@ -1,0 +1,19 @@
+## Compute nodes
+#foreach($matchedPaaSCompute in ${deployment.computes})
+  ${matchedPaaSCompute.paaSNodeTemplate.id}:
+    type: ${util.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.byon.Compute")}
+    properties:
+#if(${matchedPaaSCompute.paaSComputeTemplate.userData.user})
+      ip: ${matchedPaaSCompute.paaSComputeTemplate.userData.ip}
+#end
+      cloudify_agent:
+#if(${matchedPaaSCompute.paaSComputeTemplate.userData.user})
+        user: ${matchedPaaSCompute.paaSComputeTemplate.userData.user}
+#end
+#if(${matchedPaaSCompute.paaSComputeTemplate.userData.key})
+        key: ${matchedPaaSCompute.paaSComputeTemplate.userData.key}
+#end
+#if(${matchedPaaSCompute.paaSComputeTemplate.userData.key})
+        password: ${matchedPaaSCompute.paaSComputeTemplate.userData.password}
+#end
+#end

@@ -8,7 +8,7 @@
             "relative_path": "$nodeArtifactChildPathEntry.key",
             "absolute_path": "$nodeArtifactChildPathEntry.value"
         }
-#if($foreach.count < $nodeArtifactChildrenPaths.size())
+#if($velocityCount < $nodeArtifactChildrenPaths.size())
         ,
 #end
 #end
@@ -27,9 +27,15 @@ def get_attribute(entity, attribute_name):
     if attribute_name == '${providerMapping.attributes.compute.public_ip_address}':
         return get_public_ip(entity)
     else:
-        return get_instance_data(entity, attribute_name, get_attribute_data)
+        attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
+        if attribute_value is None:
+            attribute_value = get_instance_data(entity, attribute_name, get_property_data)
+        return attribute_value
 #else
-    return get_instance_data(entity, attribute_name, get_attribute_data)
+    attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
+    if attribute_value is None:
+        attribute_value = get_instance_data(entity, attribute_name, get_property_data)
+    return attribute_value
 #end
 
 
@@ -40,6 +46,12 @@ def get_property(entity, property_name):
 #if(${providerMapping.attributes.compute.public_ip_address})
 def get_public_ip(entity):
     host = get_host(entity)
+    public_ip = host.instance.runtime_properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
+    if public_ip is not None:
+        return public_ip
+    public_ip = host.node.properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
+    if public_ip is not None:
+        return public_ip
     if host.instance.relationships:
         for relationship in host.instance.relationships:
             if 'cloudify.relationships.connected_to' in relationship.type_hierarchy:
@@ -57,7 +69,7 @@ new_script_process = {
     'env': {
 #foreach($inputEntry in $operation.inputParameters.entrySet())
         '$inputEntry.key': $util.formatValue(${operation.owner}, $inputEntry.value)
-#if($foreach.count < $operation.inputParameters.size())
+#if($velocityCount < $operation.inputParameters.size())
         ,
 #end
 #end
@@ -70,6 +82,12 @@ node_artifacts = {
 #foreach($nodeArtifactEntry in $nodeArtifactsEntry.value.entrySet())
 #set( $nodeArtifactPath = ${util.getArtifactPath(${nodeArtifactsEntry.key}, ${nodeArtifactEntry.key}, ${nodeArtifactEntry.value})} )
 #deploymentArtifactEntry($nodeArtifactEntry.key, $nodeArtifactPath)
+#if($velocityCount < $nodeArtifactsEntry.value.size())
+    ,
+#end
+#end
+#if($velocityCount < $operation.allDeploymentArtifacts.size())
+    ,
 #end
 #end
 }
@@ -79,6 +97,12 @@ relationship_artifacts = {
 #foreach($relationshipArtifactEntry in $relationshipArtifactsEntry.value.entrySet())
 #set($relationshipArtifactPath = ${util.getRelationshipArtifactPath(${relationshipArtifactsEntry.key.source}, ${relationshipArtifactsEntry.key.id}, ${relationshipArtifactEntry.key}, ${relationshipArtifactEntry.value})} )
 #deploymentArtifactEntry($relationshipArtifactEntry.key, $relationshipArtifactPath)
+#if($velocityCount < $relationshipArtifactsEntry.value.size())
+    ,
+#end
+#end
+#if($velocityCount < $operation.allRelationshipDeploymentArtifacts.size())
+    ,
 #end
 #end
 }

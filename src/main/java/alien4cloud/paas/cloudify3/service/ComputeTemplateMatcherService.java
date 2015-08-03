@@ -3,6 +3,8 @@ package alien4cloud.paas.cloudify3.service;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Resource;
+
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
@@ -11,6 +13,8 @@ import alien4cloud.model.cloud.AvailabilityZone;
 import alien4cloud.model.cloud.CloudImage;
 import alien4cloud.model.cloud.CloudImageFlavor;
 import alien4cloud.model.cloud.ComputeTemplate;
+import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
+import alien4cloud.paas.cloudify3.configuration.ComputeTemplateConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.PaaSComputeTemplate;
@@ -33,6 +37,9 @@ public class ComputeTemplateMatcherService {
     private Map<String, String> flavorMapping = Maps.newHashMap();
 
     private Map<String, String> availabilityZoneMapping = Maps.newHashMap();
+
+    @Resource
+    private CloudConfigurationHolder cloudConfigurationHolder;
 
     public synchronized void configure(Map<CloudImage, String> imageMapping, Map<CloudImageFlavor, String> flavorMapping,
             Map<AvailabilityZone, String> availabilityZoneMapping) {
@@ -78,16 +85,40 @@ public class ComputeTemplateMatcherService {
             }
             String paaSImageId = getPaaSImageId(template.getCloudImageId());
             String paaSFlavorId = getPaaSFlavorId(template.getCloudImageFlavorId());
+            // TODO it's ugly, for byon only while waiting for paaS provider refactoring
+            String description = template.getDescription();
             AvailabilityZone availabilityZone = availabilityZoneSetup.get(resource.getId());
-            MatchedPaaSComputeTemplate paaSComputeTemplate;
-            if (availabilityZone == null) {
-                paaSComputeTemplate = new MatchedPaaSComputeTemplate(resource, new PaaSComputeTemplate(paaSImageId, paaSFlavorId));
-            } else {
-                paaSComputeTemplate = new MatchedPaaSComputeTemplate(resource, new PaaSComputeTemplate(paaSImageId, paaSFlavorId,
-                        availabilityZoneMapping.get(availabilityZone.getId())));
+            String paaSAvailabilityZoneId = null;
+            if (availabilityZone != null) {
+                paaSAvailabilityZoneId = availabilityZoneMapping.get(availabilityZone.getId());
             }
+            MatchedPaaSComputeTemplate paaSComputeTemplate = new MatchedPaaSComputeTemplate(resource, new PaaSComputeTemplate(paaSImageId, paaSFlavorId,
+                    paaSAvailabilityZoneId, getUserData(paaSImageId, paaSFlavorId, description)));
             matchedPaaSComputeTemplates.add(paaSComputeTemplate);
         }
         return matchedPaaSComputeTemplates;
+    }
+
+    private Map<String, String> getUserData(String image, String flavor, String desc) {
+        ComputeTemplateConfiguration[] templateConfigurations = cloudConfigurationHolder.getConfiguration().getTemplateConfigurations();
+        if (templateConfigurations == null) {
+            return null;
+        }
+        for (ComputeTemplateConfiguration templateConfiguration : templateConfigurations) {
+            if (templateConfiguration.getFlavorId() == null || templateConfiguration.getImageId() == null) {
+                continue;
+            } else if (templateConfiguration.getFlavorId().equals(flavor) && templateConfiguration.getImageId().equals(image)) {
+                if (templateConfiguration.getDescription() == null) {
+                    if (desc == null) {
+                        return templateConfiguration.getUserData();
+                    }
+                } else {
+                    if (desc != null && templateConfiguration.getDescription().equals(desc)) {
+                        return templateConfiguration.getUserData();
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

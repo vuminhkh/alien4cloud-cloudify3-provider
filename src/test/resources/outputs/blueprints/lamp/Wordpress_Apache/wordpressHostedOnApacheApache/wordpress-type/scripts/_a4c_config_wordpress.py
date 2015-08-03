@@ -141,7 +141,10 @@ def get_attribute(entity, attribute_name):
     if attribute_name == 'floating_ip_address':
         return get_public_ip(entity)
     else:
-        return get_instance_data(entity, attribute_name, get_attribute_data)
+        attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
+        if attribute_value is None:
+            attribute_value = get_instance_data(entity, attribute_name, get_property_data)
+        return attribute_value
 
 
 def get_property(entity, property_name):
@@ -150,6 +153,12 @@ def get_property(entity, property_name):
 
 def get_public_ip(entity):
     host = get_host(entity)
+    public_ip = host.instance.runtime_properties.get('floating_ip_address', None)
+    if public_ip is not None:
+        return public_ip
+    public_ip = host.node.properties.get('floating_ip_address', None)
+    if public_ip is not None:
+        return public_ip
     if host.instance.relationships:
         for relationship in host.instance.relationships:
             if 'cloudify.relationships.connected_to' in relationship.type_hierarchy:

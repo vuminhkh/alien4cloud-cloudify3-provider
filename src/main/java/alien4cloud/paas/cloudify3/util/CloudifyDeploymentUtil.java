@@ -15,6 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -652,10 +653,11 @@ public class CloudifyDeploymentUtil {
         while (host.getParent() != null) {
             host = host.getParent();
         }
-        PaaSNodeTemplate volume = host.getAttachedNode();
-        if (volume == null) {
+        if (CollectionUtils.isEmpty(host.getStorageNodes())) {
             return null;
         }
+        // FIXME manage several volumes
+        PaaSNodeTemplate volume = host.getStorageNodes().get(0);
         if (isConfiguredVolume(volume)) {
             return volume;
         } else {
@@ -805,7 +807,7 @@ public class CloudifyDeploymentUtil {
 
     /**
      * Get the volume's availability zone from the compute (in the same zone)
-     * 
+     *
      * @param matchedVolume the matched volume
      * @return the availability zone, null if not defined in the parent compute
      */
