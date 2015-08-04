@@ -100,12 +100,14 @@ node_templates:
 #end
 #end
 #set( $relationshipTemplates = $util.getSourceRelationships($nonNativeNode) )
-#set( $attachedVolume = $util.getConfiguredAttachedVolume($nonNativeNode) )
+#set( $attachedVolumes = $util.getConfiguredAttachedVolumes($nonNativeNode) )
 #if($util.collectionHasElement($relationshipTemplates) || $attachedVolume)
     relationships:
-#if($attachedVolume)
+#if($attachedVolumes)
+#foreach($attachedVolume in $attachedVolumes)
       - target: ${mapping.generatedNodePrefix}_file_system_${attachedVolume.id}
         type: cloudify.relationships.depends_on
+#end
 #end
 #foreach($relationship in $relationshipTemplates)
       - target: $relationship.relationshipTemplate.target

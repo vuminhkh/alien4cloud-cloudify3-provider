@@ -120,7 +120,7 @@ public class StatusService {
                         execution.getCreatedAt(), execution.getWorkflowId(), execution.getStatus());
             }
             // Only consider install/uninstall workflow to check for deployment status
-            if (Workflow.INSTALL.equals(execution.getWorkflowId()) || Workflow.UNINSTALL.equals(execution.getWorkflowId())) {
+            if (Workflow.INSTALL.equals(execution.getWorkflowId()) || Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(execution.getWorkflowId())) {
                 if (lastExecution == null) {
                     lastExecution = execution;
                 } else if (DateUtil.compare(execution.getCreatedAt(), lastExecution.getCreatedAt()) > 0) {
@@ -141,7 +141,7 @@ public class StatusService {
             } else {
                 return DeploymentStatus.UNKNOWN;
             }
-        } else if (Workflow.UNINSTALL.equals(lastExecution.getWorkflowId())) {
+        } else if (Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(lastExecution.getWorkflowId())) {
             if (ExecutionStatus.isTerminatedSuccessfully(lastExecution.getStatus())) {
                 return DeploymentStatus.UNDEPLOYED;
             } else if (ExecutionStatus.isTerminatedWithFailure(lastExecution.getStatus())) {

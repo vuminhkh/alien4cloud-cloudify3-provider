@@ -39,6 +39,7 @@ import com.google.common.collect.Maps;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
 @Slf4j
+@Ignore
 public class TestDeploymentService extends AbstractDeploymentTest {
 
     @Resource
@@ -164,7 +165,6 @@ public class TestDeploymentService extends AbstractDeploymentTest {
      * sudo ifup eth1
      */
     @org.junit.Test
-    @Ignore
     public void testDeployNetwork() throws Exception {
         launchTest(NETWORK_TOPOLOGY);
     }
@@ -183,7 +183,6 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     }
 
     @org.junit.Test
-    @Ignore
     public void testDeployArtifactTest() throws Exception {
         String deploymentId = launchTest(ARTIFACT_TEST_TOPOLOGY);
         httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
@@ -199,7 +198,6 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     }
 
     @Test
-    @Ignore
     public void testDeployHAGroup() throws Exception {
         launchTest(HA_GROUPS_TOPOLOGY);
     }

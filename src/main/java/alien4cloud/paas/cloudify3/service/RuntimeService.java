@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -14,6 +15,7 @@ import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -116,5 +118,23 @@ public abstract class RuntimeService {
             }
         };
         return Futures.transform(futureDeployment, waitFunc);
+    }
+
+    protected ListenableFuture<?> cancelAllRunningExecutions(String deploymentPaaSId) {
+        ListenableFuture<Execution[]> currentExecutions = executionDAO.asyncList(deploymentPaaSId);
+        AsyncFunction<Execution[], ?> abortCurrentExecutionsFunction = new AsyncFunction<Execution[], List<Execution>>() {
+
+            @Override
+            public ListenableFuture<List<Execution>> apply(Execution[] executions) throws Exception {
+                List<ListenableFuture<Execution>> abortExecutions = Lists.newArrayList();
+                for (Execution execution : executions) {
+                    if (!ExecutionStatus.isTerminated(execution.getStatus())) {
+                        abortExecutions.add(executionDAO.asyncCancel(execution.getId(), true));
+                    }
+                }
+                return Futures.allAsList(abortExecutions);
+            }
+        };
+        return Futures.transform(currentExecutions, abortCurrentExecutionsFunction);
     }
 }

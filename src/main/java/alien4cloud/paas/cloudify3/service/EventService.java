@@ -400,7 +400,7 @@ public class EventService {
             PaaSDeploymentStatusMonitorEvent succeededStatusEvent = new PaaSDeploymentStatusMonitorEvent();
             if (Workflow.INSTALL.equals(cloudifyEvent.getContext().getWorkflowId())) {
                 succeededStatusEvent.setDeploymentStatus(DeploymentStatus.DEPLOYED);
-            } else if (Workflow.UNINSTALL.equals(cloudifyEvent.getContext().getWorkflowId())) {
+            } else if (Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(cloudifyEvent.getContext().getWorkflowId())) {
                 succeededStatusEvent.setDeploymentStatus(DeploymentStatus.UNDEPLOYED);
             } else {
                 return null;

@@ -648,7 +648,7 @@ public class CloudifyDeploymentUtil {
         }
     }
 
-    public PaaSNodeTemplate getConfiguredAttachedVolume(PaaSNodeTemplate node) {
+    public PaaSNodeTemplate[] getConfiguredAttachedVolumes(PaaSNodeTemplate node) {
         PaaSNodeTemplate host = node.getParent();
         while (host.getParent() != null) {
             host = host.getParent();
@@ -656,13 +656,13 @@ public class CloudifyDeploymentUtil {
         if (CollectionUtils.isEmpty(host.getStorageNodes())) {
             return null;
         }
-        // FIXME manage several volumes
-        PaaSNodeTemplate volume = host.getStorageNodes().get(0);
-        if (isConfiguredVolume(volume)) {
-            return volume;
-        } else {
-            return null;
+        List<PaaSNodeTemplate> volumes = Lists.newArrayList();
+        for (PaaSNodeTemplate volume : host.getStorageNodes()) {
+            if (isConfiguredVolume(volume)) {
+                volumes.add(volume);
+            }
         }
+        return volumes.isEmpty() ? null : volumes.toArray(new PaaSNodeTemplate[volumes.size()]);
     }
 
     public String tryToMapComputeType(IndexedNodeType type, String defaultType) {

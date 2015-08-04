@@ -13,6 +13,8 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +53,7 @@ import com.google.common.collect.Maps;
  * @author Minh Khang VU
  */
 @Component("cloudify-blueprint-service")
+@Slf4j
 public class BlueprintService {
 
     @Resource
@@ -113,6 +116,14 @@ public class BlueprintService {
                 StandardCopyOption.REPLACE_EXISTING);
     }
 
+    public void deleteBlueprint(String deploymentPaaSId) {
+        try {
+            FileUtil.delete(resolveBlueprintPath(deploymentPaaSId));
+        } catch (IOException e) {
+            log.warn("Unable to delete generated blueprint for recipe " + deploymentPaaSId, e);
+        }
+    }
+
     /**
      * Generate blueprint from an alien deployment request
      *
@@ -122,6 +133,9 @@ public class BlueprintService {
     public Path generateBlueprint(CloudifyDeployment alienDeployment) throws IOException, CSARVersionNotFoundException {
         // Where the whole blueprint will be generated
         Path generatedBlueprintDirectoryPath = resolveBlueprintPath(alienDeployment.getDeploymentPaaSId());
+        if (Files.exists(generatedBlueprintDirectoryPath)) {
+            deleteBlueprint(alienDeployment.getDeploymentPaaSId());
+        }
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
         CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
