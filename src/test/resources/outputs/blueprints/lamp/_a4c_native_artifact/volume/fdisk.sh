@@ -3,7 +3,11 @@
 use_external_resource=$(ctx source node properties use_external_resource)
 partition_type=$(ctx source node properties partition_type)
 partition_number=1
-device_name=$(ctx target node properties device_name)
+device_name=$(ctx target instance runtime_properties device_name)
+
+if [ -z "$device_name" ]; then
+	device_name=$(ctx target node properties device_name)
+fi
 
 if [ -z "${use_external_resource}" ]; then
 
