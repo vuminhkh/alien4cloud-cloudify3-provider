@@ -16,6 +16,7 @@ import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
+import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.exception.PaaSAlreadyDeployedException;
@@ -99,11 +100,15 @@ public class DeploymentService extends RuntimeService {
         eventService.registerDeploymentEvent(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
                 DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS);
         blueprintService.deleteBlueprint(deploymentContext.getDeploymentPaaSId());
-        ListenableFuture<?> cancelRunningExecutionsFuture = cancelAllRunningExecutions(deploymentContext.getDeploymentPaaSId());
-        AsyncFunction<Object, Execution> startUninstallFunction = new AsyncFunction<Object, Execution>() {
+        ListenableFuture<NodeInstance[]> cancelRunningExecutionsFuture = cancelAllRunningExecutions(deploymentContext.getDeploymentPaaSId());
+        AsyncFunction<NodeInstance[], Execution> startUninstallFunction = new AsyncFunction<NodeInstance[], Execution>() {
             @Override
-            public ListenableFuture<Execution> apply(Object input) throws Exception {
-                return waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentPaaSId(), Workflow.UNINSTALL, null, false, true));
+            public ListenableFuture<Execution> apply(NodeInstance[] livingNodes) throws Exception {
+                if (livingNodes != null && livingNodes.length > 0) {
+                    return waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentPaaSId(), Workflow.UNINSTALL, null, false, true));
+                } else {
+                    return Futures.immediateFuture(null);
+                }
             }
         };
         ListenableFuture<?> startUninstall = Futures.transform(cancelRunningExecutionsFuture, startUninstallFunction);

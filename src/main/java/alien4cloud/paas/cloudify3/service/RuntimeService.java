@@ -10,9 +10,11 @@ import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
 import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
+import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
+import alien4cloud.paas.cloudify3.model.NodeInstance;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -33,6 +35,9 @@ public abstract class RuntimeService {
 
     @Resource
     protected ExecutionDAO executionDAO;
+
+    @Resource
+    protected NodeInstanceDAO nodeInstanceDAO;
 
     protected ListeningScheduledExecutorService scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1));
 
@@ -120,7 +125,7 @@ public abstract class RuntimeService {
         return Futures.transform(futureDeployment, waitFunc);
     }
 
-    protected ListenableFuture<?> cancelAllRunningExecutions(String deploymentPaaSId) {
+    protected ListenableFuture<NodeInstance[]> cancelAllRunningExecutions(final String deploymentPaaSId) {
         ListenableFuture<Execution[]> currentExecutions = executionDAO.asyncList(deploymentPaaSId);
         AsyncFunction<Execution[], ?> abortCurrentExecutionsFunction = new AsyncFunction<Execution[], List<Execution>>() {
 
@@ -135,6 +140,13 @@ public abstract class RuntimeService {
                 return Futures.allAsList(abortExecutions);
             }
         };
-        return Futures.transform(currentExecutions, abortCurrentExecutionsFunction);
+        ListenableFuture<?> abortCurrentExecutionsFuture = Futures.transform(currentExecutions, abortCurrentExecutionsFunction);
+        AsyncFunction<Object, NodeInstance[]> livingNodesRetrievalFunction = new AsyncFunction<Object, NodeInstance[]>() {
+            @Override
+            public ListenableFuture<NodeInstance[]> apply(Object input) throws Exception {
+                return nodeInstanceDAO.asyncList(deploymentPaaSId);
+            }
+        };
+        return Futures.transform(abortCurrentExecutionsFuture, livingNodesRetrievalFunction);
     }
 }
