@@ -32,12 +32,13 @@ import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.util.DateUtil;
-import alien4cloud.paas.cloudify3.util.MapUtil;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.InstanceStatus;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.utils.MapUtil;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -216,7 +217,12 @@ public class StatusService {
                     } else {
                         instanceInformation.setInstanceStatus(instanceStatus);
                     }
-                    Map<String, String> runtimeProperties = MapUtil.toString(instance.getRuntimeProperties());
+                    Map<String, String> runtimeProperties = null;
+                    try {
+                        runtimeProperties = MapUtil.toString(instance.getRuntimeProperties());
+                    } catch (JsonProcessingException e) {
+                        log.error("Unable to stringify runtime properties", e);
+                    }
                     instanceInformation.setRuntimeProperties(runtimeProperties);
                     Node node = nodeMap.get(instance.getNodeId());
                     if (MapUtils.isNotEmpty(nodeTemplate.getAttributes())) {

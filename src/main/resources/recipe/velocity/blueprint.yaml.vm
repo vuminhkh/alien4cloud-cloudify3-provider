@@ -1,9 +1,10 @@
 #*
 This template is used to generate cloudify 3 recipe from alien model
-- $mapping --> contains specific IaaS mapping loaded from src/main/resources/mapping/$provider.yaml
+- $mapping --> contains global alien --> cloudify mapping
+- $providerMapping --> contains IaaS provider specific mapping configuration
 - $cloud --> contains alien4cloud.paas.cloudify3.configuration.CloudConfiguration instance
 - $deployment --> contains Alien's deployment and types
-- $provider_types --> template file for specific provider types
+- $util --> contains utility methods
 *#
 tosca_definitions_version: $mapping.dslVersion
 
@@ -15,7 +16,7 @@ imports:
 
 node_types:
 
-#parse("$provider_types_file")
+#parse("types.yaml.vm")
 
 #if($util.hasConfiguredVolume($deployment.volumes))
   ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem:
@@ -82,7 +83,7 @@ relationships:
 
 node_templates:
 
-#parse("$provider_nodes_file")
+#parse("nodes.yaml.vm")
 
 #foreach($nonNativeNode in $deployment.nonNatives)
   $nonNativeNode.id:

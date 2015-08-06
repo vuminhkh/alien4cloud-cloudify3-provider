@@ -1,6 +1,8 @@
 package alien4cloud.paas.cloudify3.service;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -18,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.component.repository.ArtifactLocalRepository;
@@ -63,9 +66,6 @@ public class BlueprintService {
     private MappingConfigurationHolder mappingConfigurationHolder;
 
     @Resource
-    private ClasspathResourceLoaderService resourceLoaderService;
-
-    @Resource
     private CsarFileRepository repository;
 
     @Resource
@@ -74,46 +74,18 @@ public class BlueprintService {
     @Resource
     private PropertyEvaluatorService propertyEvaluatorService;
 
+    @Resource
+    private ApplicationContext applicationContext;
+
     private Path recipeDirectoryPath;
 
-    private Path pluginResourcesPath;
+    private Path pluginRecipeResourcesPath;
 
     @PostConstruct
-    public void postConstruct() throws IOException {
-        // TODO How to do this recursively
-        Path artifactsPath = pluginResourcesPath.resolve("artifacts");
-        Path volumeScriptPath = artifactsPath.resolve("volume");
-        Files.createDirectories(volumeScriptPath);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Path velocityPath = pluginResourcesPath.resolve("velocity");
-        Files.createDirectories(velocityPath);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/blueprint.yaml.vm"), velocityPath.resolve("blueprint.yaml.vm"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/openstack_nodes.yaml.vm"), velocityPath.resolve("openstack_nodes.yaml.vm"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/openstack_types.yaml.vm"), velocityPath.resolve("openstack_types.yaml.vm"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/byon_nodes.yaml.vm"), velocityPath.resolve("byon_nodes.yaml.vm"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/byon_types.yaml.vm"), velocityPath.resolve("byon_types.yaml.vm"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("velocity/script_wrapper.vm"), velocityPath.resolve("script_wrapper.vm"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/non_native/download_artifacts.py"),
-                velocityPath.resolve("download_artifacts.py"), StandardCopyOption.REPLACE_EXISTING);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("artifacts/non_native/script_wrapper_static.py"),
-                velocityPath.resolve("script_wrapper_static.py"), StandardCopyOption.REPLACE_EXISTING);
-        Path wrapperPath = pluginResourcesPath.resolve("wrapper");
-        Files.createDirectories(wrapperPath);
-        Files.copy(resourceLoaderService.loadResourceFromClasspath("wrapper/scriptWrapper.sh"), wrapperPath.resolve("scriptWrapper.sh"),
-                StandardCopyOption.REPLACE_EXISTING);
+    public void postConstruct() throws IOException, URISyntaxException {
+        URL recipeResourcesURL = applicationContext.getClassLoader().getResource("recipe/");
+        Path recipeResourcesPath = Paths.get(recipeResourcesURL.toURI());
+        FileUtil.copy(recipeResourcesPath, pluginRecipeResourcesPath, StandardCopyOption.REPLACE_EXISTING);
     }
 
     public void deleteBlueprint(String deploymentPaaSId) {
@@ -148,8 +120,6 @@ public class BlueprintService {
         context.put("util", util);
         context.put("deployment", alienDeployment);
         context.put("newline", "\n");
-        context.put("provider_nodes_file", cloudConfigurationHolder.getConfiguration().getProvider() + "_nodes.yaml.vm");
-        context.put("provider_types_file", cloudConfigurationHolder.getConfiguration().getProvider() + "_types.yaml.vm");
         // Copy artifacts
         List<PaaSNodeTemplate> nonNatives = alienDeployment.getNonNatives();
         if (nonNatives != null) {
@@ -176,10 +146,10 @@ public class BlueprintService {
         if (util.hasConfiguredVolume(alienDeployment.getVolumes())) {
             Path volumeScriptPath = nativeArtifactDirectory.resolve("volume");
             Files.createDirectories(volumeScriptPath);
-            Files.copy(pluginResourcesPath.resolve("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
-            Files.copy(pluginResourcesPath.resolve("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
-            Files.copy(pluginResourcesPath.resolve("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
-            Files.copy(pluginResourcesPath.resolve("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
+            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
+            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
+            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
+            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
         }
         for (PaaSNodeTemplate node : alienDeployment.getNonNatives()) {
             Map<String, Interface> interfaces = util.getNodeInterfaces(node);
@@ -229,10 +199,10 @@ public class BlueprintService {
             }
         }
         if (!alienDeployment.getNonNatives().isEmpty()) {
-            Files.copy(pluginResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
+            Files.copy(pluginRecipeResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
         }
         // Generate the blueprint at the end
-        VelocityUtil.generate(pluginResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
+        VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
     }
 
@@ -244,8 +214,8 @@ public class BlueprintService {
                 propertyEvaluatorService, allNodes);
         Map<String, Object> operationContext = Maps.newHashMap(context);
         operationContext.put("operation", operationWrapper);
-        VelocityUtil.generate(pluginResourcesPath.resolve("velocity/script_wrapper.vm"), generatedBlueprintDirectoryPath.resolve(util.getArtifactWrapperPath(
-                owner, interfaceName, operationName, operation.getImplementationArtifact())), operationContext);
+        VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"), generatedBlueprintDirectoryPath.resolve(util
+                .getArtifactWrapperPath(owner, interfaceName, operationName, operation.getImplementationArtifact())), operationContext);
         return operationWrapper;
     }
 
@@ -262,7 +232,7 @@ public class BlueprintService {
             artifactPath = artifactRepository.resolveFile(artifact.getArtifactRef());
             artifactCopiedPath = artifactCopiedDirectory.resolve(originalArtifact.getArtifactRef());
         } else {
-            Path artifactCopiedDirectory = generatedBlueprintDirectoryPath.resolve(artifact.getArchiveName());
+            Path artifactCopiedDirectory = generatedBlueprintDirectoryPath.resolve("artifacts").resolve(artifact.getArchiveName());
             FileSystem csarFS = FileSystems.newFileSystem(csarPath, null);
             String artifactRelativePathName = artifact.getArtifactRef();
             artifactPath = csarFS.getPath(artifactRelativePathName);
@@ -329,7 +299,7 @@ public class BlueprintService {
         Path cloudifyPath = Paths.get(path).toAbsolutePath();
         recipeDirectoryPath = cloudifyPath.resolve("recipes");
         Files.createDirectories(recipeDirectoryPath);
-        pluginResourcesPath = cloudifyPath.resolve("resources");
-        Files.createDirectories(pluginResourcesPath);
+        pluginRecipeResourcesPath = cloudifyPath.resolve("resources").resolve("recipe");
+        Files.createDirectories(pluginRecipeResourcesPath);
     }
 }

@@ -25,7 +25,6 @@ import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.model.NativeType;
-import alien4cloud.paas.cloudify3.util.MapUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
@@ -33,7 +32,9 @@ import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStorageMonitorEvent;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
+import alien4cloud.utils.MapUtil;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -203,7 +204,12 @@ public class EventService {
                             Node node = allDeployedNodes.get(instanceStateMonitorEvent.getNodeTemplateId());
                             NodeInstance nodeInstance = allDeployedInstances.get(instanceStateMonitorEvent.getInstanceId());
                             if (nodeInstance != null && nodeInstance.getRuntimeProperties() != null) {
-                                Map<String, String> runtimeProperties = MapUtil.toString(nodeInstance.getRuntimeProperties());
+                                Map<String, String> runtimeProperties = null;
+                                try {
+                                    runtimeProperties = MapUtil.toString(nodeInstance.getRuntimeProperties());
+                                } catch (JsonProcessingException e) {
+                                    log.error("Unable to stringify runtime properties", e);
+                                }
                                 instanceStateMonitorEvent.setRuntimeProperties(runtimeProperties);
                                 if (node != null && node.getProperties() != null) {
                                     String nativeType = statusService.getNativeType(node);
@@ -381,7 +387,12 @@ public class EventService {
         instanceStateMonitorEvent.setNodeTemplateId(nodeInstance.getNodeId());
         instanceStateMonitorEvent.setInstanceId(nodeInstance.getId());
         if (nodeInstance.getRuntimeProperties() != null) {
-            Map<String, String> runtimeProperties = MapUtil.toString(nodeInstance.getRuntimeProperties());
+            Map<String, String> runtimeProperties = null;
+            try {
+                runtimeProperties = MapUtil.toString(nodeInstance.getRuntimeProperties());
+            } catch (JsonProcessingException e) {
+                log.error("Unable to stringify runtime properties", e);
+            }
             instanceStateMonitorEvent.setRuntimeProperties(runtimeProperties);
             if (node != null && node.getProperties() != null) {
                 String nativeType = statusService.getNativeType(node);

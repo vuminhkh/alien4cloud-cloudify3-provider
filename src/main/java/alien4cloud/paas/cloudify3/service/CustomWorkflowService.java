@@ -21,12 +21,12 @@ import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.CloudifyDeploymentUtil;
-import alien4cloud.paas.cloudify3.util.MapUtil;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
+import alien4cloud.utils.MapUtil;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;

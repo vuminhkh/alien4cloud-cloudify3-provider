@@ -824,7 +824,7 @@ public class CloudifyDeploymentUtil {
     }
 
     public String getArtifactRelativePath(IArtifact artifact) {
-        return artifact.getArchiveName() + "/" + artifact.getArtifactRef();
+        return "artifacts/" + artifact.getArchiveName() + "/" + artifact.getArtifactRef();
     }
 
     public String getArtifactWrapperPath(IPaaSTemplate<?> owner, String interfaceName, String operationName, IArtifact artifact) {
@@ -835,11 +835,11 @@ public class CloudifyDeploymentUtil {
         String wrapperPath = parent + "/" + mappingConfiguration.getGeneratedArtifactPrefix() + "_" + fileName.substring(0, fileName.lastIndexOf('.')) + ".py";
         if (owner instanceof PaaSNodeTemplate) {
             PaaSNodeTemplate ownerNode = (PaaSNodeTemplate) owner;
-            return ownerNode.getId() + "/" + interfaceName + "/" + operationName + "/" + wrapperPath;
+            return "wrapper/" + ownerNode.getId() + "/" + interfaceName + "/" + operationName + "/" + wrapperPath;
         } else if (owner instanceof PaaSRelationshipTemplate) {
             PaaSRelationshipTemplate ownerRelationship = (PaaSRelationshipTemplate) owner;
-            return ownerRelationship.getSource() + "_" + ownerRelationship.getRelationshipTemplate().getTarget() + "/" + ownerRelationship.getId() + "/"
-                    + wrapperPath;
+            return "wrapper/" + ownerRelationship.getSource() + "_" + ownerRelationship.getRelationshipTemplate().getTarget() + "/" + ownerRelationship.getId()
+                    + "/" + wrapperPath;
         } else {
             throw new NotSupportedException("Not supported template type " + owner.getId());
         }
