@@ -1,7 +1,7 @@
 ## Compute nodes
 #foreach($matchedPaaSCompute in ${deployment.computes})
   ${matchedPaaSCompute.paaSNodeTemplate.id}:
-    type: ${util.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.byon.Compute")}
+    type: ${util.compute.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.Compute")}
     properties:
 #if(${matchedPaaSCompute.paaSComputeTemplate.userData.user})
       ip: ${matchedPaaSCompute.paaSComputeTemplate.userData.ip}

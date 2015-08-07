@@ -37,12 +37,12 @@ import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.topology.AbstractTemplate;
 import alien4cloud.paas.IPaaSTemplate;
+import alien4cloud.paas.cloudify3.blueprint.BlueprintGenerationUtil;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.OperationWrapper;
 import alien4cloud.paas.cloudify3.service.model.Relationship;
-import alien4cloud.paas.cloudify3.util.CloudifyDeploymentUtil;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
@@ -110,7 +110,7 @@ public class BlueprintService {
         }
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
-        CloudifyDeploymentUtil util = new CloudifyDeploymentUtil(mappingConfigurationHolder.getMappingConfiguration(),
+        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(),
                 mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment, generatedBlueprintDirectoryPath, propertyEvaluatorService);
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
@@ -143,7 +143,7 @@ public class BlueprintService {
         if (Files.exists(nativeArtifactDirectory)) {
             throw new IOException(nativeArtifactDirectory.getFileName() + " is a reserved name, please choose another name for your archive");
         }
-        if (util.hasConfiguredVolume(alienDeployment.getVolumes())) {
+        if (util.getVolume().hasConfiguredVolume(alienDeployment.getVolumes())) {
             Path volumeScriptPath = nativeArtifactDirectory.resolve("volume");
             Files.createDirectories(volumeScriptPath);
             Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
@@ -152,7 +152,7 @@ public class BlueprintService {
             Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
         }
         for (PaaSNodeTemplate node : alienDeployment.getNonNatives()) {
-            Map<String, Interface> interfaces = util.getNodeInterfaces(node);
+            Map<String, Interface> interfaces = util.getNonNative().getNodeInterfaces(node);
             if (MapUtils.isNotEmpty(interfaces)) {
                 for (Map.Entry<String, Interface> inter : interfaces.entrySet()) {
                     Map<String, Operation> operations = inter.getValue().getOperations();
@@ -167,9 +167,9 @@ public class BlueprintService {
                     }
                 }
             }
-            List<PaaSRelationshipTemplate> relationships = util.getSourceRelationships(node);
+            List<PaaSRelationshipTemplate> relationships = util.getNonNative().getSourceRelationships(node);
             for (PaaSRelationshipTemplate relationship : relationships) {
-                Map<String, Interface> relationshipInterfaces = util.getRelationshipInterfaces(relationship);
+                Map<String, Interface> relationshipInterfaces = util.getNonNative().getRelationshipInterfaces(relationship);
                 if (MapUtils.isNotEmpty(relationshipInterfaces)) {
                     for (Map.Entry<String, Interface> inter : relationshipInterfaces.entrySet()) {
                         Map<String, Operation> operations = inter.getValue().getOperations();
@@ -207,15 +207,17 @@ public class BlueprintService {
     }
 
     private OperationWrapper generateOperationScriptWrapper(String interfaceName, String operationName, Operation operation, IPaaSTemplate<?> owner,
-            CloudifyDeploymentUtil util, Map<String, Object> context, Path generatedBlueprintDirectoryPath,
+            BlueprintGenerationUtil util, Map<String, Object> context, Path generatedBlueprintDirectoryPath,
             Map<String, Map<String, DeploymentArtifact>> artifacts, Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts,
             Map<String, PaaSNodeTemplate> allNodes) throws IOException {
         OperationWrapper operationWrapper = new OperationWrapper(owner, operation, interfaceName, operationName, artifacts, relationshipArtifacts,
                 propertyEvaluatorService, allNodes);
         Map<String, Object> operationContext = Maps.newHashMap(context);
         operationContext.put("operation", operationWrapper);
-        VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"), generatedBlueprintDirectoryPath.resolve(util
-                .getArtifactWrapperPath(owner, interfaceName, operationName, operation.getImplementationArtifact())), operationContext);
+        VelocityUtil.generate(
+                pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"),
+                generatedBlueprintDirectoryPath.resolve(util.getNonNative().getArtifactWrapperPath(owner, interfaceName, operationName,
+                        operation.getImplementationArtifact())), operationContext);
         return operationWrapper;
     }
 

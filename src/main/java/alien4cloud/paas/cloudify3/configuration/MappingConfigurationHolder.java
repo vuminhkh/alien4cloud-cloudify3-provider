@@ -69,10 +69,12 @@ public class MappingConfigurationHolder {
 
     private void loadProviderMapping(CloudConfiguration newConfiguration) {
         try {
-            Path providerNodesTemplate = pluginProviderResourcesPath.resolve(newConfiguration.getProvider()).resolve("nodes.yaml.vm");
-            Path providerTypesTemplate = pluginProviderResourcesPath.resolve(newConfiguration.getProvider()).resolve("types.yaml.vm");
-            FileUtil.copy(providerNodesTemplate, this.pluginRecipeTemplatePath.resolve("nodes.yaml.vm"), StandardCopyOption.REPLACE_EXISTING);
-            FileUtil.copy(providerTypesTemplate, this.pluginRecipeTemplatePath.resolve("types.yaml.vm"), StandardCopyOption.REPLACE_EXISTING);
+            Path computeNodeTemplate = pluginProviderResourcesPath.resolve(newConfiguration.getProvider()).resolve("compute_node.yaml.vm");
+            Path networkNodeTemplate = pluginProviderResourcesPath.resolve(newConfiguration.getProvider()).resolve("network_node.yaml.vm");
+            Path volumeNodeTemplate = pluginProviderResourcesPath.resolve(newConfiguration.getProvider()).resolve("volume_node.yaml.vm");
+            FileUtil.copy(computeNodeTemplate, this.pluginRecipeTemplatePath.resolve("compute_node.yaml.vm"), StandardCopyOption.REPLACE_EXISTING);
+            FileUtil.copy(networkNodeTemplate, this.pluginRecipeTemplatePath.resolve("network_node.yaml.vm"), StandardCopyOption.REPLACE_EXISTING);
+            FileUtil.copy(volumeNodeTemplate, this.pluginRecipeTemplatePath.resolve("volume_node.yaml.vm"), StandardCopyOption.REPLACE_EXISTING);
             providerMappingConfiguration = yamlObjectMapper.readValue(
                     new BufferedInputStream(new FileInputStream(pluginProviderResourcesPath.resolve(cloudConfigurationHolder.getConfiguration().getProvider())
                             .resolve("mapping.yaml").toFile())), ProviderMappingConfiguration.class);

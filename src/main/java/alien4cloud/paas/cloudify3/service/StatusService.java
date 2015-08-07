@@ -170,14 +170,6 @@ public class StatusService {
         callback.onSuccess(getStatus(deploymentPaaSId));
     }
 
-    public void getStatuses(String[] deploymentPaaSIds, IPaaSCallback<DeploymentStatus[]> callback) {
-        List<DeploymentStatus> deploymentStatuses = Lists.newArrayList();
-        for (String deploymentPaaSId : deploymentPaaSIds) {
-            deploymentStatuses.add(getStatus(deploymentPaaSId));
-        }
-        callback.onSuccess(deploymentStatuses.toArray(new DeploymentStatus[deploymentStatuses.size()]));
-    }
-
     public void getInstancesInformation(final PaaSTopologyDeploymentContext deploymentContext,
             final IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
         if (!statusCache.containsKey(deploymentContext.getDeploymentPaaSId())) {

@@ -1,7 +1,7 @@
 #macro(deploymentArtifactEntry $artifactName $artifactPath)
-#if($util.isArtifactDirectory($artifactPath))
-#set ( $nodeArtifactChildrenPaths = $util.listArtifactDirectory($artifactPath) )
-#if($util.mapHasEntries($nodeArtifactChildrenPaths))
+#if($util.nonNative.isArtifactDirectory($artifactPath))
+#set ( $nodeArtifactChildrenPaths = $util.nonNative.listArtifactDirectory($artifactPath) )
+#if($util.nonNative.mapHasEntries($nodeArtifactChildrenPaths))
     "$artifactName": [
 #foreach($nodeArtifactChildPathEntry in $nodeArtifactChildrenPaths.entrySet())
         {
@@ -61,14 +61,14 @@ def get_public_ip(entity):
 #end
 
 
-#if($util.operationHasDeploymentArtifacts($operation))
+#if($util.nonNative.operationHasDeploymentArtifacts($operation))
 #include("includes/download_artifacts.py")
 #end
 
 new_script_process = {
     'env': {
 #foreach($inputEntry in $operation.inputParameters.entrySet())
-        '$inputEntry.key': $util.formatValue(${operation.owner}, $inputEntry.value)
+        '$inputEntry.key': $util.nonNative.formatValue(${operation.owner}, $inputEntry.value)
 #if($velocityCount < $operation.inputParameters.size())
         ,
 #end
@@ -76,11 +76,11 @@ new_script_process = {
     }
 }
 
-#if($util.operationHasDeploymentArtifacts($operation))
+#if($util.nonNative.operationHasDeploymentArtifacts($operation))
 node_artifacts = {
 #foreach($nodeArtifactsEntry in $operation.allDeploymentArtifacts.entrySet())
 #foreach($nodeArtifactEntry in $nodeArtifactsEntry.value.entrySet())
-#set( $nodeArtifactPath = ${util.getArtifactPath(${nodeArtifactsEntry.key}, ${nodeArtifactEntry.key}, ${nodeArtifactEntry.value})} )
+#set( $nodeArtifactPath = ${util.nonNative.getArtifactPath(${nodeArtifactsEntry.key}, ${nodeArtifactEntry.key}, ${nodeArtifactEntry.value})} )
 #deploymentArtifactEntry($nodeArtifactEntry.key, $nodeArtifactPath)
 #if($velocityCount < $nodeArtifactsEntry.value.size())
     ,
@@ -95,7 +95,7 @@ node_artifacts = {
 relationship_artifacts = {
 #foreach($relationshipArtifactsEntry in $operation.allRelationshipDeploymentArtifacts.entrySet())
 #foreach($relationshipArtifactEntry in $relationshipArtifactsEntry.value.entrySet())
-#set($relationshipArtifactPath = ${util.getRelationshipArtifactPath(${relationshipArtifactsEntry.key.source}, ${relationshipArtifactsEntry.key.id}, ${relationshipArtifactEntry.key}, ${relationshipArtifactEntry.value})} )
+#set($relationshipArtifactPath = ${util.nonNative.getRelationshipArtifactPath(${relationshipArtifactsEntry.key.source}, ${relationshipArtifactsEntry.key.id}, ${relationshipArtifactEntry.key}, ${relationshipArtifactEntry.value})} )
 #deploymentArtifactEntry($relationshipArtifactEntry.key, $relationshipArtifactPath)
 #if($velocityCount < $relationshipArtifactsEntry.value.size())
     ,
@@ -121,9 +121,9 @@ if inputs.get('process', None) is not None and inputs['process'].get('env', None
 
 operationOutputNames = None
 #if(${operation.getOutputs()} && !${operation.getOutputs().isEmpty()})
-operationOutputNames = '${util.getOperationOutputNames(${operation})}'
+operationOutputNames = '${util.nonNative.getOperationOutputNames(${operation})}'
 #end
-parsed_output = execute(ctx.download_resource('${util.getArtifactRelativePath(${operation.implementationArtifact})}'), new_script_process, operationOutputNames)
+parsed_output = execute(ctx.download_resource('${util.nonNative.getArtifactRelativePath(${operation.implementationArtifact})}'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))
     ctx.instance.runtime_properties['_a4c_OO:${operation.interfaceName}:${operation.operationName}:{0}'.format(k)] = v
@@ -131,10 +131,10 @@ for k,v in parsed_output['outputs'].items():
 #macro(setAttributes $owner $entity $attributes $context)
 #if($attributes)
 #foreach($attributeEntry in ${attributes.entrySet()})
-#if($util.isFunctionPropertyValue($attributeEntry.value))
-${entity}.runtime_properties['${attributeEntry.key}'] = ${util.formatFunctionPropertyValue($context, $owner, $attributeEntry.value)}
-#elseif($util.isConcatPropertyValue($attributeEntry.value))
-${entity}.runtime_properties['${attributeEntry.key}'] = ${util.formatConcatPropertyValue($context, $owner, $attributeEntry.value)}
+#if($util.nonNative.isFunctionPropertyValue($attributeEntry.value))
+${entity}.runtime_properties['${attributeEntry.key}'] = ${util.nonNative.formatFunctionPropertyValue($context, $owner, $attributeEntry.value)}
+#elseif($util.nonNative.isConcatPropertyValue($attributeEntry.value))
+${entity}.runtime_properties['${attributeEntry.key}'] = ${util.nonNative.formatConcatPropertyValue($context, $owner, $attributeEntry.value)}
 #else
 ${entity}.runtime_properties['${attributeEntry.key}'] = '${attributeEntry.value.value}'
 #end
@@ -143,8 +143,8 @@ ${entity}.update()
 #end
 #end
 
-#setAttributes(${operation.owner}, "ctx.instance", $util.getNodeAttributes(${operation.owner}), "")
-#if($util.isOperationOwnedByRelationship(${operation}))
-#setAttributes(${util.getSourceNode(${operation.owner})}, "ctx.source.instance", $util.getSourceRelationshipAttributes(${operation.owner}), ".source")
-#setAttributes(${util.getTargetNode(${operation.owner})}, "ctx.target.instance", $util.getTargetRelationshipAttributes(${operation.owner}), ".target")
+#setAttributes(${operation.owner}, "ctx.instance", $util.nonNative.getNodeAttributes(${operation.owner}), "")
+#if($util.nonNative.isOperationOwnedByRelationship(${operation}))
+#setAttributes(${util.nonNative.getSourceNode(${operation.owner})}, "ctx.source.instance", $util.nonNative.getSourceRelationshipAttributes(${operation.owner}), ".source")
+#setAttributes(${util.nonNative.getTargetNode(${operation.owner})}, "ctx.target.instance", $util.nonNative.getTargetRelationshipAttributes(${operation.owner}), ".target")
 #end

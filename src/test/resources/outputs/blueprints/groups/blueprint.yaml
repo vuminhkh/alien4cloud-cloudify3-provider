@@ -7,7 +7,7 @@ imports:
 
 node_types:
 
-  _a4c.openstack.Compute:
+  _a4c.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
       _a4c_native_type:
@@ -22,7 +22,7 @@ node_types:
 node_templates:
 
   compute1:
-    type: _a4c.openstack.Compute
+    type: _a4c.Compute
     properties:
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
       flavor: 2
@@ -31,7 +31,7 @@ node_templates:
     instances:
       deploy: 1
   compute2:
-    type: _a4c.openstack.Compute
+    type: _a4c.Compute
     properties:
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
       flavor: 2
@@ -39,6 +39,4 @@ node_templates:
         availability_zone: Fastconnect
     instances:
       deploy: 1
-
-
 

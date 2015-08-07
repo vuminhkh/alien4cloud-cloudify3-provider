@@ -1,0 +1,18 @@
+## Network nodes
+#foreach($matchedNetwork in ${deployment.internalNetworks})
+#set( $network = ${matchedNetwork.paaSResourceTemplate} )
+  ${matchedNetwork.paaSNodeTemplate.id}:
+    type: ${util.network.tryToMapNetworkType($matchedNetwork.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.Network")}
+    properties:
+      resource_id: ${network.id}
+  ${matchedNetwork.paaSNodeTemplate.id}_subnet:
+    type: ${providerMapping.nativeTypes.subnetType}
+    properties:
+      resource_id: ${network.id}_subnet
+      subnet:
+        ip_version: ${network.ipVersion}
+        cidr: ${network.cidr}
+    relationships:
+      - target: ${matchedNetwork.paaSNodeTemplate.id}
+        type: cloudify.relationships.contained_in
+#end

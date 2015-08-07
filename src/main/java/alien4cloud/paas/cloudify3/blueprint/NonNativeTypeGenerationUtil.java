@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.util;
+package alien4cloud.paas.cloudify3.blueprint;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -6,89 +6,72 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import alien4cloud.common.AlienConstants;
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.exception.InvalidArgumentException;
-import alien4cloud.model.cloud.StorageTemplate;
-import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.ConcatPropertyValue;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IArtifact;
 import alien4cloud.model.components.IValue;
-import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.OperationOutput;
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.IPaaSTemplate;
-import alien4cloud.paas.cloudify3.CloudifyPaaSProviderFactory;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
-import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
-import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
-import alien4cloud.paas.cloudify3.service.model.NativeType;
 import alien4cloud.paas.cloudify3.service.model.OperationWrapper;
 import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.exception.NotSupportedException;
-import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
 import alien4cloud.paas.plan.ToscaRelationshipLifecycleConstants;
 import alien4cloud.tosca.ToscaUtils;
-import alien4cloud.tosca.normative.AlienCustomTypes;
-import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
-import alien4cloud.tosca.normative.NormativeComputeConstants;
-import alien4cloud.tosca.normative.NormativeNetworkConstants;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-/**
- * Some utilities method which help transforming an alien deployment to a cloudify deployment
- *
- * @author Minh Khang VU
- */
-@AllArgsConstructor
 @Slf4j
-public class CloudifyDeploymentUtil {
+public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
 
-    private MappingConfiguration mappingConfiguration;
-
-    private ProviderMappingConfiguration providerMappingConfiguration;
-
-    private CloudifyDeployment alienDeployment;
-
-    private Path recipePath;
-
-    private PropertyEvaluatorService propertyEvaluatorService;
-
-    public boolean mapHasEntries(Map<?, ?> map) {
-        return map != null && !map.isEmpty();
+    public NonNativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, ProviderMappingConfiguration providerMappingConfiguration,
+            CloudifyDeployment alienDeployment, Path recipePath, PropertyEvaluatorService propertyEvaluatorService) {
+        super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
-    public boolean collectionHasElement(Collection<?> list) {
-        return list != null && !list.isEmpty();
+    public boolean isStandardLifecycleInterface(String interfaceName) {
+        return ToscaNodeLifecycleConstants.STANDARD.equals(interfaceName) || ToscaNodeLifecycleConstants.STANDARD_SHORT.equals(interfaceName);
+    }
+
+    public String tryToMapToCloudifyInterface(String interfaceName) {
+        if (isStandardLifecycleInterface(interfaceName)) {
+            return "cloudify.interfaces.lifecycle";
+        } else {
+            return interfaceName;
+        }
+    }
+
+    public String tryToMapToCloudifyRelationshipInterface(String interfaceName) {
+        if (ToscaRelationshipLifecycleConstants.CONFIGURE.equals(interfaceName) || ToscaRelationshipLifecycleConstants.CONFIGURE_SHORT.equals(interfaceName)) {
+            return "cloudify.interfaces.relationship_lifecycle";
+        } else {
+            return interfaceName;
+        }
     }
 
     public Map<String, Interface> filterRelationshipSourceInterfaces(Map<String, Interface> interfaces) {
@@ -286,7 +269,6 @@ public class CloudifyDeploymentUtil {
         }
     }
 
-    @SneakyThrows
     public String formatTextValueToPython(String text) {
         if (text.contains("'")) {
             text = text.replace("'", "\\'");
@@ -462,74 +444,6 @@ public class CloudifyDeploymentUtil {
         }
     }
 
-    private String getNativeType(String id) {
-        if (alienDeployment.getComputesMap().containsKey(id)) {
-            return NativeType.COMPUTE;
-        } else if (alienDeployment.getVolumesMap().containsKey(id)) {
-            return NativeType.VOLUME;
-        } else if (alienDeployment.getExternalNetworksMap().containsKey(id) || alienDeployment.getInternalNetworksMap().containsKey(id)) {
-            return NativeType.NETWORK;
-        } else {
-            return null;
-        }
-    }
-
-    public boolean hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> externalMatchedNetworks) {
-        if (allComputeNetworks == null || externalMatchedNetworks == null) {
-            return false;
-        }
-        for (PaaSNodeTemplate network : allComputeNetworks) {
-            if (isMatched(network, externalMatchedNetworks)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public String getExternalNetworkName(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> externalMatchedNetworks) {
-        for (PaaSNodeTemplate network : allComputeNetworks) {
-            MatchedPaaSTemplate externalMatchedNetwork = getMatchedNetwork(network, externalMatchedNetworks);
-            if (externalMatchedNetwork != null) {
-                String externalNetworkId = externalMatchedNetwork.getPaaSResourceId();
-                if (StringUtils.isEmpty(externalNetworkId)) {
-                    throw new BadConfigurationException("External network id must be configured");
-                } else {
-                    return externalNetworkId;
-                }
-            }
-        }
-        return null;
-    }
-
-    public List<PaaSNodeTemplate> getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> internalMatchedNetworks) {
-        List<PaaSNodeTemplate> internalNetworksNodes = Lists.newArrayList();
-        for (PaaSNodeTemplate network : allComputeNetworks) {
-            MatchedPaaSTemplate internalMatchedNetwork = getMatchedNetwork(network, internalMatchedNetworks);
-            if (internalMatchedNetwork != null) {
-                internalNetworksNodes.add(network);
-            }
-        }
-        return internalNetworksNodes;
-    }
-
-    private boolean isMatched(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
-        for (MatchedPaaSTemplate externalMatchedNetwork : matchedNetworks) {
-            if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private MatchedPaaSTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
-        for (MatchedPaaSTemplate externalMatchedNetwork : matchedNetworks) {
-            if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
-                return externalMatchedNetwork;
-            }
-        }
-        return null;
-    }
-
     public List<PaaSRelationshipTemplate> getSourceRelationships(PaaSNodeTemplate nodeTemplate) {
         List<PaaSRelationshipTemplate> relationshipTemplates = nodeTemplate.getRelationshipTemplates();
         List<PaaSRelationshipTemplate> sourceRelationshipTemplates = Lists.newArrayList();
@@ -539,35 +453,6 @@ public class CloudifyDeploymentUtil {
             }
         }
         return sourceRelationshipTemplates;
-    }
-
-    public String tryToMapToCloudifyType(String toscaType) {
-        String mappedType = mappingConfiguration.getNormativeTypes().get(toscaType);
-        return mappedType != null ? mappedType : toscaType;
-    }
-
-    private boolean typeMustBeMappedToCloudifyType(String toscaType) {
-        return mappingConfiguration.getNormativeTypes().containsKey(toscaType);
-    }
-
-    public boolean isStandardLifecycleInterface(String interfaceName) {
-        return ToscaNodeLifecycleConstants.STANDARD.equals(interfaceName) || ToscaNodeLifecycleConstants.STANDARD_SHORT.equals(interfaceName);
-    }
-
-    public String tryToMapToCloudifyInterface(String interfaceName) {
-        if (isStandardLifecycleInterface(interfaceName)) {
-            return "cloudify.interfaces.lifecycle";
-        } else {
-            return interfaceName;
-        }
-    }
-
-    public String tryToMapToCloudifyRelationshipInterface(String interfaceName) {
-        if (ToscaRelationshipLifecycleConstants.CONFIGURE.equals(interfaceName) || ToscaRelationshipLifecycleConstants.CONFIGURE_SHORT.equals(interfaceName)) {
-            return "cloudify.interfaces.relationship_lifecycle";
-        } else {
-            return interfaceName;
-        }
     }
 
     private String tryToMapToCloudifyRelationshipInterfaceOperation(String operationName, boolean isSource) {
@@ -597,140 +482,6 @@ public class CloudifyDeploymentUtil {
         }
         // This must never happens
         return allDerivedFromsTypes.get(0);
-    }
-
-    public boolean hasConfiguredVolume(List<MatchedPaaSTemplate<StorageTemplate>> volumes) {
-        if (volumes != null && !volumes.isEmpty()) {
-            for (MatchedPaaSTemplate<StorageTemplate> volume : volumes) {
-                if (isConfiguredVolume(volume.getPaaSNodeTemplate())) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public boolean isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
-        Map<String, AbstractPropertyValue> volumeProperties = volumeTemplate.getNodeTemplate().getProperties();
-        return volumeProperties != null
-                && (volumeProperties.containsKey(NormativeBlockStorageConstants.LOCATION) || volumeProperties
-                        .containsKey(NormativeBlockStorageConstants.FILE_SYSTEM));
-    }
-
-    public boolean isDeletableVolumeType(IndexedNodeType volumeType) {
-        return ToscaUtils.isFromType(AlienCustomTypes.DELETABLE_BLOCKSTORAGE_TYPE, volumeType);
-    }
-
-    public String getExternalVolumeId(MatchedPaaSTemplate<StorageTemplate> matchedVolumeTemplate) {
-        String volumeId = matchedVolumeTemplate.getPaaSResourceId();
-        if (!StringUtils.isEmpty(volumeId)) {
-            return volumeId;
-        } else {
-            Map<String, AbstractPropertyValue> volumeProperties = matchedVolumeTemplate.getPaaSNodeTemplate().getNodeTemplate().getProperties();
-            if (volumeProperties != null) {
-                String volumeIdValue = FunctionEvaluator.getScalarValue(volumeProperties.get(NormativeBlockStorageConstants.VOLUME_ID));
-                if (volumeIdValue != null) {
-                    if (volumeIdValue.contains(AlienConstants.STORAGE_AZ_VOLUMEID_SEPARATOR)) {
-                        String[] volumeIdValueTokens = volumeIdValue.split(AlienConstants.STORAGE_AZ_VOLUMEID_SEPARATOR);
-                        if (volumeIdValueTokens.length != 2) {
-                            // TODO Manage the case when we want to reuse a volume, must take into account the fact it can contain also availability zone
-                            // TODO And it can have multiple volumes if it's scaled
-                            throw new InvalidArgumentException("Volume id is not in good format");
-                        } else {
-                            return volumeIdValueTokens[1];
-                        }
-                    } else {
-                        return volumeIdValue;
-                    }
-                }
-            }
-            return null;
-        }
-    }
-
-    public PaaSNodeTemplate[] getConfiguredAttachedVolumes(PaaSNodeTemplate node) {
-        PaaSNodeTemplate host = node.getParent();
-        while (host.getParent() != null) {
-            host = host.getParent();
-        }
-        if (CollectionUtils.isEmpty(host.getStorageNodes())) {
-            return null;
-        }
-        List<PaaSNodeTemplate> volumes = Lists.newArrayList();
-        for (PaaSNodeTemplate volume : host.getStorageNodes()) {
-            if (isConfiguredVolume(volume)) {
-                volumes.add(volume);
-            }
-        }
-        return volumes.isEmpty() ? null : volumes.toArray(new PaaSNodeTemplate[volumes.size()]);
-    }
-
-    public String tryToMapComputeType(IndexedNodeType type, String defaultType) {
-        return getMappedNativeType(type, NormativeComputeConstants.COMPUTE_TYPE, providerMappingConfiguration.getNativeTypes().getComputeType(),
-                alienDeployment.getComputeTypes(), defaultType);
-    }
-
-    public String tryToMapComputeTypeDerivedFrom(IndexedNodeType type) {
-        return getMappedNativeDerivedFromType(type, NormativeComputeConstants.COMPUTE_TYPE, providerMappingConfiguration.getNativeTypes().getComputeType(),
-                alienDeployment.getComputeTypes());
-    }
-
-    public String tryToMapVolumeType(IndexedNodeType type, String defaultType) {
-        return getMappedNativeType(type, NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE, providerMappingConfiguration.getNativeTypes().getVolumeType(),
-                alienDeployment.getVolumeTypes(), defaultType);
-    }
-
-    public String tryToMapVolumeTypeDerivedFrom(IndexedNodeType type) {
-        return getMappedNativeDerivedFromType(type, NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE, providerMappingConfiguration.getNativeTypes()
-                .getVolumeType(), alienDeployment.getVolumeTypes());
-    }
-
-    public String tryToMapNetworkType(IndexedNodeType type, String defaultType) {
-        return getMappedNativeType(type, NormativeNetworkConstants.NETWORK_TYPE, providerMappingConfiguration.getNativeTypes().getNetworkType(),
-                alienDeployment.getNetworkTypes(), defaultType);
-    }
-
-    public String tryToMapNetworkTypeDerivedFrom(IndexedNodeType type) {
-        return getMappedNativeDerivedFromType(type, NormativeNetworkConstants.NETWORK_TYPE, providerMappingConfiguration.getNativeTypes().getNetworkType(),
-                alienDeployment.getNetworkTypes());
-    }
-
-    private String getMappedNativeType(IndexedNodeType type, String alienBaseType, String providerBaseType, List<IndexedNodeType> allDeploymentNativeTypes,
-            String defaultType) {
-        String nativeDerivedFrom = getMappedNativeDerivedFromType(type, alienBaseType, providerBaseType, allDeploymentNativeTypes);
-        // If the native derive from is the provider base type, it means we should get the given default type
-        if (providerBaseType.equals(nativeDerivedFrom)) {
-            return defaultType;
-        } else {
-            return type.getElementId();
-        }
-    }
-
-    private String getMappedNativeDerivedFromType(IndexedNodeType typeToMap, String alienBaseType, String providerBaseType,
-            List<IndexedNodeType> allDeploymentNativeTypes) {
-        if (alienBaseType.equals(typeToMap.getElementId())) {
-            return providerBaseType;
-        }
-        List<String> derivedFroms = typeToMap.getDerivedFrom();
-        for (String derivedFrom : derivedFroms) {
-            if (alienBaseType.equals(derivedFrom)) {
-                return providerBaseType;
-            }
-            IndexedNodeType mostSuitableType = getTypeFromName(derivedFrom, allDeploymentNativeTypes);
-            if (mostSuitableType != null) {
-                return mostSuitableType.getElementId();
-            }
-        }
-        return typeToMap.getElementId();
-    }
-
-    private IndexedNodeType getTypeFromName(String name, List<IndexedNodeType> types) {
-        for (IndexedNodeType type : types) {
-            if (name.equals(type.getId())) {
-                return type;
-            }
-        }
-        return null;
     }
 
     public PaaSNodeTemplate getHost(PaaSNodeTemplate node) {
@@ -794,35 +545,6 @@ public class CloudifyDeploymentUtil {
         }
     }
 
-    public String formatVolumeSize(Long size) {
-        if (size == null) {
-            throw new IllegalArgumentException("Volume size is required");
-        }
-        long sizeInGib = size / (1024L * 1024L * 1024L);
-        if (sizeInGib <= 0) {
-            sizeInGib = 1;
-        }
-        return String.valueOf(sizeInGib);
-    }
-
-    /**
-     * Get the volume's availability zone from the compute (in the same zone)
-     *
-     * @param matchedVolume the matched volume
-     * @return the availability zone, null if not defined in the parent compute
-     */
-    public String getVolumeAvailabilityZone(MatchedPaaSTemplate<StorageTemplate> matchedVolume) {
-        PaaSNodeTemplate compute = matchedVolume.getPaaSNodeTemplate().getParent();
-        if (compute == null) {
-            return null;
-        }
-        MatchedPaaSComputeTemplate matchedPaaSComputeTemplate = alienDeployment.getComputesMap().get(compute.getId());
-        if (matchedPaaSComputeTemplate == null) {
-            return null;
-        }
-        return matchedPaaSComputeTemplate.getPaaSComputeTemplate().getAvailabilityZone();
-    }
-
     public String getArtifactRelativePath(IArtifact artifact) {
         return "artifacts/" + artifact.getArchiveName() + "/" + artifact.getArtifactRef();
     }
@@ -850,20 +572,6 @@ public class CloudifyDeploymentUtil {
                 || MapUtils.isNotEmpty(operationWrapper.getAllRelationshipDeploymentArtifacts());
     }
 
-    public String formatTextWithIndentation(int spaceNumber, String text) {
-        String[] lines = text.split("\n");
-        StringBuilder formattedTextBuffer = new StringBuilder();
-        StringBuilder indentationBuffer = new StringBuilder();
-        for (int i = 0; i < spaceNumber; i++) {
-            indentationBuffer.append(" ");
-        }
-        String indentation = indentationBuffer.toString();
-        for (String line : lines) {
-            formattedTextBuffer.append(indentation).append(line).append("\n");
-        }
-        return formattedTextBuffer.toString();
-    }
-
     public String getOperationOutputNames(Operation operation) {
         if (operation.getOutputs() != null && !operation.getOutputs().isEmpty()) {
             StringBuilder result = new StringBuilder();
@@ -883,16 +591,4 @@ public class CloudifyDeploymentUtil {
         return (operationWrapper.getOwner() instanceof PaaSRelationshipTemplate);
     }
 
-    /**
-     * @return true if the provider deployment property 'deletable_blockstorage' is true.
-     */
-    public boolean hasDeletableBlockstorageOptionEnabled(CloudifyDeployment cloudifyDeployment) {
-        if (cloudifyDeployment.getProviderDeploymentProperties() != null) {
-            String value = cloudifyDeployment.getProviderDeploymentProperties().get(CloudifyPaaSProviderFactory.DELETABLE_BLOCKSTORAGE);
-            if (value != null) {
-                return Boolean.parseBoolean(value);
-            }
-        }
-        return false;
-    }
 }
