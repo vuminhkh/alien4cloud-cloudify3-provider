@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import alien4cloud.it.provider.util.HttpUtil;
 import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
@@ -24,7 +25,6 @@ import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.StatusService;
-import alien4cloud.paas.cloudify3.util.HttpUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceStatus;
@@ -47,9 +47,6 @@ public class TestDeploymentService extends AbstractDeploymentTest {
 
     @Resource
     private MappingConfigurationHolder mappingConfigurationHolder;
-
-    @Resource
-    private HttpUtil httpUtil;
 
     @Resource
     private EventService eventService;
@@ -148,7 +145,7 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     @org.junit.Test
     public void testDeployLamp() throws Exception {
         String deploymentId = launchTest(LAMP_TOPOLOGY);
-        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/wp-admin/install.php", null, 120000L);
+        HttpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/wp-admin/install.php", null, 120000L);
     }
 
     @org.junit.Test
@@ -173,19 +170,19 @@ public class TestDeploymentService extends AbstractDeploymentTest {
     public void testDeployTomcat() throws Exception {
         PaaSTopologyDeploymentContext context = buildPaaSDeploymentContext(TOMCAT_TOPOLOGY);
         launchTest(context);
-        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
+        HttpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
         Map<String, String> commandParameters = Maps.newHashMap();
         commandParameters.put("WAR_URL",
                 "https://github.com/alien4cloud/alien4cloud-cloudify3-provider/raw/master/src/test/resources/data/war-examples/helloWorld.war");
         executeCustomCommand(context, new NodeOperationExecRequest("War", null, "custom", "update_war_file", commandParameters));
-        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
+        HttpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
                 120000L);
     }
 
     @org.junit.Test
     public void testDeployArtifactTest() throws Exception {
         String deploymentId = launchTest(ARTIFACT_TEST_TOPOLOGY);
-        httpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
+        HttpUtil.checkUrl("http://" + getIpAddress(deploymentId, "Server") + "/helloworld", "Welcome to Fastconnect !", 120000L);
     }
 
     @org.junit.Test
@@ -193,7 +190,7 @@ public class TestDeploymentService extends AbstractDeploymentTest {
         PaaSTopologyDeploymentContext context = buildPaaSDeploymentContext(ARTIFACT_TEST_TOPOLOGY);
         overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
         launchTest(context);
-        httpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
+        HttpUtil.checkUrl("http://" + getIpAddress(context.getDeploymentPaaSId(), "Server") + "/helloworld", "Welcome to testDeployArtifactOverriddenTest !",
                 120000L);
     }
 

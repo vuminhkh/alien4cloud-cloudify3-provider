@@ -94,5 +94,4 @@ audit:
 
 cloudify3:
   externalNetworkName: "net-pub"
-  apiUrl: "http://129.185.67.101:8100"
   imageId: "02ddfcbb-9534-44d7-974d-5cfd36dfbcab"
