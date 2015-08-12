@@ -10,49 +10,50 @@ imports:
   - tomcat-war-types:2.0.0-SNAPSHOT
   - artifact-test-types:1.0.0-SNAPSHOT
 
-node_templates:
+topology_template:
+  node_templates:
 
-  NetPub:
-    type: tosca.nodes.Network
+    NetPub:
+      type: tosca.nodes.Network
 
-  Java:
-    type: alien.nodes.Java
-    requirements:
-      - host: Compute
+    Java:
+      type: alien.nodes.Java
+      requirements:
+        - host: Compute
 
-  War:
-    type: alien.nodes.WarWithLifeCycleScript
-    properties:
-      context_path: helloworld
-    requirements:
-      - host: Tomcat
+    War:
+      type: alien.nodes.WarWithLifeCycleScript
+      properties:
+        context_path: helloworld
+      requirements:
+        - host: Tomcat
 
-  Tomcat:
-    type: alien.nodes.Tomcat
-    requirements:
-      - host: Server
-      - java: Java
+    Tomcat:
+      type: alien.nodes.Tomcat
+      requirements:
+        - host: Server
+        - java: Java
 
-  Server:
-    type: tosca.nodes.Compute
-    name: Server
-    properties:
-      os_arch: x86_64
-      os_type: linux
-    requirements:
-      - network: NetPub
+    Server:
+      type: tosca.nodes.Compute
+      name: Server
+      properties:
+        os_arch: x86_64
+        os_type: linux
+      requirements:
+        - network: NetPub
 
-  Artifact_Directory_Test:
-    type: alien.nodes.TestArtifactDirectory
-    name: Artifact_Directory_Test
-    requirements:
-      - test_requirement:
-          properties:
-            test_capability_property: Test requirement i'm great
-      - host: Server
-    capabilities:
-      - test_capability:
-          properties:
-            test_capability_property: |
-              It's really a great day to begin
-              to love
+    Artifact_Directory_Test:
+      type: alien.nodes.TestArtifactDirectory
+      name: Artifact_Directory_Test
+      requirements:
+        - test_requirement:
+            properties:
+              test_capability_property: Test requirement i'm great
+        - host: Server
+      capabilities:
+        - test_capability:
+            properties:
+              test_capability_property: |
+                It's really a great day to begin
+                to love

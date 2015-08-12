@@ -94,7 +94,7 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
     }
 
     public PaaSNodeTemplate[] getConfiguredAttachedVolumes(PaaSNodeTemplate node) {
-        PaaSNodeTemplate host = node.getParent();
+        PaaSNodeTemplate host = node;
         while (host.getParent() != null) {
             host = host.getParent();
         }

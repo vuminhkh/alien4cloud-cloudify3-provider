@@ -11,81 +11,85 @@ imports:
   - apache-type:2.0.0-SNAPSHOT
   - mysql-type:2.0.0-SNAPSHOT
   - wordpress-type:2.0.0-SNAPSHOT
+topology_template:
+  node_templates:
 
-node_templates:
+    NetPub:
+      type: tosca.nodes.Network
+      properties:
+        network_name: net-pub
 
-  NetPub:
-    type: tosca.nodes.Network
-    properties:
-      network_name: net-pub
+    InternalNetwork:
+      type: tosca.nodes.Network
+      properties:
+        network_name: internal-network
 
-  InternalNetwork:
-    type: tosca.nodes.Network
-    properties:
-      network_name: internal-network
+    Apache:
+      type: alien.nodes.Apache
+      properties:
+        port: 80
+        document_root: /var/www
+        version: 2.4
+      requirements:
+        - host: Server
 
-  Apache:
-    type: alien.nodes.Apache
-    properties:
-      port: 80
-      document_root: /var/www
-      version: 2.4
-    requirements:
-      - host: Server
+    DataBase:
+      type: tosca.nodes.Compute
+      properties:
+        os_arch:
+          value: x86_64
+        os_type:
+          value: linux
+      requirements:
+        - network: InternalNetwork
 
-  DataBase:
-    type: tosca.nodes.Compute
-    properties:
-      os_arch:
-        value: x86_64
-      os_type:
-        value: linux
-    requirements:
-      - network: InternalNetwork
+    DataBaseStorage:
+      type: alien.nodes.DeletableBlockStorage
+      properties:
+        file_system: ext4
+        location: /var/mysql
+      requirements:
+        - attachement: DataBase
 
-  DataBaseStorage:
-    type: alien.nodes.DeletableBlockStorage
-    properties:
-      file_system: ext4
-      location: /var/mysql
-    requirements:
-      - attachement: DataBase
+    PHP:
+      type: alien.nodes.PHP
+      properties:
+        version:
+          value: "5"
+      requirements:
+        - host: Server
 
-  PHP:
-    type: alien.nodes.PHP
-    properties:
-      version:
-        value: "5"
-    requirements:
-      - host: Server
+    Wordpress:
+      type: alien.nodes.Wordpress
+      properties:
+        context_path: "/"
+        zip_url: "https://wordpress.org/latest.zip"
+      requirements:
+        - host: Apache
+        - database:
+            node: Mysql
+            capability: alien.capabilities.MysqlDatabaseEndpoint
+        - php:
+            node: PHP
+            capability: alien.capabilities.PHPModule
 
-  Wordpress:
-    type: alien.nodes.Wordpress
-    properties:
-      context_path: "/"
-      zip_url: "https://wordpress.org/latest.zip"
-    requirements:
-      - host: Apache
-      - database: Mysql
-      - php: PHP
+    Mysql:
+      type: alien.nodes.Mysql
+      properties:
+        bind_address: true
+        storage_path: /mountedStorage
+        db_port: 3306
+        db_name: wordpress
+        db_user: pass
+        db_password: pass
+      requirements:
+        - host: DataBase
 
-  Mysql:
-    type: alien.nodes.Mysql
-    properties:
-      bind_address: true
-      storage_path: /mountedStorage
-      db_port: 3306
-      db_name: wordpress
-      db_user: pass
-      db_password: pass
-    requirements:
-      host: DataBase
-
-  Server:
-    type: tosca.nodes.Compute
-    properties:
-      os_arch: x86_64
-      os_type: linux
-    requirements:
-      - network: NetPub
-      - network: InternalNetwork
+    Server:
+      type: tosca.nodes.Compute
+      properties:
+        os_arch: x86_64
+        os_type: linux
+      requirements:
+        - network: NetPub
+        - network: InternalNetwork

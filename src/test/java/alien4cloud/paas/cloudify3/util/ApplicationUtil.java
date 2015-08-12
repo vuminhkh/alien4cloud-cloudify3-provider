@@ -1,10 +1,13 @@
 package alien4cloud.paas.cloudify3.util;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import javax.annotation.Resource;
 
+import alien4cloud.utils.FileUtil;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
@@ -49,7 +52,9 @@ public class ApplicationUtil {
     }
 
     private Topology parseYamlTopology(String topologyFileName) throws IOException, ParsingException {
-        ParsingResult<ArchiveRoot> parsingResult = parser.parse(Paths.get(TOPOLOGIES_PATH + topologyFileName + ".yaml"));
+        Path zipPath = Files.createTempFile("csar", ".zip");
+        FileUtil.zip(Paths.get(TOPOLOGIES_PATH + topologyFileName + ".yaml"), zipPath);
+        ParsingResult<ArchiveRoot> parsingResult = parser.parse(zipPath);
         postProcessor.postProcess(parsingResult);
         return parsingResult.getResult().getTopology();
     }
