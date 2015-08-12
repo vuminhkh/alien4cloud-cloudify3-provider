@@ -14,7 +14,6 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
@@ -36,7 +35,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
-    private boolean record = true;
+    private boolean record = false;
 
     @Override
     @Before
@@ -70,13 +69,14 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         Path generatedDirectory = generated.getParent();
         String recordedDirectory = "src/test/resources/outputs/blueprints/" + outputFile;
         if (record) {
+            FileUtil.delete(Paths.get(recordedDirectory));
             FileUtil.copy(generatedDirectory, Paths.get(recordedDirectory), StandardCopyOption.REPLACE_EXISTING);
+            // Check if cloudify accept the blueprint
+            blueprintDAO.create(topology, generated.toString());
+            blueprintDAO.delete(topology);
         } else {
             FileTestUtil.assertFilesAreSame(Paths.get(recordedDirectory), generatedDirectory);
         }
-        // Check if cloudify accept the blueprint
-        blueprintDAO.create(topology, generated.toString());
-        blueprintDAO.delete(topology);
         return generated;
     }
 
@@ -98,11 +98,6 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Test
     public void testGenerateBlockStorage() {
         testGeneratedBlueprintFile(STORAGE_TOPOLOGY);
-    }
-
-    @Test
-    public void testGenerateDeletableBlockStorage() {
-        testGeneratedBlueprintFile(DELETABLE_STORAGE_TOPOLOGY);
     }
 
     @Test

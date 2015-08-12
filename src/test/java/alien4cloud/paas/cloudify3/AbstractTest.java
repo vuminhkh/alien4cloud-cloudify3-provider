@@ -158,7 +158,8 @@ public class AbstractTest {
             if (NormativeNetworkConstants.NETWORK_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
                 networkIds.add(nodeTemplateEntry.getKey());
             }
-            if (NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())
+            if ("alien.nodes.ConfigurableBlockStorage".equals(nodeTemplateEntry.getValue().getType())
+                    || NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())
                     || AlienCustomTypes.DELETABLE_BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
                 blockStorageIds.add(nodeTemplateEntry.getKey());
             }

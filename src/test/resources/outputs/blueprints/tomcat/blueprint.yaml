@@ -70,7 +70,7 @@ node_templates:
         type: alien.relationships.WarHostedOnTomcat
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
-            postconfigure: wrapper/War_Tomcat/warHostedOnTomcat/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
+            postconfigure: wrapper/War_Tomcat/warHostedOnTomcatTomcat/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
   Tomcat:
     type: alien.nodes.Tomcat
     instances:
@@ -81,10 +81,10 @@ node_templates:
         start: wrapper/Tomcat/tosca.interfaces.node.lifecycle.Standard/start/artifacts/tomcat-war-types/scripts/_a4c_tomcat_start.py
         create: wrapper/Tomcat/tosca.interfaces.node.lifecycle.Standard/create/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install.py
     relationships:
-      - target: Server
-        type: cloudify.relationships.contained_in
       - target: Java
         type: alien.relationships.RunOnJVM
+      - target: Server
+        type: cloudify.relationships.contained_in
   Java:
     type: alien.nodes.Java
     instances:

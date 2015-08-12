@@ -11,6 +11,7 @@ imports:
   - artifact-test-types:1.0.0-SNAPSHOT
 
 topology_template:
+
   node_templates:
 
     NetPub:
@@ -19,20 +20,26 @@ topology_template:
     Java:
       type: alien.nodes.Java
       requirements:
-        - host: Compute
+        - host: Server
 
     War:
       type: alien.nodes.WarWithLifeCycleScript
       properties:
         context_path: helloworld
       requirements:
-        - host: Tomcat
+        - host:
+            node: Tomcat
+            capability: alien.capabilities.WarHosting
+            relationship: alien.relationships.WarHostedOnTomcatWithProperties
 
     Tomcat:
       type: alien.nodes.Tomcat
       requirements:
         - host: Server
-        - java: Java
+        - java:
+            node: Java
+            capability: alien.capabilities.Java
+            relationship: alien.relationships.RunOnJVM
 
     Server:
       type: tosca.nodes.Compute
@@ -41,19 +48,19 @@ topology_template:
         os_arch: x86_64
         os_type: linux
       requirements:
-        - network: NetPub
+        - network:
+            node: NetPub
+            capability: tosca.capabilities.Connectivity
+            relationship: tosca.relationships.Network
 
     Artifact_Directory_Test:
       type: alien.nodes.TestArtifactDirectory
       name: Artifact_Directory_Test
       requirements:
-        - test_requirement:
-            properties:
-              test_capability_property: Test requirement i'm great
         - host: Server
       capabilities:
-        - test_capability:
-            properties:
-              test_capability_property: |
-                It's really a great day to begin
-                to love
+        test_capability:
+          properties:
+            test_capability_property: |
+              It's really a great day to begin
+              to love

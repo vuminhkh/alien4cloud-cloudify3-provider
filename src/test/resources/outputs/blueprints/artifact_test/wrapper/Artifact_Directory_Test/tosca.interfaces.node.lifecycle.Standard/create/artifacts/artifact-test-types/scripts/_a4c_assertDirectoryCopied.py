@@ -194,11 +194,10 @@ def download_artifacts(artifacts, download_dir):
 
 new_script_process = {
     'env': {
-        'REQUIREMENT_PROPERTY': r'Test requirement i\'m great'
+        'REQUIREMENT_PROPERTY': ''
         ,
         'CAPABILITY_PROPERTY': r'''It\'s really a great day to begin
-to love
-'''
+to love'''
     }
 }
 

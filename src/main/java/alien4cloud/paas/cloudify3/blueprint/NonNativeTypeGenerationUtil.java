@@ -270,11 +270,11 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     }
 
     public String formatTextValueToPython(String text) {
-        if (text.contains("'")) {
-            text = text.replace("'", "\\'");
-        }
         if (StringUtils.isEmpty(text)) {
             return "''";
+        }
+        if (text.contains("'")) {
+            text = text.replace("'", "\\'");
         }
         if (text.contains("\n") || text.contains("\r")) {
             return "r'''" + text + "'''";

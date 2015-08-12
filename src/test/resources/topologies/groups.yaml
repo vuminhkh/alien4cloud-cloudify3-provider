@@ -7,15 +7,15 @@ template_author: admin
 imports:
   - tosca-normative-types:1.0.0.wd03-SNAPSHOT
 
-node_templates:
-  compute1:
-    type: tosca.nodes.Compute
-  compute2:
-    type: tosca.nodes.Compute
+topology_template:
+  node_templates:
+    compute1:
+      type: tosca.nodes.Compute
+    compute2:
+      type: tosca.nodes.Compute
 
-groups:
-  compute_ha_group:
-    members: [ compute1, compute2 ]
-    policies:
-      - my_scaling_ha_policy:
-          type: tosca.policy.ha
+  groups:
+    compute_ha_group:
+      members: [ compute1, compute2 ]
+      policies:
+        - my_scaling_ha_policy: tosca.policy.ha

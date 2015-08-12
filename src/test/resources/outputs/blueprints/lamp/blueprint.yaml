@@ -153,6 +153,9 @@ node_templates:
       device_name: /dev/vdb
       volume:
         size: 1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        delete: {}
     relationships:
       - target: DataBase
         type: cloudify.openstack.volume_attached_to_server
@@ -186,6 +189,11 @@ node_templates:
       cloudify.interfaces.lifecycle:
         create: wrapper/Wordpress/tosca.interfaces.node.lifecycle.Standard/create/artifacts/wordpress-type/scripts/_a4c_install_wordpress.py
     relationships:
+      - target: PHP
+        type: alien.relationships.WordpressConnectToPHP
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            preconfigure: wrapper/Wordpress_PHP/wordpressConnectToPHPPHP/artifacts/wordpress-type/scripts/_a4c_install_php_module.py
       - target: Apache
         type: alien.relationships.WordpressHostedOnApache
         source_interfaces:
@@ -196,11 +204,6 @@ node_templates:
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
             preconfigure: wrapper/Wordpress_Mysql/wordpressConnectToMysqlMysql/artifacts/wordpress-type/scripts/_a4c_config_wordpress_for_mysql.py
-      - target: PHP
-        type: alien.relationships.WordpressConnectToPHP
-        source_interfaces:
-          cloudify.interfaces.relationship_lifecycle:
-            preconfigure: wrapper/Wordpress_PHP/wordpressConnectToPHPPHP/artifacts/wordpress-type/scripts/_a4c_install_php_module.py
   Mysql:
     type: alien.nodes.Mysql
     instances:

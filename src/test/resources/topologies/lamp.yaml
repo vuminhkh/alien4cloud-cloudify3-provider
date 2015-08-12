@@ -41,16 +41,21 @@ topology_template:
         os_type:
           value: linux
       requirements:
-        - network: InternalNetwork
+        - network:
+            node: InternalNetwork
+            capability: tosca.capabilities.Connectivity
+            relationship: tosca.relationships.Network
 
     DataBaseStorage:
-      type: alien.nodes.DeletableBlockStorage
+      type: alien.nodes.ConfigurableBlockStorage
       properties:
         file_system: ext4
         location: /var/mysql
       requirements:
-        - attachement: DataBase
-
+        - attachment:
+            node: DataBase
+            capability: tosca.capabilities.Attachment
+            relationship: tosca.relationships.AttachTo
     PHP:
       type: alien.nodes.PHP
       properties:
@@ -91,5 +96,11 @@ topology_template:
         os_arch: x86_64
         os_type: linux
       requirements:
-        - network: NetPub
-        - network: InternalNetwork
+        - network:
+            node: NetPub
+            capability: tosca.capabilities.Connectivity
+            relationship: tosca.relationships.Network
+        - network:
+            node: InternalNetwork
+            capability: tosca.capabilities.Connectivity
+            relationship: tosca.relationships.Network
