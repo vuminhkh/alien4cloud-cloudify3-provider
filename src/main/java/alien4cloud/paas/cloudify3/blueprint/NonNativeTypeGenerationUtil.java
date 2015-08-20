@@ -30,6 +30,9 @@ import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.IPaaSTemplate;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
+import alien4cloud.paas.cloudify3.model.wf.WfOperationExecutionTask;
+import alien4cloud.paas.cloudify3.model.wf.WfSetStateTask;
+import alien4cloud.paas.cloudify3.model.wf.WfTask;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.OperationWrapper;
@@ -589,6 +592,14 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     public boolean isOperationOwnedByRelationship(OperationWrapper operationWrapper) {
         return (operationWrapper.getOwner() instanceof PaaSRelationshipTemplate);
+    }
+
+    public boolean isSetStateTask(WfTask task) {
+        return task instanceof WfSetStateTask;
+    }
+
+    public boolean isOperationExecutionTask(WfTask task) {
+        return task instanceof WfOperationExecutionTask;
     }
 
 }
