@@ -32,12 +32,13 @@ import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.util.DateUtil;
-import alien4cloud.paas.cloudify3.util.MapUtil;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.InstanceStatus;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.utils.MapUtil;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -120,7 +121,7 @@ public class StatusService {
                         execution.getCreatedAt(), execution.getWorkflowId(), execution.getStatus());
             }
             // Only consider install/uninstall workflow to check for deployment status
-            if (Workflow.INSTALL.equals(execution.getWorkflowId()) || Workflow.UNINSTALL.equals(execution.getWorkflowId())) {
+            if (Workflow.INSTALL.equals(execution.getWorkflowId()) || Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(execution.getWorkflowId())) {
                 if (lastExecution == null) {
                     lastExecution = execution;
                 } else if (DateUtil.compare(execution.getCreatedAt(), lastExecution.getCreatedAt()) > 0) {
@@ -141,7 +142,7 @@ public class StatusService {
             } else {
                 return DeploymentStatus.UNKNOWN;
             }
-        } else if (Workflow.UNINSTALL.equals(lastExecution.getWorkflowId())) {
+        } else if (Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(lastExecution.getWorkflowId())) {
             if (ExecutionStatus.isTerminatedSuccessfully(lastExecution.getStatus())) {
                 return DeploymentStatus.UNDEPLOYED;
             } else if (ExecutionStatus.isTerminatedWithFailure(lastExecution.getStatus())) {
@@ -167,14 +168,6 @@ public class StatusService {
 
     public void getStatus(String deploymentPaaSId, IPaaSCallback<DeploymentStatus> callback) {
         callback.onSuccess(getStatus(deploymentPaaSId));
-    }
-
-    public void getStatuses(String[] deploymentPaaSIds, IPaaSCallback<DeploymentStatus[]> callback) {
-        List<DeploymentStatus> deploymentStatuses = Lists.newArrayList();
-        for (String deploymentPaaSId : deploymentPaaSIds) {
-            deploymentStatuses.add(getStatus(deploymentPaaSId));
-        }
-        callback.onSuccess(deploymentStatuses.toArray(new DeploymentStatus[deploymentStatuses.size()]));
     }
 
     public void getInstancesInformation(final PaaSTopologyDeploymentContext deploymentContext,
@@ -216,7 +209,12 @@ public class StatusService {
                     } else {
                         instanceInformation.setInstanceStatus(instanceStatus);
                     }
-                    Map<String, String> runtimeProperties = MapUtil.toString(instance.getRuntimeProperties());
+                    Map<String, String> runtimeProperties = null;
+                    try {
+                        runtimeProperties = MapUtil.toString(instance.getRuntimeProperties());
+                    } catch (JsonProcessingException e) {
+                        log.error("Unable to stringify runtime properties", e);
+                    }
                     instanceInformation.setRuntimeProperties(runtimeProperties);
                     Node node = nodeMap.get(instance.getNodeId());
                     if (MapUtils.isNotEmpty(nodeTemplate.getAttributes())) {

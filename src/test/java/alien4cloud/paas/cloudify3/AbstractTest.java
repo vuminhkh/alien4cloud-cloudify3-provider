@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Value;
 
+import alien4cloud.it.Context;
 import alien4cloud.model.application.DeploymentSetup;
 import alien4cloud.model.cloud.AvailabilityZone;
 import alien4cloud.model.cloud.CloudImage;
@@ -58,9 +59,6 @@ public class AbstractTest {
 
     @Value("${cloudify3.externalNetworkName}")
     private String externalNetworkName;
-
-    @Value("${cloudify3.apiUrl}")
-    private String apiUrl;
 
     @Value("${cloudify3.imageId}")
     private String imageId;
@@ -112,7 +110,7 @@ public class AbstractTest {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
         String cloudifyURL = System.getenv("CLOUDIFY_URL");
         if (cloudifyURL == null) {
-            cloudifyURL = apiUrl;
+            cloudifyURL = Context.getInstance().getCloudify3ManagerUrl();
         }
         cloudConfiguration.setUrl(cloudifyURL);
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
@@ -160,7 +158,8 @@ public class AbstractTest {
             if (NormativeNetworkConstants.NETWORK_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
                 networkIds.add(nodeTemplateEntry.getKey());
             }
-            if (NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())
+            if ("alien.nodes.ConfigurableBlockStorage".equals(nodeTemplateEntry.getValue().getType())
+                    || NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())
                     || AlienCustomTypes.DELETABLE_BLOCKSTORAGE_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
                 blockStorageIds.add(nodeTemplateEntry.getKey());
             }

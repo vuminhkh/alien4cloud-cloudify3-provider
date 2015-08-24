@@ -15,6 +15,9 @@ import lombok.NoArgsConstructor;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
+import org.apache.velocity.runtime.RuntimeConstants;
+import org.apache.velocity.runtime.log.NullLogChute;
+import org.apache.velocity.runtime.resource.loader.FileResourceLoader;
 
 import alien4cloud.utils.FileUtil;
 
@@ -29,10 +32,10 @@ public class VelocityUtil {
 
     static {
         VELOCITY_PROPS = new Properties();
-        VELOCITY_PROPS.put("resource.loader", "file");
-        VELOCITY_PROPS.put("file.resource.loader.class", "org.apache.velocity.runtime.resource.loader.FileResourceLoader");
-        VELOCITY_PROPS.put("runtime.log.logsystem.class", "org.apache.velocity.runtime.log.NullLogSystem");
-        VELOCITY_PROPS.put("file.resource.loader.cache", "false");
+        VELOCITY_PROPS.put(RuntimeConstants.RESOURCE_LOADER, "file");
+        VELOCITY_PROPS.put("file.resource.loader.class", FileResourceLoader.class.getName());
+        VELOCITY_PROPS.put(RuntimeConstants.RUNTIME_LOG_LOGSYSTEM_CLASS, NullLogChute.class.getName());
+        VELOCITY_PROPS.put(RuntimeConstants.FILE_RESOURCE_LOADER_CACHE, "false");
     }
 
     /**

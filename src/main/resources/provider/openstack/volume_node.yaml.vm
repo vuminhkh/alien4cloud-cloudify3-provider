@@ -1,0 +1,49 @@
+## volume nodes
+#foreach($matchedVolume in ${deployment.volumes})
+#set($externalVolumeId = $util.volume.getExternalVolumeId($matchedVolume))
+#if(${util.volume.isConfiguredVolume(${matchedVolume.paaSNodeTemplate})})
+  ${mapping.generatedNodePrefix}_file_system_${matchedVolume.paaSNodeTemplate.id}:
+    type: ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem
+    properties:
+#if($externalVolumeId)
+      use_external_resource: true
+#end
+#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system.value})
+      fs_type: "${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system.value}"
+#end
+#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location.value})
+      fs_mount_path: "${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location.value}"
+#end
+    relationships:
+      - type: ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_depends_on_volume
+        target: ${matchedVolume.paaSNodeTemplate.id}
+      - type: ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_contained_in_compute
+        target: ${matchedVolume.paaSNodeTemplate.parent.id}
+#end
+  ${matchedVolume.paaSNodeTemplate.id}:
+    type: ${util.volume.tryToMapVolumeType($matchedVolume.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.Volume")}
+    properties:
+#if($externalVolumeId)
+      resource_id: $externalVolumeId
+      use_external_resource: true
+#end
+#if(${matchedVolume.paaSResourceTemplate.device})
+      device_name: ${matchedVolume.paaSResourceTemplate.device}
+#end
+#if(${matchedVolume.paaSResourceTemplate.size})
+      volume:
+        size: ${util.volume.formatVolumeSize(${matchedVolume.paaSResourceTemplate.size})}
+#set($volumeAvailabilityZone = $util.volume.getVolumeAvailabilityZone($matchedVolume))
+#if($volumeAvailabilityZone)
+        availability_zone: $volumeAvailabilityZone
+#end
+#end
+#if(!(${util.volume.isDeletableVolumeType(${matchedVolume.paaSNodeTemplate.indexedToscaElement})} || ${util.volume.hasDeletableBlockstorageOptionEnabled($deployment)}))
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        delete: {}
+#end
+    relationships:
+      - target: ${matchedVolume.paaSNodeTemplate.parent.id}
+        type: ${providerMapping.nativeTypes.volumeAttachRelationshipType}
+#end

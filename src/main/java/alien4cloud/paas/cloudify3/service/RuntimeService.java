@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -9,11 +10,14 @@ import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
 import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
+import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
+import alien4cloud.paas.cloudify3.model.NodeInstance;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -31,6 +35,9 @@ public abstract class RuntimeService {
 
     @Resource
     protected ExecutionDAO executionDAO;
+
+    @Resource
+    protected NodeInstanceDAO nodeInstanceDAO;
 
     protected ListeningScheduledExecutorService scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1));
 
@@ -116,5 +123,30 @@ public abstract class RuntimeService {
             }
         };
         return Futures.transform(futureDeployment, waitFunc);
+    }
+
+    protected ListenableFuture<NodeInstance[]> cancelAllRunningExecutions(final String deploymentPaaSId) {
+        ListenableFuture<Execution[]> currentExecutions = executionDAO.asyncList(deploymentPaaSId);
+        AsyncFunction<Execution[], ?> abortCurrentExecutionsFunction = new AsyncFunction<Execution[], List<Execution>>() {
+
+            @Override
+            public ListenableFuture<List<Execution>> apply(Execution[] executions) throws Exception {
+                List<ListenableFuture<Execution>> abortExecutions = Lists.newArrayList();
+                for (Execution execution : executions) {
+                    if (!ExecutionStatus.isTerminated(execution.getStatus())) {
+                        abortExecutions.add(executionDAO.asyncCancel(execution.getId(), true));
+                    }
+                }
+                return Futures.allAsList(abortExecutions);
+            }
+        };
+        ListenableFuture<?> abortCurrentExecutionsFuture = Futures.transform(currentExecutions, abortCurrentExecutionsFunction);
+        AsyncFunction<Object, NodeInstance[]> livingNodesRetrievalFunction = new AsyncFunction<Object, NodeInstance[]>() {
+            @Override
+            public ListenableFuture<NodeInstance[]> apply(Object input) throws Exception {
+                return nodeInstanceDAO.asyncList(deploymentPaaSId);
+            }
+        };
+        return Futures.transform(abortCurrentExecutionsFuture, livingNodesRetrievalFunction);
     }
 }

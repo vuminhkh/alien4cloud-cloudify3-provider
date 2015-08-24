@@ -1,0 +1,47 @@
+## Compute nodes
+#foreach($matchedPaaSCompute in ${deployment.computes})
+  ${matchedPaaSCompute.paaSNodeTemplate.id}:
+    type: ${util.compute.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.Compute")}
+    properties:
+      image: ${matchedPaaSCompute.paaSComputeTemplate.image}
+      flavor: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
+#if(${matchedPaaSCompute.paaSComputeTemplate.availabilityZone} || ${cloud.cloudInit})
+      server:
+#if(${matchedPaaSCompute.paaSComputeTemplate.availabilityZone})
+        availability_zone: ${matchedPaaSCompute.paaSComputeTemplate.availabilityZone}
+#end
+#if(${cloud.cloudInit})
+        userdata: |
+${util.compute.formatTextWithIndentation(10, ${cloud.cloudInit})}
+#end
+#end
+    instances:
+#if(${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances})
+      deploy: ${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances}
+#else
+      deploy: 1
+#end
+#set( $hasFloatingIp = ${util.network.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})} )
+#set( $hasInternalNetwork = ${util.network.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.internalNetworks})} )
+#if($hasFloatingIp || $hasInternalNetwork)
+    relationships:
+#if($hasInternalNetwork)
+#foreach($internalNetworkNode in ${util.network.getInternalNetworks(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.internalNetworks})})
+#set( $network = ${internalNetworkNode.paaSResourceTemplate} )
+      - target: ${internalNetworkNode.id}
+        type: cloudify.relationships.connected_to
+      - target: ${internalNetworkNode.id}_subnet
+        type: cloudify.relationships.depends_on
+#end
+#end
+#if($hasFloatingIp)
+      - target: ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}
+        type: ${providerMapping.nativeTypes.floatingIpRelationshipType}
+  ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}:
+    type: ${mapping.generatedTypePrefix}.FloatingIP
+    properties:
+      floatingip:
+        floating_network_name: ${util.network.getExternalNetworkName(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})}
+#end
+#end
+#end

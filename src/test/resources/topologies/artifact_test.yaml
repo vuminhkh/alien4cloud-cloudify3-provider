@@ -1,89 +1,66 @@
-node_templates:
-  NetPub:
-    type: tosca.nodes.Network
-    name: NetPub
-    properties:
-      network_name:
-        value: net-pub
-  Java:
-    type: alien.nodes.Java
-    name: Java
-    relationships:
-      hostedOnServer:
-        type: tosca.relationships.HostedOn
-        target: Server
-  War:
-    type: alien.nodes.WarWithLifeCycleScript
-    name: War
-    properties:
-      context_path: "helloworld"
-    artifacts:
-      war_file:
-        artifact_type: alien.artifacts.WarFile
-        artifact_ref: warFiles/helloWorld.war
-        artifact_name: war_file
-        archive_name: tomcat-war-types
-        archive_version: 2.0.0-SNAPSHOT
-    relationships:
-      warHostedOnTomcat:
-        type: alien.relationships.WarHostedOnTomcatWithProperties
-        target: Tomcat
-  Tomcat:
-    type: alien.nodes.Tomcat
-    name: Tomcat
-    relationships:
-      hostedOnServer:
-        type: tosca.relationships.HostedOn
-        target: Server
-      runOnJVM:
-        type: alien.relationships.RunOnJVM
-        target: Java
-  Server:
-    type: tosca.nodes.Compute
-    name: Server
-    properties:
-      os_arch:
-        value: x86_64
-      os_type:
-        value: linux
-    relationships:
-      public_internet:
-        type: tosca.relationships.Network
-        target: NetPub
-  Artifact_Directory_Test:
-    type: alien.nodes.TestArtifactDirectory
-    name: Artifact_Directory_Test
-    requirements:
-      test_requirement:
-        type: alien.capabilities.TestCapability
-        properties:
-          test_capability_property:
-            value: "Test requirement i'm great"
-    capabilities:
-      test_capability:
-        type: alien.capabilities.TestCapability
-        properties:
-          test_capability_property:
-            value: |
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+description: Artifact test
+template_name: artifact_test
+template_version: 0.1.0-SNAPSHOT
+template_author: admin
+
+imports:
+  - tosca-normative-types:1.0.0.wd03-SNAPSHOT
+  - alien-base-types:1.0-SNAPSHOT
+  - tomcat-war-types:2.0.0-SNAPSHOT
+  - artifact-test-types:1.0.0-SNAPSHOT
+
+topology_template:
+
+  node_templates:
+
+    NetPub:
+      type: tosca.nodes.Network
+
+    Java:
+      type: alien.nodes.Java
+      requirements:
+        - host: Server
+
+    War:
+      type: alien.nodes.WarWithLifeCycleScript
+      properties:
+        context_path: helloworld
+      requirements:
+        - host:
+            node: Tomcat
+            capability: alien.capabilities.WarHosting
+            relationship: alien.relationships.WarHostedOnTomcatWithProperties
+
+    Tomcat:
+      type: alien.nodes.Tomcat
+      requirements:
+        - host: Server
+        - java:
+            node: Java
+            capability: alien.capabilities.Java
+            relationship: alien.relationships.RunOnJVM
+
+    Server:
+      type: tosca.nodes.Compute
+      name: Server
+      properties:
+        os_arch: x86_64
+        os_type: linux
+      requirements:
+        - network:
+            node: NetPub
+            capability: tosca.capabilities.Connectivity
+            relationship: tosca.relationships.Network
+
+    Artifact_Directory_Test:
+      type: alien.nodes.TestArtifactDirectory
+      name: Artifact_Directory_Test
+      requirements:
+        - host: Server
+      capabilities:
+        test_capability:
+          properties:
+            test_capability_property: |
               It's really a great day to begin
               to love
-    artifacts:
-      confs_directory:
-        artifact_type: tosca.artifacts.File
-        artifact_ref: conf
-        artifact_name: confs_directory
-        archive_name: artifact-test-types
-        archive_version: 1.0.0-SNAPSHOT
-    relationships:
-      hostedOnServer:
-        type: tosca.relationships.HostedOn
-        target: Server
-dependencies:
-  - name: tosca-normative-types
-    version: 1.0.0.wd03-SNAPSHOT
-  - name: alien-base-types
-    version: 1.0-SNAPSHOT
-  - name: tomcat-war-types
-    version: 2.0.0-SNAPSHOT
-  - name: artifact-test-types
-    version: 1.0.0-SNAPSHOT

@@ -1,65 +1,51 @@
-node_templates:
-  NetPub:
-    type: tosca.nodes.Network
-    name: NetPub
-    properties:
-      network_name:
-        value: net-pub
-  Java:
-    type: alien.nodes.Java
-    name: Java
-    properties:
-      java_home:
-        value: "/opt/java"
-      java_url:
-        value: "http://download.oracle.com/otn-pub/java/jdk/7u75-b13/jdk-7u75-linux-x64.tar.gz"
-    relationships:
-      hostedOnServer:
-        type: tosca.relationships.HostedOn
-        target: Server
-  War:
-    type: alien.nodes.War
-    name: War
-    properties:
-      context_path: "helloworld"
-    relationships:
-      warHostedOnTomcat:
-        type: alien.relationships.WarHostedOnTomcat
-        target: Tomcat
-  Tomcat:
-    type: alien.nodes.Tomcat
-    properties:
-      tomcat_home:
-        value: "/opt/tomcat"
-      tomcat_port:
-        value: 80
-      tomcat_url:
-        value: "http://apache.crihan.fr/dist/tomcat/tomcat-8/v8.0.24/bin/apache-tomcat-8.0.24.tar.gz"
-    name: Tomcat
-    relationships:
-      hostedOnServer:
-        type: tosca.relationships.HostedOn
-        target: Server
-      runOnJVM:
-        type: alien.relationships.RunOnJVM
-        target: Java
-  Server:
-    type: tosca.nodes.Compute
-    name: Server
-    properties:
-      os_arch:
-        value: x86_64
-      os_type:
-        value: linux
-    relationships:
-      public_internet:
-        type: tosca.relationships.Network
-        target: NetPub
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+description: Tomcat test
+template_name: tomcat_test
+template_version: 0.1.0-SNAPSHOT
+template_author: admin
 
-dependencies:
-  - name: tosca-normative-types
-    version: 1.0.0.wd03-SNAPSHOT
-  - name: alien-base-types
-    version: 1.0-SNAPSHOT
-  - name: tomcat-war-types
-    version: 2.0.0-SNAPSHOT
+imports:
+  - tosca-normative-types:1.0.0.wd03-SNAPSHOT
+  - alien-base-types:1.0-SNAPSHOT
+  - tomcat-war-types:2.0.0-SNAPSHOT
+
+topology_template:
+
+  node_templates:
+    NetPub:
+      type: tosca.nodes.Network
+
+    Java:
+      type: alien.nodes.Java
+      requirements:
+        - host: Server
+
+    War:
+      type: alien.nodes.War
+      properties:
+        context_path: helloworld
+      requirements:
+        - host:
+            node: Tomcat
+            capability: alien.capabilities.WarHosting
+            relationship: alien.relationships.WarHostedOnTomcat
+
+    Tomcat:
+      type: alien.nodes.Tomcat
+      requirements:
+        - host: Server
+        - java:
+            node: Java
+            capability: alien.capabilities.Java
+            relationship: alien.relationships.RunOnJVM
+
+    Server:
+      type: tosca.nodes.Compute
+      properties:
+        os_arch: x86_64
+        os_type: linux
+      requirements:
+        - network:
+            node: NetPub
+            capability: tosca.capabilities.Connectivity
+            relationship: tosca.relationships.Network

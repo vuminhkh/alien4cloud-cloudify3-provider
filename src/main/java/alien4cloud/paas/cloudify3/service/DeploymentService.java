@@ -16,11 +16,12 @@ import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
+import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.exception.PaaSAlreadyDeployedException;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.PaaSDeploymentContext;
-import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AsyncFunction;
@@ -51,6 +52,11 @@ public class DeploymentService extends RuntimeService {
     private StatusService statusService;
 
     public ListenableFuture<Execution> deploy(final CloudifyDeployment alienDeployment) {
+        DeploymentStatus currentStatus = statusService.getStatus(alienDeployment.getDeploymentPaaSId());
+        if (!DeploymentStatus.UNDEPLOYED.equals(currentStatus)) {
+            return Futures.immediateFailedFuture(new PaaSAlreadyDeployedException("Deployment " + alienDeployment.getDeploymentPaaSId()
+                    + " is active (must undeploy first) or is in unknown state (must wait for status available)"));
+        }
         // Cloudify 3 will use recipe id to identify a blueprint and a deployment instead of deployment id
         log.info("Deploying {} for alien deployment {}", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId());
         eventService.registerDeploymentEvent(alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.DEPLOYMENT_IN_PROGRESS);
@@ -88,44 +94,49 @@ public class DeploymentService extends RuntimeService {
         DeploymentStatus currentStatus = statusService.getStatus(deploymentContext.getDeploymentPaaSId());
         if (DeploymentStatus.UNDEPLOYED.equals(currentStatus) || DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS.equals(currentStatus)) {
             log.info("Deployment " + deploymentContext.getDeploymentPaaSId() + " has already been undeployed");
+            return Futures.immediateFuture(null);
         }
         log.info("Undeploying recipe {} with alien's deployment id {}", deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId());
         eventService.registerDeploymentEvent(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
                 DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS);
-        try {
-            FileUtil.delete(blueprintService.resolveBlueprintPath(deploymentContext.getDeploymentPaaSId()));
-        } catch (IOException e) {
-            log.warn("Unable to delete generated blueprint for recipe " + deploymentContext.getDeploymentPaaSId(), e);
-        }
-        ListenableFuture<?> startUninstall = waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentPaaSId(), Workflow.UNINSTALL, null,
-                false, true));
-        AsyncFunction deleteDeploymentFunction = new AsyncFunction() {
+        blueprintService.deleteBlueprint(deploymentContext.getDeploymentPaaSId());
+        ListenableFuture<NodeInstance[]> cancelRunningExecutionsFuture = cancelAllRunningExecutions(deploymentContext.getDeploymentPaaSId());
+        AsyncFunction<NodeInstance[], Execution> startUninstallFunction = new AsyncFunction<NodeInstance[], Execution>() {
             @Override
-            public ListenableFuture<?> apply(Object input) throws Exception {
+            public ListenableFuture<Execution> apply(NodeInstance[] livingNodes) throws Exception {
+                if (livingNodes != null && livingNodes.length > 0) {
+                    return waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentPaaSId(), Workflow.UNINSTALL, null, false, true));
+                } else {
+                    return Futures.immediateFuture(null);
+                }
+            }
+        };
+        ListenableFuture<?> startUninstall = Futures.transform(cancelRunningExecutionsFuture, startUninstallFunction);
+        AsyncFunction<Object, Object> deleteDeploymentFunction = new AsyncFunction<Object, Object>() {
+            @Override
+            public ListenableFuture<Object> apply(Object input) throws Exception {
                 // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of deployment 2 seconds after the
                 // end of uninstall operation
-                ListenableFuture<?> scheduledDeleteDeployment = Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
+                return Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
                     @Override
                     public ListenableFuture<?> call() throws Exception {
                         return deploymentDAO.asyncDelete(deploymentContext.getDeploymentPaaSId());
                     }
                 }, 2, TimeUnit.SECONDS));
-                return scheduledDeleteDeployment;
             }
         };
         ListenableFuture<?> deletedDeployment = Futures.transform(startUninstall, deleteDeploymentFunction);
         // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of blueprint 2 seconds after the delete of
         // deployment
-        AsyncFunction deleteBlueprintFunction = new AsyncFunction() {
+        AsyncFunction<Object, Object> deleteBlueprintFunction = new AsyncFunction<Object, Object>() {
             @Override
-            public ListenableFuture<?> apply(Object input) throws Exception {
-                ListenableFuture<?> scheduledDeleteBlueprint = Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
+            public ListenableFuture<Object> apply(Object input) throws Exception {
+                return Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
                     @Override
                     public ListenableFuture<?> call() throws Exception {
                         return blueprintDAO.asyncDelete(deploymentContext.getDeploymentPaaSId());
                     }
                 }, 2, TimeUnit.SECONDS));
-                return scheduledDeleteBlueprint;
             }
         };
         ListenableFuture<?> undeploymentFuture = Futures.transform(deletedDeployment, deleteBlueprintFunction);

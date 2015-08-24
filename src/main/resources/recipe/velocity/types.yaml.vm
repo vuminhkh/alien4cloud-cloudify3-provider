@@ -1,0 +1,41 @@
+## Compute types
+#if($util.collectionHasElement(${deployment.computeTypes}))
+#foreach($computeType in ${deployment.computeTypes})
+  ${util.compute.tryToMapComputeType($computeType, "${mapping.generatedTypePrefix}.Compute")}:
+    derived_from: ${util.compute.tryToMapComputeTypeDerivedFrom($computeType)}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: compute
+#end
+#end
+
+## Floating IP types
+#if($util.collectionHasElement(${deployment.externalNetworks}))
+  ${mapping.generatedTypePrefix}.FloatingIP:
+    derived_from: ${providerMapping.nativeTypes.floatingIpType}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: floating_ip
+#end
+
+## Volume types
+#if($util.collectionHasElement(${deployment.volumeTypes}))
+#foreach($volumeType in ${deployment.volumeTypes})
+  ${util.volume.tryToMapVolumeType($volumeType, "${mapping.generatedTypePrefix}.Volume")}:
+    derived_from: ${util.volume.tryToMapVolumeTypeDerivedFrom($volumeType)}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: volume
+#end
+#end
+
+## Network types
+#if($util.collectionHasElement(${deployment.networkTypes}))
+#foreach($networkType in ${deployment.networkTypes})
+  ${util.network.tryToMapNetworkType($networkType, "${mapping.generatedTypePrefix}.Network")}:
+    derived_from: ${util.network.tryToMapNetworkTypeDerivedFrom($networkType)}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: network
+#end
+#end

@@ -92,7 +92,17 @@ documentation:
 audit:
   ttl: 1d
 
+openstack:
+  user: alien4cloud-os
+  password: Op3nSt@ck_@L1eN
+  tenant: ALIEN4Cloud
+  url: http://129.185.67.11:5000/v2.0
+  region: RegionOne
+  cfy3:
+    manager_name: jenkins-cosmo-management-server
+    manager_user:
+    manager_password:
+
 cloudify3:
   externalNetworkName: "net-pub"
-  apiUrl: "http://129.185.67.101:8100"
   imageId: "02ddfcbb-9534-44d7-974d-5cfd36dfbcab"

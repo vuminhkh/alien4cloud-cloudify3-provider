@@ -25,7 +25,6 @@ import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.service.model.NativeType;
-import alien4cloud.paas.cloudify3.util.MapUtil;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
@@ -33,7 +32,9 @@ import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStorageMonitorEvent;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
+import alien4cloud.utils.MapUtil;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -100,7 +101,6 @@ public class EventService {
         };
         ListenableFuture<AbstractMonitorEvent[]> alienEventsFuture = Futures.transform(eventsFuture, cloudify3ToAlienEventsAdapter);
 
-        // In case of a deployment finish event, we must send back the instance state event in order to have some runtime properties such as ip address ...
         Futures.addCallback(alienEventsFuture, new FutureCallback<AbstractMonitorEvent[]>() {
             @Override
             public void onSuccess(AbstractMonitorEvent[] result) {
@@ -114,32 +114,6 @@ public class EventService {
                         statusService.registerDeploymentEvent(paaSDeploymentId, deploymentStatus);
                         if (DeploymentStatus.DEPLOYED.equals(deploymentStatus)) {
                             log.info("Deployment {} has finished successfully", paaSDeploymentId);
-                            ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(paaSDeploymentId);
-                            ListenableFuture<Node[]> nodesFuture = nodeDAO.asyncList(paaSDeploymentId, null);
-                            ListenableFuture<List<AbstractCloudifyModel[]>> combinedFutures = Futures.allAsList(instancesFuture, nodesFuture);
-
-                            Futures.addCallback(combinedFutures, new FutureCallback<List<AbstractCloudifyModel[]>>() {
-                                @Override
-                                public void onSuccess(List<AbstractCloudifyModel[]> nodeInfos) {
-                                    NodeInstance[] instances = (NodeInstance[]) nodeInfos.get(0);
-                                    Node[] nodes = (Node[]) nodeInfos.get(1);
-                                    Map<String, Node> nodeMap = Maps.newHashMap();
-                                    for (Node node : nodes) {
-                                        nodeMap.put(node.getId(), node);
-                                    }
-                                    for (NodeInstance nodeInstance : instances) {
-                                        AbstractMonitorEvent alienEvent = toAlienEvent(nodeInstance, nodeMap.get(nodeInstance.getNodeId()));
-                                        if (alienEvent != null) {
-                                            internalProviderEventsQueue.add(alienEvent);
-                                        }
-                                    }
-                                }
-
-                                @Override
-                                public void onFailure(Throwable t) {
-                                    log.error("Error happened while trying to retrieve runtime properties for finished deployment " + paaSDeploymentId, t);
-                                }
-                            });
                         } else if (DeploymentStatus.UNDEPLOYED.equals(deploymentStatus)) {
                             log.info("Un-Deployment {} has finished successfully", paaSDeploymentId);
                             paaSDeploymentIdToAlienDeploymentIdMapping.remove(paaSDeploymentId);
@@ -203,7 +177,12 @@ public class EventService {
                             Node node = allDeployedNodes.get(instanceStateMonitorEvent.getNodeTemplateId());
                             NodeInstance nodeInstance = allDeployedInstances.get(instanceStateMonitorEvent.getInstanceId());
                             if (nodeInstance != null && nodeInstance.getRuntimeProperties() != null) {
-                                Map<String, String> runtimeProperties = MapUtil.toString(nodeInstance.getRuntimeProperties());
+                                Map<String, String> runtimeProperties = null;
+                                try {
+                                    runtimeProperties = MapUtil.toString(nodeInstance.getRuntimeProperties());
+                                } catch (JsonProcessingException e) {
+                                    log.error("Unable to stringify runtime properties", e);
+                                }
                                 instanceStateMonitorEvent.setRuntimeProperties(runtimeProperties);
                                 if (node != null && node.getProperties() != null) {
                                     String nativeType = statusService.getNativeType(node);
@@ -365,34 +344,6 @@ public class EventService {
         return alienEvents;
     }
 
-    private PaaSInstanceStateMonitorEvent toAlienEvent(NodeInstance nodeInstance, Node node) {
-        PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = new PaaSInstanceStateMonitorEvent();
-        instanceStateMonitorEvent.setInstanceState(nodeInstance.getState());
-        instanceStateMonitorEvent.setInstanceStatus(statusService.getInstanceStatusFromState(nodeInstance.getState()));
-        String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(nodeInstance.getDeploymentId());
-        if (alienDeploymentId == null) {
-            if (log.isDebugEnabled()) {
-                log.debug("Alien deployment id is not found for paaS deployment {}, must ignore this node instance {}", nodeInstance.getDeploymentId(),
-                        nodeInstance);
-            }
-            return null;
-        }
-        instanceStateMonitorEvent.setDeploymentId(nodeInstance.getDeploymentId());
-        instanceStateMonitorEvent.setNodeTemplateId(nodeInstance.getNodeId());
-        instanceStateMonitorEvent.setInstanceId(nodeInstance.getId());
-        if (nodeInstance.getRuntimeProperties() != null) {
-            Map<String, String> runtimeProperties = MapUtil.toString(nodeInstance.getRuntimeProperties());
-            instanceStateMonitorEvent.setRuntimeProperties(runtimeProperties);
-            if (node != null && node.getProperties() != null) {
-                String nativeType = statusService.getNativeType(node);
-                if (nativeType != null) {
-                    instanceStateMonitorEvent.setAttributes(statusService.getAttributesFromRuntimeProperties(nativeType, runtimeProperties));
-                }
-            }
-        }
-        return instanceStateMonitorEvent;
-    }
-
     private AbstractMonitorEvent toAlienEvent(Event cloudifyEvent) {
         AbstractMonitorEvent alienEvent;
         switch (cloudifyEvent.getEventType()) {
@@ -400,7 +351,7 @@ public class EventService {
             PaaSDeploymentStatusMonitorEvent succeededStatusEvent = new PaaSDeploymentStatusMonitorEvent();
             if (Workflow.INSTALL.equals(cloudifyEvent.getContext().getWorkflowId())) {
                 succeededStatusEvent.setDeploymentStatus(DeploymentStatus.DEPLOYED);
-            } else if (Workflow.UNINSTALL.equals(cloudifyEvent.getContext().getWorkflowId())) {
+            } else if (Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(cloudifyEvent.getContext().getWorkflowId())) {
                 succeededStatusEvent.setDeploymentStatus(DeploymentStatus.UNDEPLOYED);
             } else {
                 return null;

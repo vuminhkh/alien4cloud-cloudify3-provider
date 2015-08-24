@@ -7,14 +7,14 @@ imports:
 
 node_types:
 
-  _a4c.openstack.Compute:
+  _a4c.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
       _a4c_native_type:
         default: compute
 
 
-  _a4c.openstack.Volume:
+  _a4c.Volume:
     derived_from: cloudify.openstack.nodes.Volume
     properties:
       _a4c_native_type:
@@ -71,14 +71,12 @@ relationships:
 node_templates:
 
   Compute:
-    type: _a4c.openstack.Compute
+    type: _a4c.Compute
     properties:
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
       flavor: 2
     instances:
       deploy: 1
-
-
   _a4c_file_system_BlockStorage:
     type: _a4c.cloudify.nodes.FileSystem
     properties:
@@ -90,7 +88,7 @@ node_templates:
       - type: _a4c.cloudify.relationships.file_system_contained_in_compute
         target: Compute
   BlockStorage:
-    type: _a4c.openstack.Volume
+    type: _a4c.Volume
     properties:
       device_name: /dev/vdb
       volume:
@@ -108,8 +106,8 @@ node_templates:
       deploy: 1
     interfaces:
       cloudify.interfaces.lifecycle:
-        start: Mysql/tosca.interfaces.node.lifecycle.Standard/start/mysql-type/scripts/_a4c_start_mysql.py
-        create: Mysql/tosca.interfaces.node.lifecycle.Standard/create/mysql-type/scripts/_a4c_install_mysql.py
+        start: wrapper/Mysql/tosca.interfaces.node.lifecycle.Standard/start/artifacts/mysql-type/scripts/_a4c_start_mysql.py
+        create: wrapper/Mysql/tosca.interfaces.node.lifecycle.Standard/create/artifacts/mysql-type/scripts/_a4c_install_mysql.py
     relationships:
       - target: _a4c_file_system_BlockStorage
         type: cloudify.relationships.depends_on

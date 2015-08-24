@@ -1,48 +1,42 @@
-node_templates:
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+description: Single compute test
+template_name: single_compute_test
+template_version: 0.1.0-SNAPSHOT
+template_author: admin
 
-  Compute:
-    type: tosca.nodes.Compute
-    properties:
-      os_arch:
-        value: x86_64
-      os_type:
-        value: linux
+imports:
+  - tosca-normative-types:1.0.0.wd03-SNAPSHOT
+  - alien-extended-storage-types:1.0-SNAPSHOT
+  - mysql-type:2.0.0-SNAPSHOT
 
-  BlockStorage:
-    type: tosca.nodes.BlockStorage
-    properties:
-      file_system:
-        value: ext4
-      location:
-        value: /var/mysql
-    relationships:
-      attachedToCompute:
-        type: tosca.relationships.AttachTo
-        target: Compute
+topology_template:
 
-  Mysql:
-    type: alien.nodes.Mysql
-    name: Mysql
-    properties:
-      bind_address:
-        value: "true"
-      storage_path:
-        value: /var/mysql
-      db_port:
-        value: "3306"
-      db_name:
-        value: wordpress
-      db_user:
-        value: pass
-      db_password:
-        value: pass
-    relationships:
-      hostedOnDataBase:
-        type: tosca.relationships.HostedOn
-        target: Compute
+  node_templates:
+    Compute:
+      type: tosca.nodes.Compute
+      properties:
+        os_arch: x86_64
+        os_type: linux
 
-dependencies:
-  - name: tosca-normative-types
-    version: 1.0.0.wd03-SNAPSHOT
-  - name: mysql-type
-    version: 2.0.0-SNAPSHOT
+    BlockStorage:
+      type: alien.nodes.ConfigurableBlockStorage
+      properties:
+        file_system: ext4
+        location: /var/mysql
+      requirements:
+        - attachment:
+            node: Compute
+            capability: tosca.capabilities.Attachment
+            relationship: tosca.relationships.AttachTo
+
+    Mysql:
+      type: alien.nodes.Mysql
+      properties:
+        bind_address: true
+        storage_path: /var/mysql
+        db_port: 3306
+        db_name: wordpress
+        db_user: pass
+        db_password: pass
+      requirements:
+        - host: Compute

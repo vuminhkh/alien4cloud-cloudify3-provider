@@ -1,0 +1,143 @@
+#*
+This template is used to generate cloudify 3 recipe from alien model
+- $mapping --> contains global alien --> cloudify mapping
+- $providerMapping --> contains IaaS provider specific mapping configuration
+- $cloud --> contains alien4cloud.paas.cloudify3.configuration.CloudConfiguration instance
+- $deployment --> contains Alien's deployment and types
+- $util --> contains utility methods
+*#
+tosca_definitions_version: $mapping.dslVersion
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
+#foreach($import in $providerMapping.imports)
+  - $import
+#end
+
+node_types:
+
+#parse("types.yaml.vm")
+
+#if($util.volume.hasConfiguredVolume($deployment.volumes))
+  ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem:
+    derived_from: cloudify.nodes.Root
+    properties:
+      use_external_resource:
+        description: >
+          Enables the use of already formatted volumes.
+        type: boolean
+        default: false
+      partition_type:
+        description: >
+          The partition type. 83 is a Linux Native Partition.
+        type: integer
+        default: 83
+      fs_type:
+        description: >
+          The type of the File System.
+          Supported types are [ext2, ext3, ext4, fat, ntfs, swap]
+        type: string
+        default: ext4
+      fs_mount_path:
+        description: >
+          The path of the mount point.
+        type: string
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        configure:
+          implementation: ${mapping.nativeArtifactDirectoryName}/volume/mkfs.sh
+#end
+
+#if($util.collectionHasElement($deployment.nonNativesTypes))
+#foreach($nonNativeType in ${deployment.nonNativesTypes})
+  ${nonNativeType.elementId}:
+    derived_from: $util.nonNative.getDerivedFromType($nonNativeType.derivedFrom)
+#end
+#end
+
+#if($util.volume.hasConfiguredVolume($deployment.volumes) || $util.collectionHasElement($deployment.nonNativesRelationshipTypes))
+relationships:
+#if($util.volume.hasConfiguredVolume($deployment.volumes))
+  ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_depends_on_volume:
+    derived_from: cloudify.relationships.depends_on
+    source_interfaces:
+      cloudify.interfaces.relationship_lifecycle:
+        preconfigure:
+          implementation: ${mapping.nativeArtifactDirectoryName}/volume/fdisk.sh
+  ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_contained_in_compute:
+    derived_from: cloudify.relationships.contained_in
+    source_interfaces:
+      cloudify.interfaces.relationship_lifecycle:
+        establish:
+          implementation: ${mapping.nativeArtifactDirectoryName}/volume/mount.sh
+        unlink:
+          implementation: ${mapping.nativeArtifactDirectoryName}/volume/unmount.sh
+#end
+#if($util.collectionHasElement($deployment.nonNativesRelationshipTypes))
+#foreach($nonNativeRelationshipType in ${deployment.nonNativesRelationshipTypes})
+  ${nonNativeRelationshipType.elementId}:
+    derived_from: $util.nonNative.getDerivedFromType($nonNativeRelationshipType.derivedFrom)
+#end
+#end
+#end
+
+node_templates:
+
+#parse("compute_node.yaml.vm")
+#parse("network_node.yaml.vm")
+#parse("volume_node.yaml.vm")
+
+#foreach($nonNativeNode in $deployment.nonNatives)
+  $nonNativeNode.id:
+    type: $nonNativeNode.indexedToscaElement.elementId
+    instances:
+      deploy: 1
+#set( $nodeInterfaces = $util.nonNative.getNodeInterfaces($nonNativeNode) )
+#if($util.nonNative.mapHasEntries($nodeInterfaces))
+    interfaces:
+#foreach($interfaceEntry in $nodeInterfaces.entrySet())
+      $util.nonNative.tryToMapToCloudifyInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+        $operationEntry.key: ${util.nonNative.getArtifactWrapperPath($nonNativeNode, $interfaceEntry.key, $operationEntry.key, ${operationEntry.value.implementationArtifact})}
+#end
+#end
+#end
+#set( $relationshipTemplates = $util.nonNative.getSourceRelationships($nonNativeNode) )
+#set( $attachedVolumes = $util.volume.getConfiguredAttachedVolumes($nonNativeNode) )
+#if($util.collectionHasElement($relationshipTemplates) || $attachedVolume)
+    relationships:
+#if($attachedVolumes)
+#foreach($attachedVolume in $attachedVolumes)
+      - target: ${mapping.generatedNodePrefix}_file_system_${attachedVolume.id}
+        type: cloudify.relationships.depends_on
+#end
+#end
+#foreach($relationship in $relationshipTemplates)
+      - target: $relationship.relationshipTemplate.target
+        type: $util.tryToMapToCloudifyType($relationship.indexedToscaElement.elementId)
+#set( $relationshipInterfaces = $util.nonNative.getRelationshipInterfaces($relationship) )
+#if($util.mapHasEntries($relationshipInterfaces))
+#set( $relationshipSourceInterfaces = $util.nonNative.filterRelationshipSourceInterfaces($relationshipInterfaces) )
+#if($util.mapHasEntries($relationshipSourceInterfaces))
+        source_interfaces:
+#foreach($interfaceEntry in $relationshipSourceInterfaces.entrySet())
+          $util.nonNative.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+            $util.nonNative.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): ${util.nonNative.getArtifactWrapperPath($relationship, $interfaceEntry.key, $operationEntry.key, ${operationEntry.value.implementationArtifact})}
+#end
+#end
+#end
+#set( $relationshipTargetInterfaces = $util.nonNative.filterRelationshipTargetInterfaces($relationshipInterfaces) )
+#if($util.mapHasEntries($relationshipTargetInterfaces))
+        target_interfaces:
+#foreach($interfaceEntry in $relationshipTargetInterfaces.entrySet())
+          $util.nonNative.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
+#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
+            $util.nonNative.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): ${util.nonNative.getArtifactWrapperPath($relationship, $interfaceEntry.key, $operationEntry.key, ${operationEntry.value.implementationArtifact})}
+#end
+#end
+#end
+#end
+#end
+#end
+#end
