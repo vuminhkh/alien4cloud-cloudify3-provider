@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.IaaSType;
 import alien4cloud.model.orchestrators.locations.LocationResourceTemplate;
+import alien4cloud.orchestrators.plugin.ILocationResourceAccessor;
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.plugin.model.ManagedPlugin;
@@ -66,7 +67,7 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
     }
 
     @Override
-    public List<LocationResourceTemplate> instances() {
+    public List<LocationResourceTemplate> instances(ILocationResourceAccessor resourceAccessor) {
         return null;
     }
 

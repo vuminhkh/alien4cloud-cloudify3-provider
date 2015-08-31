@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.IaaSType;
 import alien4cloud.model.orchestrators.locations.LocationResourceTemplate;
+import alien4cloud.orchestrators.plugin.ILocationResourceAccessor;
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
 
 import com.google.common.collect.Sets;
@@ -25,7 +26,7 @@ public class ByonLocationConfigurator implements ITypeAwareLocationConfigurator 
     }
 
     @Override
-    public List<LocationResourceTemplate> instances() {
+    public List<LocationResourceTemplate> instances(ILocationResourceAccessor resourceAccessor) {
         return null;
     }
 
