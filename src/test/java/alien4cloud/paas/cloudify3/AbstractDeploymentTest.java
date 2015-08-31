@@ -51,7 +51,7 @@ public class AbstractDeploymentTest extends AbstractTest {
     private TopologyTreeBuilderService topologyTreeBuilderService;
 
     @Resource
-    private CloudifyPaaSProvider cloudifyPaaSProvider;
+    private CloudifyOrchestrator cloudifyPaaSProvider;
 
     @Resource
     private ArtifactLocalRepository artifactRepository;

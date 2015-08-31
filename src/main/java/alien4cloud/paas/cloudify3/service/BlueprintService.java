@@ -1,8 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -20,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.component.repository.ArtifactLocalRepository;
@@ -46,6 +43,7 @@ import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
+import alien4cloud.plugin.model.ManagedPlugin;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Maps;
@@ -75,17 +73,22 @@ public class BlueprintService {
     private PropertyEvaluatorService propertyEvaluatorService;
 
     @Resource
-    private ApplicationContext applicationContext;
+    private ManagedPlugin pluginContext;
 
     private Path recipeDirectoryPath;
 
     private Path pluginRecipeResourcesPath;
 
     @PostConstruct
-    public void postConstruct() throws IOException, URISyntaxException {
-        URL recipeResourcesURL = applicationContext.getClassLoader().getResource("recipe/");
-        Path recipeResourcesPath = Paths.get(recipeResourcesURL.toURI());
-        FileUtil.copy(recipeResourcesPath, pluginRecipeResourcesPath, StandardCopyOption.REPLACE_EXISTING);
+    public void postConstruct() throws IOException {
+        FileUtil.copy(pluginContext.getPluginPath().resolve("recipe"), pluginRecipeResourcesPath, StandardCopyOption.REPLACE_EXISTING);
+        List<Path> providerTemplates = FileUtil.listFiles(pluginContext.getPluginPath().resolve("provider"), ".+\\.yaml\\.vm");
+        for (Path providerTemplate : providerTemplates) {
+            String relativizedPath = FileUtil.relativizePath(pluginContext.getPluginPath(), providerTemplate);
+            Path providerTemplateTargetPath = this.pluginRecipeResourcesPath.resolve("velocity").resolve(relativizedPath);
+            Files.createDirectories(providerTemplateTargetPath.getParent());
+            Files.copy(providerTemplate, providerTemplateTargetPath, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     public void deleteBlueprint(String deploymentPaaSId) {
@@ -138,8 +141,8 @@ public class BlueprintService {
                 }
             }
         }
-        Path nativeArtifactDirectory = generatedBlueprintDirectoryPath.resolve(mappingConfigurationHolder.getMappingConfiguration()
-                .getNativeArtifactDirectoryName());
+        Path nativeArtifactDirectory = generatedBlueprintDirectoryPath
+                .resolve(mappingConfigurationHolder.getMappingConfiguration().getNativeArtifactDirectoryName());
         if (Files.exists(nativeArtifactDirectory)) {
             throw new IOException(nativeArtifactDirectory.getFileName() + " is a reserved name, please choose another name for your archive");
         }
@@ -174,8 +177,8 @@ public class BlueprintService {
                     for (Map.Entry<String, Interface> inter : relationshipInterfaces.entrySet()) {
                         Map<String, Operation> operations = inter.getValue().getOperations();
                         for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
-                            Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(), relationship
-                                    .getRelationshipTemplate().getTarget());
+                            Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(),
+                                    relationship.getRelationshipTemplate().getTarget());
                             Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts = Maps.newHashMap();
                             if (MapUtils.isNotEmpty(relationship.getIndexedToscaElement().getArtifacts())) {
                                 relationshipArtifacts.put(keyRelationship, relationship.getIndexedToscaElement().getArtifacts());
@@ -214,10 +217,10 @@ public class BlueprintService {
                 propertyEvaluatorService, allNodes);
         Map<String, Object> operationContext = Maps.newHashMap(context);
         operationContext.put("operation", operationWrapper);
-        VelocityUtil.generate(
-                pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"),
-                generatedBlueprintDirectoryPath.resolve(util.getNonNative().getArtifactWrapperPath(owner, interfaceName, operationName,
-                        operation.getImplementationArtifact())), operationContext);
+        VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"),
+                generatedBlueprintDirectoryPath
+                        .resolve(util.getNonNative().getArtifactWrapperPath(owner, interfaceName, operationName, operation.getImplementationArtifact())),
+                operationContext);
         return operationWrapper;
     }
 

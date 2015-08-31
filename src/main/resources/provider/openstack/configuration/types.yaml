@@ -1,0 +1,87 @@
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+
+template_name: tomcat-war-types
+template_author: Alien4cloud
+template_version: 1.0.0-SNAPSHOT
+
+imports:
+  - tosca-normative-types:1.0.0.wd03-SNAPSHOT
+
+data_types:
+
+  alien.data.OpenstackConfig:
+    username:
+      type: string
+      default: ''
+    password:
+      type: string
+      default: ''
+    tenant_name:
+      type: string
+      default: ''
+    auth_url:
+      type: string
+      default: ''
+    region:
+      type: string
+      default: ''
+    nova_url:
+      type: string
+      default: ''
+    neutron_url:
+      type: string
+      default: ''
+    custom_configuration:
+      type: map
+      entry_schema:
+        type: map
+        entry_schema:
+          type: string
+
+node_types:
+
+  alien.nodes.openstack.Image:
+    abstract: true
+    properties:
+      id:
+        type: string
+    capabilities:
+      os:
+        type: tosca.capabilities.OperatingSystem
+
+  alien.nodes.openstack.Flavor:
+    abstract: true
+    properties:
+      id:
+        type: string
+    capabilities:
+      host:
+        type: tosca.capabilities.Container
+
+  alien.nodes.openstack.Compute:
+    derived_from: tosca.nodes.Compute
+    properties:
+      server:
+        type: map
+        entry_schema:
+          type: string
+      use_external_resource:
+        type: boolean
+        default: false
+      resource_id:
+        type: string
+        default: ''
+      image:
+        type: string
+        default: ''
+      flavor:
+        type: string
+        default: ''
+      management_network_name:
+        type: string
+        default: ''
+      use_password:
+        type: boolean
+        default: false
+      openstack_config:
+        type: alien.data_types.OpenstackConfig

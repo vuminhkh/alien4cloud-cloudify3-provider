@@ -14,7 +14,6 @@ import alien4cloud.model.cloud.CloudImage;
 import alien4cloud.model.cloud.CloudImageFlavor;
 import alien4cloud.model.cloud.ComputeTemplate;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.configuration.ComputeTemplateConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.PaaSComputeTemplate;
@@ -92,33 +91,11 @@ public class ComputeTemplateMatcherService {
             if (availabilityZone != null) {
                 paaSAvailabilityZoneId = availabilityZoneMapping.get(availabilityZone.getId());
             }
-            MatchedPaaSComputeTemplate paaSComputeTemplate = new MatchedPaaSComputeTemplate(resource, new PaaSComputeTemplate(paaSImageId, paaSFlavorId,
-                    paaSAvailabilityZoneId, getUserData(paaSImageId, paaSFlavorId, description)));
+            MatchedPaaSComputeTemplate paaSComputeTemplate = new MatchedPaaSComputeTemplate(resource,
+                    new PaaSComputeTemplate(paaSImageId, paaSFlavorId, paaSAvailabilityZoneId));
             matchedPaaSComputeTemplates.add(paaSComputeTemplate);
         }
         return matchedPaaSComputeTemplates;
     }
 
-    private Map<String, String> getUserData(String image, String flavor, String desc) {
-        ComputeTemplateConfiguration[] templateConfigurations = cloudConfigurationHolder.getConfiguration().getTemplateConfigurations();
-        if (templateConfigurations == null) {
-            return null;
-        }
-        for (ComputeTemplateConfiguration templateConfiguration : templateConfigurations) {
-            if (templateConfiguration.getFlavorId() == null || templateConfiguration.getImageId() == null) {
-                continue;
-            } else if (templateConfiguration.getFlavorId().equals(flavor) && templateConfiguration.getImageId().equals(image)) {
-                if (templateConfiguration.getDescription() == null) {
-                    if (desc == null) {
-                        return templateConfiguration.getUserData();
-                    }
-                } else {
-                    if (desc != null && templateConfiguration.getDescription().equals(desc)) {
-                        return templateConfiguration.getUserData();
-                    }
-                }
-            }
-        }
-        return null;
-    }
 }

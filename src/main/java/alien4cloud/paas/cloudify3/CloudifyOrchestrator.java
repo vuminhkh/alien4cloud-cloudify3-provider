@@ -1,23 +1,25 @@
 package alien4cloud.paas.cloudify3;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang.NotImplementedException;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.cloud.CloudResourceMatcherConfig;
 import alien4cloud.model.cloud.CloudResourceType;
-import alien4cloud.paas.IConfigurablePaaSProvider;
+import alien4cloud.orchestrators.plugin.ILocationConfiguratorPlugin;
+import alien4cloud.orchestrators.plugin.IOrchestratorPlugin;
 import alien4cloud.paas.IPaaSCallback;
-import alien4cloud.paas.ITemplateManagedPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
+import alien4cloud.paas.cloudify3.location.ITypeAwareLocationConfigurator;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.CustomWorkflowService;
@@ -34,11 +36,9 @@ import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.NodeOperationExecRequest;
-import alien4cloud.paas.model.PaaSComputeTemplate;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -50,7 +50,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  */
 @Slf4j
 @Component("cloudify-paas-provider-bean")
-public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConfiguration>, ITemplateManagedPaaSProvider {
+public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfiguration> {
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
@@ -75,6 +75,9 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Resource(name = "cloudify-deployment-builder-service")
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
+
+    @Resource
+    private ApplicationContext applicationContext;
 
     @Resource
     private StatusService statusService;
@@ -134,7 +137,8 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
     }
 
     @Override
-    public void getInstancesInformation(PaaSTopologyDeploymentContext deploymentContext, IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
+    public void getInstancesInformation(PaaSTopologyDeploymentContext deploymentContext,
+            IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
         statusService.getInstancesInformation(deploymentContext, callback);
     }
 
@@ -162,26 +166,7 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
 
     @Override
     public String[] getAvailableResourceIds(CloudResourceType resourceType) {
-        PaaSComputeTemplate[] templates = cloudConfigurationHolder.getConfiguration().getTemplateConfigurations();
-        if (templates == null || templates.length == 0) {
-            return null;
-        }
-        Set<String> result = Sets.newHashSet();
-        switch (resourceType) {
-        case IMAGE:
-            for (PaaSComputeTemplate template : templates) {
-                result.add(template.getImageId());
-            }
-            break;
-        case FLAVOR:
-            for (PaaSComputeTemplate template : templates) {
-                result.add(template.getFlavorId());
-            }
-            break;
-        default:
-            return null;
-        }
-        return result.toArray(new String[result.size()]);
+        return null;
     }
 
     @Override
@@ -227,13 +212,15 @@ public class CloudifyPaaSProvider implements IConfigurablePaaSProvider<CloudConf
         throw new NotImplementedException();
     }
 
-    /**
-     * For byon only
-     * 
-     * @return the list of compute templates
-     */
     @Override
-    public PaaSComputeTemplate[] getAvailablePaaSComputeTemplates() {
-        return cloudConfigurationHolder.getConfiguration().getTemplateConfigurations();
+    public ILocationConfiguratorPlugin getConfigurator(String locationType) {
+        Collection<ITypeAwareLocationConfigurator> typeAwareLocationConfigurators = applicationContext.getBeansOfType(ITypeAwareLocationConfigurator.class)
+                .values();
+        for (ITypeAwareLocationConfigurator typeAwareLocationConfigurator : typeAwareLocationConfigurators) {
+            if (typeAwareLocationConfigurator.getManagedLocationTypes().contains(locationType)) {
+                return typeAwareLocationConfigurator;
+            }
+        }
+        return null;
     }
 }

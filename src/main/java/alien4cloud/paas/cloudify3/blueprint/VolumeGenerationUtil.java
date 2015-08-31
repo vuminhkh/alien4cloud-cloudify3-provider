@@ -12,7 +12,7 @@ import alien4cloud.exception.InvalidArgumentException;
 import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.IndexedNodeType;
-import alien4cloud.paas.cloudify3.CloudifyPaaSProviderFactory;
+import alien4cloud.paas.cloudify3.CloudifyOrchestratorFactory;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
@@ -144,7 +144,7 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
      */
     public boolean hasDeletableBlockstorageOptionEnabled(CloudifyDeployment cloudifyDeployment) {
         if (cloudifyDeployment.getProviderDeploymentProperties() != null) {
-            String value = cloudifyDeployment.getProviderDeploymentProperties().get(CloudifyPaaSProviderFactory.DELETABLE_BLOCKSTORAGE);
+            String value = cloudifyDeployment.getProviderDeploymentProperties().get(CloudifyOrchestratorFactory.DELETABLE_BLOCKSTORAGE);
             if (value != null) {
                 return Boolean.parseBoolean(value);
             }

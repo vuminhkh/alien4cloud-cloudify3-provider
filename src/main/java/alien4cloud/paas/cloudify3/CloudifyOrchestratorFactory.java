@@ -10,22 +10,24 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
+import alien4cloud.model.cloud.IaaSType;
 import alien4cloud.model.components.PropertyDefinition;
-import alien4cloud.paas.IConfigurablePaaSProvider;
-import alien4cloud.paas.IConfigurablePaaSProviderFactory;
-import alien4cloud.paas.IDeploymentParameterizablePaaSProviderFactory;
+import alien4cloud.model.orchestrators.locations.LocationSupport;
+import alien4cloud.orchestrators.plugin.IOrchestratorPluginFactory;
 import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
+import alien4cloud.plugin.model.ManagedPlugin;
 import alien4cloud.tosca.normative.ToscaType;
 
 import com.google.common.collect.Maps;
 
 @Slf4j
-public class CloudifyPaaSProviderFactory implements IConfigurablePaaSProviderFactory<CloudConfiguration>,
-        IDeploymentParameterizablePaaSProviderFactory<IConfigurablePaaSProvider<CloudConfiguration>> {
+public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<CloudifyOrchestrator, CloudConfiguration> {
 
     @Resource
     private ApplicationContext factoryContext;
+
+    private ManagedPlugin pluginConfig;
 
     public static final String DELETABLE_BLOCKSTORAGE = "deletable_blockstorage";
 
@@ -33,15 +35,15 @@ public class CloudifyPaaSProviderFactory implements IConfigurablePaaSProviderFac
 
     static {
         PropertyDefinition deletableBlockStorage = new PropertyDefinition();
-        deletableBlockStorage.setType(ToscaType.BOOLEAN.toString());
+        deletableBlockStorage.setType(ToscaType.BOOLEAN);
         deletableBlockStorage.setRequired(false);
         deletableBlockStorage.setDescription("Indicates that all deployment related blockstorage are deletable.");
         deletableBlockStorage.setDefault("false");
         deploymentPropertyMap.put(DELETABLE_BLOCKSTORAGE, deletableBlockStorage);
     }
 
-    private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections.synchronizedMap(Maps
-            .<IPaaSProvider, AnnotationConfigApplicationContext> newIdentityHashMap());
+    private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections
+            .synchronizedMap(Maps.<IPaaSProvider, AnnotationConfigApplicationContext> newIdentityHashMap());
 
     @Override
     public Class<CloudConfiguration> getConfigurationType() {
@@ -53,8 +55,7 @@ public class CloudifyPaaSProviderFactory implements IConfigurablePaaSProviderFac
         return new CloudConfiguration();
     }
 
-    @Override
-    public IConfigurablePaaSProvider<CloudConfiguration> newInstance() {
+    public CloudifyOrchestrator newInstance() {
         /**
          * Hierarchy of context (parent on the left) :
          * Alien Context --> Factory Context --> Real Cloudify 3 context
@@ -66,18 +67,17 @@ public class CloudifyPaaSProviderFactory implements IConfigurablePaaSProviderFac
         pluginContext.register(PluginContextConfiguration.class);
         pluginContext.refresh();
         log.info("Created new Cloudify 3 context {} for factory {}", pluginContext.getId(), factoryContext.getId());
-        IConfigurablePaaSProvider<CloudConfiguration> provider = pluginContext.getBean(CloudifyPaaSProvider.class);
+        CloudifyOrchestrator provider = pluginContext.getBean(CloudifyOrchestrator.class);
         contextMap.put(provider, pluginContext);
         return provider;
     }
 
-    @Override
     public Map<String, PropertyDefinition> getDeploymentPropertyDefinitions() {
         return deploymentPropertyMap;
     }
 
     @Override
-    public void destroy(IConfigurablePaaSProvider<CloudConfiguration> instance) {
+    public void destroy(CloudifyOrchestrator instance) {
         AnnotationConfigApplicationContext context = contextMap.remove(instance);
         if (context == null) {
             log.warn("Context not found for paaS provider instance {}", instance);
@@ -85,5 +85,10 @@ public class CloudifyPaaSProviderFactory implements IConfigurablePaaSProviderFac
             log.info("Dispose context created for paaS provider {}", instance);
             context.close();
         }
+    }
+
+    @Override
+    public LocationSupport getLocationSupport() {
+        return new LocationSupport(false, new String[] { IaaSType.OPENSTACK.toString(), IaaSType.BYON.toString() });
     }
 }
