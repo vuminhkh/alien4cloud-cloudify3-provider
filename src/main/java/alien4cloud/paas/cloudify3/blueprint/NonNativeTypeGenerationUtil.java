@@ -30,9 +30,6 @@ import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.IPaaSTemplate;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
-import alien4cloud.paas.cloudify3.model.wf.WfOperationExecutionTask;
-import alien4cloud.paas.cloudify3.model.wf.WfSetStateTask;
-import alien4cloud.paas.cloudify3.model.wf.WfTask;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.OperationWrapper;
@@ -42,6 +39,11 @@ import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
 import alien4cloud.paas.plan.ToscaRelationshipLifecycleConstants;
+import alien4cloud.paas.wf.AbstractStep;
+import alien4cloud.paas.wf.NodeActivityStep;
+import alien4cloud.paas.wf.OperationCallActivity;
+import alien4cloud.paas.wf.SetStateActivity;
+import alien4cloud.paas.wf.Workflow;
 import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
 import alien4cloud.utils.FileUtil;
@@ -594,12 +596,16 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
         return (operationWrapper.getOwner() instanceof PaaSRelationshipTemplate);
     }
 
-    public boolean isSetStateTask(WfTask task) {
-        return task instanceof WfSetStateTask;
+    public boolean isSetStateTask(AbstractStep step) {
+        return step instanceof NodeActivityStep && ((NodeActivityStep) step).getActivity() instanceof SetStateActivity;
     }
 
-    public boolean isOperationExecutionTask(WfTask task) {
-        return task instanceof WfOperationExecutionTask;
+    public boolean isOperationExecutionTask(AbstractStep step) {
+        return step instanceof NodeActivityStep && ((NodeActivityStep) step).getActivity() instanceof OperationCallActivity;
+    }
+
+    public AbstractStep getWorkflowStep(Workflow wf, String stepName) {
+        return wf.getSteps().get(stepName);
     }
 
 }

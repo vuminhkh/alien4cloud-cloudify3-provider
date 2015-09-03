@@ -148,4 +148,6 @@ plugins:
     source: custom_wf_plugin
 
 workflows:
-  a4c_install: custom_wf_plugin.plugin.workflows.custom_install
+#foreach($wfEntry in ${deployment.workflows.entrySet()})
+  a4c_${wfEntry.key}: custom_wf_plugin.plugin.workflows.a4c_${wfEntry.key}
+#end

@@ -12,8 +12,8 @@ import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
-import alien4cloud.paas.cloudify3.model.wf.WfStep;
 import alien4cloud.paas.model.PaaSNodeTemplate;
+import alien4cloud.paas.wf.Workflow;
 
 @Getter
 @Setter
@@ -74,5 +74,5 @@ public class CloudifyDeployment {
 
     private Map<String, String> providerDeploymentProperties;
 
-    private List<WfStep> installWorkflow;
+    private Map<String, Workflow> workflows;
 }
