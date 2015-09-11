@@ -39,11 +39,6 @@ import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
 import alien4cloud.paas.plan.ToscaRelationshipLifecycleConstants;
-import alien4cloud.paas.wf.AbstractStep;
-import alien4cloud.paas.wf.NodeActivityStep;
-import alien4cloud.paas.wf.OperationCallActivity;
-import alien4cloud.paas.wf.SetStateActivity;
-import alien4cloud.paas.wf.Workflow;
 import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
 import alien4cloud.utils.FileUtil;
@@ -594,18 +589,6 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     public boolean isOperationOwnedByRelationship(OperationWrapper operationWrapper) {
         return (operationWrapper.getOwner() instanceof PaaSRelationshipTemplate);
-    }
-
-    public boolean isSetStateTask(AbstractStep step) {
-        return step instanceof NodeActivityStep && ((NodeActivityStep) step).getActivity() instanceof SetStateActivity;
-    }
-
-    public boolean isOperationExecutionTask(AbstractStep step) {
-        return step instanceof NodeActivityStep && ((NodeActivityStep) step).getActivity() instanceof OperationCallActivity;
-    }
-
-    public AbstractStep getWorkflowStep(Workflow wf, String stepName) {
-        return wf.getSteps().get(stepName);
     }
 
 }

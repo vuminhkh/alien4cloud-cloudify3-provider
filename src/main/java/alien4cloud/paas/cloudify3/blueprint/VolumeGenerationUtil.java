@@ -56,6 +56,10 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
     }
 
     public boolean isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
+        return _isConfiguredVolume(volumeTemplate);
+    }
+
+    public static boolean _isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
         Map<String, AbstractPropertyValue> volumeProperties = volumeTemplate.getNodeTemplate().getProperties();
         return volumeProperties != null
                 && (volumeProperties.containsKey(NormativeBlockStorageConstants.LOCATION) || volumeProperties
@@ -66,7 +70,11 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
         return ToscaUtils.isFromType(AlienCustomTypes.DELETABLE_BLOCKSTORAGE_TYPE, volumeType);
     }
 
-    public String getExternalVolumeId(MatchedPaaSTemplate<StorageTemplate> matchedVolumeTemplate) {
+    public static String getExternalVolumeId(MatchedPaaSTemplate<StorageTemplate> matchedVolumeTemplate) {
+        return _getExternalVolumeId(matchedVolumeTemplate);
+    }
+
+    public static String _getExternalVolumeId(MatchedPaaSTemplate<StorageTemplate> matchedVolumeTemplate) {
         String volumeId = matchedVolumeTemplate.getPaaSResourceId();
         if (!StringUtils.isEmpty(volumeId)) {
             return volumeId;
@@ -94,6 +102,10 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
     }
 
     public PaaSNodeTemplate[] getConfiguredAttachedVolumes(PaaSNodeTemplate node) {
+        return _getConfiguredAttachedVolumes(node);
+    }
+
+    public static PaaSNodeTemplate[] _getConfiguredAttachedVolumes(PaaSNodeTemplate node) {
         PaaSNodeTemplate host = node.getParent();
         while (host.getParent() != null) {
             host = host.getParent();
@@ -103,7 +115,7 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
         }
         List<PaaSNodeTemplate> volumes = Lists.newArrayList();
         for (PaaSNodeTemplate volume : host.getStorageNodes()) {
-            if (isConfiguredVolume(volume)) {
+            if (_isConfiguredVolume(volume)) {
                 volumes.add(volume);
             }
         }

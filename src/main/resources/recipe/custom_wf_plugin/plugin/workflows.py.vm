@@ -11,10 +11,10 @@ def a4c_${wfEntry.key}(**kwargs):
         event_type='workflow_started',
         message="Starting A4C generated '{0}' workflow execution".format(ctx.workflow_id))
 #foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
-#if($util.nonNative.isSetStateTask(${wfStepEntry.value}))
+#if($util.workflow.isSetStateTask(${wfStepEntry.value}))
     set_state_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '${wfStepEntry.value.activity.stateName}', '${wfStepEntry.value.name}', tasks)
 #end
-#if($util.nonNative.isOperationExecutionTask(${wfStepEntry.value}))
+#if($util.workflow.isOperationExecutionTask(${wfStepEntry.value}))
     operation_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '$util.nonNative.tryToMapToCloudifyInterface(${wfStepEntry.value.activity.interfaceName}).${wfStepEntry.value.activity.operationName}', '${wfStepEntry.value.name}', tasks)
 #end
 #end
