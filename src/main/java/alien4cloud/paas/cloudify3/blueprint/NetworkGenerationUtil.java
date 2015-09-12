@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import alien4cloud.model.cloud.NetworkTemplate;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
@@ -24,7 +25,7 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
-    private boolean isMatched(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
+    private static boolean isMatched(PaaSNodeTemplate network, List<MatchedPaaSTemplate<NetworkTemplate>> matchedNetworks) {
         for (MatchedPaaSTemplate externalMatchedNetwork : matchedNetworks) {
             if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
                 return true;
@@ -33,7 +34,7 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         return false;
     }
 
-    private MatchedPaaSTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
+    private static MatchedPaaSTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
         for (MatchedPaaSTemplate externalMatchedNetwork : matchedNetworks) {
             if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
                 return externalMatchedNetwork;
@@ -42,7 +43,7 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         return null;
     }
 
-    public boolean hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> externalMatchedNetworks) {
+    public static boolean _hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate<NetworkTemplate>> externalMatchedNetworks) {
         if (allComputeNetworks == null || externalMatchedNetworks == null) {
             return false;
         }
@@ -52,6 +53,10 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
             }
         }
         return false;
+    }
+
+    public boolean hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate<NetworkTemplate>> externalMatchedNetworks) {
+        return NetworkGenerationUtil._hasMatchedNetwork(allComputeNetworks, externalMatchedNetworks);
     }
 
     public String getExternalNetworkName(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> externalMatchedNetworks) {

@@ -65,16 +65,13 @@ def get_public_ip(entity):
 #include("includes/download_artifacts.py")
 #end
 
-new_script_process = {
-    'env': {
+env_map = {}
 #foreach($inputEntry in $operation.inputParameters.entrySet())
-        '$inputEntry.key': $util.nonNative.formatValue(${operation.owner}, $inputEntry.value)
-#if($velocityCount < $operation.inputParameters.size())
-        ,
+env_map['$inputEntry.key'] = $util.nonNative.formatValue(${operation.owner}, $inputEntry.value)
 #end
-#end
-    }
-}
+
+env_map_expanded = expand_env_map(env_map)
+new_script_process = {'env': env_map_expanded}
 
 #if($util.nonNative.operationHasDeploymentArtifacts($operation))
 node_artifacts = {

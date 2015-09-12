@@ -6,6 +6,7 @@ import java.util.Map;
 import javax.annotation.Resource;
 
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,7 @@ import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IndexedModelUtils;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
+import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.IMatchedPaaSTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
@@ -26,12 +28,14 @@ import alien4cloud.paas.ha.AvailabilityZoneAllocator;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.paas.wf.Workflow;
 import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 @Component("cloudify-deployment-builder-service")
+@Slf4j
 public class CloudifyDeploymentBuilderService {
 
     @Resource(name = "cloudify-compute-template-matcher-service")
@@ -42,6 +46,9 @@ public class CloudifyDeploymentBuilderService {
 
     @Resource(name = "cloudify-storage-matcher-service")
     private StorageTemplateMatcherService storageMatcherService;
+
+    @Resource
+    private MappingConfigurationHolder mappingConfigurationHolder;
 
     private AvailabilityZoneAllocator availabilityZoneAllocator = new AvailabilityZoneAllocator();
 
@@ -121,14 +128,22 @@ public class CloudifyDeploymentBuilderService {
             }
         }
 
+        Map<String, MatchedPaaSTemplate<NetworkTemplate>> matchedExternalNetworksMap = buildTemplateMap(matchedExternalNetworks);
+        Map<String, MatchedPaaSComputeTemplate> matchedComputesMap = buildTemplateMap(matchedComputes);
+        List<PaaSNodeTemplate> nonNatives = deploymentContext.getPaaSTopology().getNonNatives();
+        WorkflowBuilderHelper workflowBuilderService = new WorkflowBuilderHelper(matchedExternalNetworksMap, matchedExternalNetworks, matchedComputesMap,
+                mappingConfigurationHolder, matchedStorages, nonNatives);
+        Map<String, Workflow> workflows = workflowBuilderService.buildPaaSWorkflows(deploymentContext.getTopology().getWorkflows());
+
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(), matchedComputes,
-                matchedInternalNetworks, matchedExternalNetworks, matchedStorages, buildTemplateMap(matchedComputes),
-                buildTemplateMap(matchedInternalNetworks), buildTemplateMap(matchedExternalNetworks), buildTemplateMap(matchedStorages), deploymentContext
-                        .getPaaSTopology().getNonNatives(), IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
+                matchedInternalNetworks, matchedExternalNetworks, matchedStorages, matchedComputesMap, buildTemplateMap(matchedInternalNetworks),
+                matchedExternalNetworksMap, buildTemplateMap(matchedStorages), nonNatives, IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), getTypesOrderedByDerivedFromHierarchy(deploymentContext
                         .getPaaSTopology().getComputes()), getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()),
                 getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()), deploymentContext.getPaaSTopology().getAllNodes(),
-                allArtifacts, allRelationshipArtifacts, deploymentContext.getDeploymentSetup().getProviderDeploymentProperties());
+                allArtifacts, allRelationshipArtifacts, deploymentContext.getDeploymentSetup().getProviderDeploymentProperties(), workflows);
         return deployment;
     }
+
+
 }
