@@ -90,25 +90,31 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
         )
     sequence.add(instance.send_event("Calling operation '{0}' on node '{1}' instance '{2}'".format(operation_fqname, node_id, instance.id)))
     if (operation_fqname == 'cloudify.interfaces.lifecycle.start' and _is_host_node(instance)):
-        sequence.add(instance.execute_operation('cloudify.interfaces.lifecycle.start'))
+        sequence.add(instance.execute_operation(operation_fqname))
         sequence.add(*_host_post_start(ctx, instance))
     elif (operation_fqname == 'cloudify.interfaces.lifecycle.configure'):
         preconfigureTasks = ForkjoinWrapper(graph)
         preconfigureTasks.add(*_relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.preconfigure'))
-        stateTask = ForkjoinWrapper(graph)
-        stateTask.add(
-            instance.set_state('configuring'),
-            instance.send_event('Configuring node'))
         postconfigureTasks = ForkjoinWrapper(graph)
         postconfigureTasks.add(*_relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.postconfigure'))
         sequence.add(
             preconfigureTasks,
-            stateTask,
-            instance.execute_operation('cloudify.interfaces.lifecycle.configure'),
-            instance.set_state('configured'),
+            instance.execute_operation(operation_fqname),
             postconfigureTasks
         )
+    elif (operation_fqname == 'cloudify.interfaces.lifecycle.stop'):
+        if _is_host_node(instance):
+            sequence.add(*_host_pre_stop(instance))
+
+        #unlink_tasks_with_target_ids = _relationship_operations_with_targets(instance, 'cloudify.interfaces.relationship_lifecycle.unlink')
+        #_set_send_node_evt_on_failed_unlink_handlers(instance, unlink_tasks_with_target_ids)
+        #unlinkTasks = ForkjoinWrapper(graph)
+        #unlinkTasks.add(*[task for task, _ in unlink_tasks_with_target_ids])
+        # TODO: call unlink
+        sequence.add(instance.execute_operation(operation_fqname))
+        #sequence.add(unlinkTasks)
     else:
+        # the default behavior : just do the job
         sequence.add(instance.execute_operation(operation_fqname))
     if (operation_fqname == 'cloudify.interfaces.lifecycle.start'):
         establishTasks = ForkjoinWrapper(graph)
@@ -208,6 +214,47 @@ def _host_post_start(ctx, host_node_instance):
             'cloudify.interfaces.monitoring_agent.start'),
     ]
     return tasks
+
+def _host_pre_stop(host_node_instance):
+    tasks = []
+    tasks += [
+        host_node_instance.execute_operation(
+            'cloudify.interfaces.monitoring_agent.stop'),
+        host_node_instance.execute_operation(
+            'cloudify.interfaces.monitoring_agent.uninstall'),
+    ]
+    if host_node_instance.node.properties['install_agent'] is True:
+        tasks += [
+            host_node_instance.send_event('Uninstalling worker'),
+            host_node_instance.execute_operation(
+                'cloudify.interfaces.worker_installer.stop'),
+            host_node_instance.execute_operation(
+                'cloudify.interfaces.worker_installer.uninstall')
+        ]
+
+    for task in tasks:
+        if task.is_remote():
+            _set_send_node_event_on_error_handler(
+                task, host_node_instance,
+                'Error occurred while uninstalling worker - ignoring...')
+
+    return tasks
+
+def _set_send_node_event_on_error_handler(task, node_instance, error_message):
+    def send_node_event_error_handler(tsk):
+        node_instance.send_event(error_message)
+        return workflow_tasks.HandlerResult.ignore()
+    task.on_failure = send_node_event_error_handler
+
+
+def _set_send_node_evt_on_failed_unlink_handlers(instance, tasks_with_targets):
+    for unlink_task, target_id in tasks_with_targets:
+        _set_send_node_event_on_error_handler(
+            unlink_task,
+            instance,
+            "Error occurred while unlinking node from node {0} - "
+            "ignoring...".format(target_id)
+        )
 
 def _relationship_operations(node_instance, operation):
     tasks_with_targets = _relationship_operations_with_targets(

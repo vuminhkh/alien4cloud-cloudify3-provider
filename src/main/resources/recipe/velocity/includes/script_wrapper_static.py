@@ -26,6 +26,15 @@ def expand_env_map(env_map):
             result[env_key] = env_value
     return result
 
+def get_instance_list(node_id):
+    result = ''
+    all_node_instances = client.node_instances.list(ctx.deployment.id, node_id)
+    for node_instance in all_node_instances:
+        if len(result) > 0:
+            result += ','
+        result += node_instance.id
+    return result
+
 def get_instance_data(entity, data_name, get_data_function):
     data = get_data_function(entity, data_name)
     if data is not None:
