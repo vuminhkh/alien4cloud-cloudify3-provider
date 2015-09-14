@@ -590,5 +590,9 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     public boolean isOperationOwnedByRelationship(OperationWrapper operationWrapper) {
         return (operationWrapper.getOwner() instanceof PaaSRelationshipTemplate);
     }
+    
+    public boolean isOperationOwnedByNode(OperationWrapper operationWrapper) {
+        return (operationWrapper.getOwner() instanceof PaaSNodeTemplate);
+    }
 
 }

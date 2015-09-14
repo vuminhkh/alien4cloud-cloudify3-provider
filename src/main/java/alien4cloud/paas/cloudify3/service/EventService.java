@@ -364,16 +364,23 @@ public class EventService {
             alienEvent = failedStatusEvent;
             break;
         case EventType.TASK_SUCCEEDED:
-            String newInstanceState = CloudifyLifeCycle.getSucceededInstanceState(cloudifyEvent.getContext().getOperation());
-            if (newInstanceState == null) {
-                return null;
+            if (Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(cloudifyEvent.getContext().getWorkflowId())
+                    && "riemann_controller.tasks.delete".equals(cloudifyEvent.getContext().getTaskName())) {
+                PaaSDeploymentStatusMonitorEvent undeployedEvent = new PaaSDeploymentStatusMonitorEvent();
+                undeployedEvent.setDeploymentStatus(DeploymentStatus.UNDEPLOYED);
+                alienEvent = undeployedEvent;
+            } else {
+                String newInstanceState = CloudifyLifeCycle.getSucceededInstanceState(cloudifyEvent.getContext().getOperation());
+                if (newInstanceState == null) {
+                    return null;
+                }
+                PaaSInstanceStateMonitorEvent instanceTaskStartedEvent = new PaaSInstanceStateMonitorEvent();
+                instanceTaskStartedEvent.setInstanceId(cloudifyEvent.getContext().getNodeId());
+                instanceTaskStartedEvent.setNodeTemplateId(cloudifyEvent.getContext().getNodeName());
+                instanceTaskStartedEvent.setInstanceState(newInstanceState);
+                instanceTaskStartedEvent.setInstanceStatus(statusService.getInstanceStatusFromState(newInstanceState));
+                alienEvent = instanceTaskStartedEvent;
             }
-            PaaSInstanceStateMonitorEvent instanceTaskStartedEvent = new PaaSInstanceStateMonitorEvent();
-            instanceTaskStartedEvent.setInstanceId(cloudifyEvent.getContext().getNodeId());
-            instanceTaskStartedEvent.setNodeTemplateId(cloudifyEvent.getContext().getNodeName());
-            instanceTaskStartedEvent.setInstanceState(newInstanceState);
-            instanceTaskStartedEvent.setInstanceStatus(statusService.getInstanceStatusFromState(newInstanceState));
-            alienEvent = instanceTaskStartedEvent;
             break;
         default:
             return null;
