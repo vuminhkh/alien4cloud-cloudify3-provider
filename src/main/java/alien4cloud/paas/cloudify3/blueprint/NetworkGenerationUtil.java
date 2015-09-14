@@ -8,7 +8,6 @@ import org.apache.commons.lang3.StringUtils;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
-import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
@@ -60,7 +59,7 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
             if (externalMatchedNetwork != null) {
                 String externalNetworkId = externalMatchedNetwork.getPaaSResourceId();
                 if (StringUtils.isEmpty(externalNetworkId)) {
-                    throw new BadConfigurationException("External network id must be configured");
+                    return "\"\"";
                 } else {
                     return externalNetworkId;
                 }
