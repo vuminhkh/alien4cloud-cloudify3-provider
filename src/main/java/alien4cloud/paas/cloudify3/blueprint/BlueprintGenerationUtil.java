@@ -26,6 +26,8 @@ public class BlueprintGenerationUtil extends AbstractGenerationUtil {
 
     private NonNativeTypeGenerationUtil nonNative;
 
+    private WorkflowGenerationUtil workflow;
+
     public BlueprintGenerationUtil(MappingConfiguration mappingConfiguration, ProviderMappingConfiguration providerMappingConfiguration,
             CloudifyDeployment alienDeployment, Path recipePath, PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
@@ -34,5 +36,6 @@ public class BlueprintGenerationUtil extends AbstractGenerationUtil {
         this.volume = new VolumeGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
         this.nonNative = new NonNativeTypeGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath,
                 propertyEvaluatorService);
+        this.workflow = new WorkflowGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 }

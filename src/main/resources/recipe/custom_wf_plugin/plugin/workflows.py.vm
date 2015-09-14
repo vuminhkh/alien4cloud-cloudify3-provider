@@ -1,0 +1,327 @@
+from cloudify.decorators import workflow
+from cloudify.workflows import ctx
+from cloudify.workflows import tasks as workflow_tasks
+
+#foreach($wfEntry in ${deployment.workflows.entrySet()})
+@workflow
+def a4c_${wfEntry.key}(**kwargs):
+    graph = ctx.graph_mode()
+    tasks = {}
+    ctx.internal.send_workflow_event(
+        event_type='workflow_started',
+        message="Starting A4C generated '{0}' workflow execution".format(ctx.workflow_id))
+#foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
+#if($util.workflow.isSetStateTask(${wfStepEntry.value}))
+    set_state_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '${wfStepEntry.value.activity.stateName}', '${wfStepEntry.value.name}', tasks)
+#end
+#if($util.workflow.isOperationExecutionTask(${wfStepEntry.value}))
+    operation_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '$util.nonNative.tryToMapToCloudifyInterface(${wfStepEntry.value.activity.interfaceName}).${wfStepEntry.value.activity.operationName}', '${wfStepEntry.value.name}', tasks)
+#end
+#end
+#foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
+#foreach($preceding_step in ${wfStepEntry.value.precedingSteps})
+    #[[#]]# ${wfStepEntry.value.activity.toString()} -> ${wfEntry.value.steps.get(${preceding_step}).activity.toString()}
+    link_tasks(graph, '${wfStepEntry.value.name}', '${preceding_step}', tasks)
+#end
+#end
+    return graph.execute()
+
+#end
+
+def _get_nodes_instances(ctx, node_id):
+    instances = []
+    for node in ctx.nodes:
+        for instance in node.instances:
+            if (instance.node_id == node_id):
+                instances.append(instance)
+    return instances
+
+def _get_all_nodes_instances(ctx):
+    node_instances = set()
+    for node in ctx.nodes:
+        for instance in node.instances:
+            node_instances.add(instance)
+    return node_instances
+
+def set_state_task(ctx, graph, node_id, state_name, step_id, tasks):
+    if (state_name == 'available'):
+        state_name = 'started'
+    sequence = None
+    instances = _get_nodes_instances(ctx, node_id)
+    instance_count = len(instances)
+    if (instance_count == 1):
+        instance = instances[0]
+        sequence = set_state_task_for_instance(graph, node_id, instance, state_name)
+    elif (instance_count > 1):
+        sequence = ForkjoinWrapper(graph)
+        for instance in instances:
+            sequence.add(set_state_task_for_instance(graph, node_id, instance, state_name))
+    tasks[step_id] = sequence
+
+def set_state_task_for_instance(graph, node_id, instance, state_name):
+    task = ForkjoinWrapper(graph)
+    task.add(
+            instance.send_event("Setting state '{0}' on node '{1}' instance '{2}'".format(state_name, node_id, instance.id)),
+            instance.set_state(state_name))
+    return task
+
+def operation_task(ctx, graph, node_id, operation_fqname, step_id, tasks):
+    tstate = transitional_state(operation_fqname)
+    sequence = None
+    instances = _get_nodes_instances(ctx, node_id)
+    instance_count = len(instances)
+    if (instance_count == 1):
+        instance = instances[0]
+        sequence = operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname, tstate)
+    elif (instance_count > 1):
+        sequence = ForkjoinWrapper(graph)
+        for instance in instances:
+            instance_task = operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname, tstate)
+            sequence.add(instance_task)
+    if sequence is not None:
+        tasks[step_id] = sequence
+
+def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname, tstate):
+    sequence = TaskSequenceWrapper(graph)
+    if tstate is not None:
+        sequence.add(
+            instance.set_state(tstate),
+            instance.send_event("{0} node '{1}' instance '{2}'".format(tstate, node_id, instance.id))
+        )
+    sequence.add(instance.send_event("Calling operation '{0}' on node '{1}' instance '{2}'".format(operation_fqname, node_id, instance.id)))
+    if (operation_fqname == 'cloudify.interfaces.lifecycle.start' and _is_host_node(instance)):
+        sequence.add(instance.execute_operation(operation_fqname))
+        sequence.add(*_host_post_start(ctx, instance))
+    elif (operation_fqname == 'cloudify.interfaces.lifecycle.configure'):
+        preconfigureTasks = ForkjoinWrapper(graph)
+        preconfigureTasks.add(*_relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.preconfigure'))
+        postconfigureTasks = ForkjoinWrapper(graph)
+        postconfigureTasks.add(*_relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.postconfigure'))
+        sequence.add(
+            preconfigureTasks,
+            instance.execute_operation(operation_fqname),
+            postconfigureTasks
+        )
+    elif (operation_fqname == 'cloudify.interfaces.lifecycle.stop'):
+        if _is_host_node(instance):
+            sequence.add(*_host_pre_stop(instance))
+
+        #unlink_tasks_with_target_ids = _relationship_operations_with_targets(instance, 'cloudify.interfaces.relationship_lifecycle.unlink')
+        #_set_send_node_evt_on_failed_unlink_handlers(instance, unlink_tasks_with_target_ids)
+        #unlinkTasks = ForkjoinWrapper(graph)
+        #unlinkTasks.add(*[task for task, _ in unlink_tasks_with_target_ids])
+        # TODO: call unlink
+        sequence.add(instance.execute_operation(operation_fqname))
+        #sequence.add(unlinkTasks)
+    else:
+        # the default behavior : just do the job
+        sequence.add(instance.execute_operation(operation_fqname))
+    if (operation_fqname == 'cloudify.interfaces.lifecycle.start'):
+        establishTasks = ForkjoinWrapper(graph)
+        establishTasks.add(
+            instance.execute_operation('cloudify.interfaces.monitoring.start'),
+            *_relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.establish'))
+        sequence.add(
+            instance.send_event("Start monitoring on node '{0}' instance '{1}'".format(node_id, instance.id)),
+            establishTasks
+        )
+    return sequence
+
+def transitional_state(operation_fqname):
+    tstate = None
+    return tstate
+
+def _transitional_state(operation_fqname):
+    tstate = None
+    if (operation_fqname == 'cloudify.interfaces.lifecycle.create'):
+        tstate = 'creating'
+    elif (operation_fqname == 'cloudify.interfaces.lifecycle.configure'):
+        tstate = 'configuring'
+    elif (operation_fqname == 'cloudify.interfaces.lifecycle.start'):
+        tstate = 'starting'
+    return tstate
+
+def link_tasks(graph, source_id, target_id, tasks):
+    sources = tasks[source_id]
+    if (isinstance(sources, TaskSequenceWrapper) or isinstance(sources, ForkjoinWrapper)):
+        sources =  sources.first_tasks
+    else:
+        sources = [sources]
+    targets = tasks[target_id]
+    if (isinstance(targets, TaskSequenceWrapper) or isinstance(targets, ForkjoinWrapper)):
+        targets = targets.last_tasks
+    else:
+        targets = [targets]
+    for source in sources:
+        for target in targets:
+            graph.add_dependency(source, target)
+
+def _is_host_node(node_instance):
+    return 'cloudify.nodes.Compute' in node_instance.node.type_hierarchy
+
+# TODO: remove
+# very specific alien/cfy3/openstack hack to manage external network
+def _is_fip_node(node_instance):
+    return 'cloudify.openstack.nodes.FloatingIP' in node_instance.node.type_hierarchy
+
+def _wait_for_host_to_start(ctx, host_node_instance):
+    task = host_node_instance.execute_operation(
+        'cloudify.interfaces.host.get_state')
+
+    # handler returns True if if get_state returns False,
+    # this means, that get_state will be re-executed until
+    # get_state returns True
+    def node_get_state_handler(tsk):
+        host_started = tsk.async_result.get()
+        if host_started:
+            return workflow_tasks.HandlerResult.cont()
+        else:
+            return workflow_tasks.HandlerResult.retry(
+                ignore_total_retries=True)
+    if not task.is_nop():
+        task.on_success = node_get_state_handler
+    return task
+
+def _host_post_start(ctx, host_node_instance):
+
+    plugins_to_install = filter(lambda plugin: plugin['install'],
+                                host_node_instance.node.plugins_to_install)
+
+    tasks = [_wait_for_host_to_start(ctx, host_node_instance)]
+    if host_node_instance.node.properties['install_agent'] is True:
+        tasks += [
+            host_node_instance.send_event('Installing worker'),
+            host_node_instance.execute_operation(
+                'cloudify.interfaces.worker_installer.install'),
+            host_node_instance.execute_operation(
+                'cloudify.interfaces.worker_installer.start'),
+        ]
+        if plugins_to_install:
+            tasks += [
+                host_node_instance.send_event('Installing host plugins'),
+                host_node_instance.execute_operation(
+                    'cloudify.interfaces.plugin_installer.install',
+                    kwargs={
+                        'plugins': plugins_to_install}),
+                host_node_instance.execute_operation(
+                    'cloudify.interfaces.worker_installer.restart',
+                    send_task_events=False)
+            ]
+    tasks += [
+        host_node_instance.execute_operation(
+            'cloudify.interfaces.monitoring_agent.install'),
+        host_node_instance.execute_operation(
+            'cloudify.interfaces.monitoring_agent.start'),
+    ]
+    return tasks
+
+def _host_pre_stop(host_node_instance):
+    tasks = []
+    tasks += [
+        host_node_instance.execute_operation(
+            'cloudify.interfaces.monitoring_agent.stop'),
+        host_node_instance.execute_operation(
+            'cloudify.interfaces.monitoring_agent.uninstall'),
+    ]
+    if host_node_instance.node.properties['install_agent'] is True:
+        tasks += [
+            host_node_instance.send_event('Uninstalling worker'),
+            host_node_instance.execute_operation(
+                'cloudify.interfaces.worker_installer.stop'),
+            host_node_instance.execute_operation(
+                'cloudify.interfaces.worker_installer.uninstall')
+        ]
+
+    for task in tasks:
+        if task.is_remote():
+            _set_send_node_event_on_error_handler(
+                task, host_node_instance,
+                'Error occurred while uninstalling worker - ignoring...')
+
+    return tasks
+
+def _set_send_node_event_on_error_handler(task, node_instance, error_message):
+    def send_node_event_error_handler(tsk):
+        node_instance.send_event(error_message)
+        return workflow_tasks.HandlerResult.ignore()
+    task.on_failure = send_node_event_error_handler
+
+
+def _set_send_node_evt_on_failed_unlink_handlers(instance, tasks_with_targets):
+    for unlink_task, target_id in tasks_with_targets:
+        _set_send_node_event_on_error_handler(
+            unlink_task,
+            instance,
+            "Error occurred while unlinking node from node {0} - "
+            "ignoring...".format(target_id)
+        )
+
+def _relationship_operations(node_instance, operation):
+    tasks_with_targets = _relationship_operations_with_targets(
+        node_instance, operation)
+    return [task for task, _ in tasks_with_targets]
+
+def _relationship_operations_with_targets(node_instance, operation):
+    tasks = []
+    for relationship in node_instance.relationships:
+        tasks += _relationship_operations_with_target(relationship, operation)
+    return tasks
+
+def _relationship_operations_with_target(relationship, operation):
+    return [
+        (relationship.execute_source_operation(operation),
+         relationship.target_id),
+        (relationship.execute_target_operation(operation),
+         relationship.target_id)
+    ]
+
+class ForkjoinWrapper(object):
+
+    def __init__(self, graph):
+        self.graph = graph
+        self.first_tasks = []
+        self.last_tasks = []
+
+    def add(self, *tasks):
+        for element in tasks:
+            if isinstance(element, ForkjoinWrapper):
+                self.first_tasks.extend(element.first_tasks)
+                self.last_tasks.extend(element.last_tasks)
+            elif isinstance(element, TaskSequenceWrapper):
+                self.first_tasks.extend(element.first_tasks)
+                self.last_tasks.extend(element.last_tasks)
+            else:
+                self.first_tasks.append(element)
+                self.last_tasks.append(element)
+                self.graph.add_task(element)
+
+class TaskSequenceWrapper(object):
+
+    def __init__(self, graph):
+        self.graph = graph
+        self.first_tasks = None
+        self.last_tasks = None
+
+    def add(self, *tasks):
+        for element in tasks:
+            tasks_head = None
+            tasks_queue = None
+            if isinstance(element, ForkjoinWrapper):
+                tasks_head = element.first_tasks
+                tasks_queue = element.last_tasks
+            elif isinstance(element, TaskSequenceWrapper):
+                tasks_head = element.first_tasks
+                tasks_queue = element.last_tasks
+            else:
+                tasks_head = [element]
+                tasks_queue = tasks_head
+                self.graph.add_task(element)
+            for task in tasks_head:
+                if self.last_tasks is not None:
+                    for last_task in self.last_tasks:
+                        self.graph.add_dependency(task, last_task)
+            if tasks_head is not None:
+                if self.first_tasks is None:
+                    self.first_tasks = tasks_head
+            if tasks_queue is not None:
+                self.last_tasks = tasks_queue
