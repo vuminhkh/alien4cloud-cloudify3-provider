@@ -13,6 +13,7 @@ import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.paas.model.PaaSNodeTemplate;
+import alien4cloud.paas.wf.Workflow;
 
 @Getter
 @Setter
@@ -72,4 +73,6 @@ public class CloudifyDeployment {
     private Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipDeploymentArtifacts;
 
     private Map<String, String> providerDeploymentProperties;
+
+    private Map<String, Workflow> workflows;
 }
