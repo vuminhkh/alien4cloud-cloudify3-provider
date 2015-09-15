@@ -146,14 +146,14 @@ public class BlueprintService {
         if (Files.exists(nativeArtifactDirectory)) {
             throw new IOException(nativeArtifactDirectory.getFileName() + " is a reserved name, please choose another name for your archive");
         }
-        if (util.getVolume().hasConfiguredVolume(alienDeployment.getVolumes())) {
-            Path volumeScriptPath = nativeArtifactDirectory.resolve("volume");
-            Files.createDirectories(volumeScriptPath);
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
-        }
+//        if (util.getVolume().hasConfiguredVolume(alienDeployment.getVolumes())) {
+//            Path volumeScriptPath = nativeArtifactDirectory.resolve("volume");
+//            Files.createDirectories(volumeScriptPath);
+//            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
+//            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
+//            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
+//            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
+//        }
         for (PaaSNodeTemplate node : alienDeployment.getNonNatives()) {
             Map<String, Interface> interfaces = util.getNonNative().getNodeInterfaces(node);
             if (MapUtils.isNotEmpty(interfaces)) {

@@ -9,12 +9,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import alien4cloud.common.AlienConstants;
 import alien4cloud.exception.InvalidArgumentException;
-import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.paas.cloudify3.CloudifyOrchestratorFactory;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
+import alien4cloud.paas.cloudify3.model.StorageTemplate;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
@@ -40,8 +40,8 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
     }
 
     public String tryToMapVolumeTypeDerivedFrom(IndexedNodeType type) {
-        return getMappedNativeDerivedFromType(type, NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE, providerMappingConfiguration.getNativeTypes()
-                .getVolumeType(), alienDeployment.getVolumeTypes());
+        return getMappedNativeDerivedFromType(type, NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE,
+                providerMappingConfiguration.getNativeTypes().getVolumeType(), alienDeployment.getVolumeTypes());
     }
 
     public boolean hasConfiguredVolume(List<MatchedPaaSTemplate<StorageTemplate>> volumes) {
@@ -61,9 +61,8 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
 
     public static boolean _isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
         Map<String, AbstractPropertyValue> volumeProperties = volumeTemplate.getNodeTemplate().getProperties();
-        return volumeProperties != null
-                && (volumeProperties.containsKey(NormativeBlockStorageConstants.LOCATION) || volumeProperties
-                        .containsKey(NormativeBlockStorageConstants.FILE_SYSTEM));
+        return volumeProperties != null && (volumeProperties.containsKey(NormativeBlockStorageConstants.LOCATION)
+                || volumeProperties.containsKey(NormativeBlockStorageConstants.FILE_SYSTEM));
     }
 
     public boolean isDeletableVolumeType(IndexedNodeType volumeType) {

@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.model.cloud.IaaSType;
 import alien4cloud.model.orchestrators.locations.LocationResourceTemplate;
 import alien4cloud.orchestrators.plugin.ILocationResourceAccessor;
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
@@ -76,6 +75,6 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
 
     @Override
     public Set<String> getManagedLocationTypes() {
-        return Sets.newHashSet(IaaSType.OPENSTACK.toString());
+        return Sets.newHashSet("Openstack");
     }
 }

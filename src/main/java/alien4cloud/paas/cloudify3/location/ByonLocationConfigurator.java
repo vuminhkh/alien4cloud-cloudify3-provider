@@ -5,7 +5,6 @@ import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.model.cloud.IaaSType;
 import alien4cloud.model.orchestrators.locations.LocationResourceTemplate;
 import alien4cloud.orchestrators.plugin.ILocationResourceAccessor;
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
@@ -32,6 +31,6 @@ public class ByonLocationConfigurator implements ITypeAwareLocationConfigurator 
 
     @Override
     public Set<String> getManagedLocationTypes() {
-        return Sets.newHashSet(IaaSType.BYON.toString());
+        return Sets.newHashSet("Byon");
     }
 }

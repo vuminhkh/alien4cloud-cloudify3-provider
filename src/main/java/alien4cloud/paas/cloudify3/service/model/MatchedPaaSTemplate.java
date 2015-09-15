@@ -1,10 +1,10 @@
 package alien4cloud.paas.cloudify3.service.model;
 
+import alien4cloud.paas.cloudify3.model.ICloudResourceTemplate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import alien4cloud.model.cloud.ICloudResourceTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 
 @Getter

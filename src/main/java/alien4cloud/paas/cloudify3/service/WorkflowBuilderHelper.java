@@ -8,11 +8,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import lombok.extern.slf4j.Slf4j;
-import alien4cloud.model.cloud.NetworkTemplate;
-import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.paas.cloudify3.blueprint.NetworkGenerationUtil;
 import alien4cloud.paas.cloudify3.blueprint.VolumeGenerationUtil;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
+import alien4cloud.paas.cloudify3.model.NetworkTemplate;
+import alien4cloud.paas.cloudify3.model.StorageTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
 import alien4cloud.paas.model.PaaSNodeTemplate;
@@ -76,7 +76,7 @@ public class WorkflowBuilderHelper {
             // first iteration to remove useless steps
             Iterator<Entry<String, AbstractStep>> stepIterator = workflow.getSteps().entrySet().iterator();
             Set<String> removedStep = new HashSet<String>();
-            while(stepIterator.hasNext()) {
+            while (stepIterator.hasNext()) {
                 Entry<String, AbstractStep> stepEntry = stepIterator.next();
                 String stepName = stepEntry.getKey();
                 if (!shouldAddStep(workflow, stepName)) {
@@ -180,7 +180,8 @@ public class WorkflowBuilderHelper {
         public void addNode(Workflow workflow, String nodeId) {
             AbstractStep step = appendStep(workflow, null, WorkflowUtils.addStateStep(workflow, nodeId, ToscaNodeLifecycleConstants.INITIAL));
             step = appendStep(workflow, step, WorkflowUtils.addStateStep(workflow, nodeId, ToscaNodeLifecycleConstants.CREATING));
-            step = appendStep(workflow, step, WorkflowUtils.addOperationStep(workflow, nodeId, ToscaNodeLifecycleConstants.STANDARD, ToscaNodeLifecycleConstants.CREATE));
+            step = appendStep(workflow, step,
+                    WorkflowUtils.addOperationStep(workflow, nodeId, ToscaNodeLifecycleConstants.STANDARD, ToscaNodeLifecycleConstants.CREATE));
             step = appendStep(workflow, step, WorkflowUtils.addStateStep(workflow, nodeId, ToscaNodeLifecycleConstants.CREATED));
             step = appendStep(workflow, step, WorkflowUtils.addStateStep(workflow, nodeId, ToscaNodeLifecycleConstants.CONFIGURING));
             step = appendStep(workflow, step,

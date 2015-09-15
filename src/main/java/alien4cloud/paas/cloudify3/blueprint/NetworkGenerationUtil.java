@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
-import alien4cloud.model.cloud.NetworkTemplate;
+import alien4cloud.paas.cloudify3.model.NetworkTemplate;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
