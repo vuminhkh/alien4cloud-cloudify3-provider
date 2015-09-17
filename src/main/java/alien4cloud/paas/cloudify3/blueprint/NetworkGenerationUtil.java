@@ -33,7 +33,7 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         return false;
     }
 
-    private static MatchedPaaSTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
+    private static MatchedPaaSTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSTemplate<NetworkTemplate>> matchedNetworks) {
         for (MatchedPaaSTemplate externalMatchedNetwork : matchedNetworks) {
             if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
                 return externalMatchedNetwork;
@@ -58,7 +58,7 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         return NetworkGenerationUtil._hasMatchedNetwork(allComputeNetworks, externalMatchedNetworks);
     }
 
-    public String getExternalNetworkName(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> externalMatchedNetworks) {
+    public String getExternalNetworkName(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate<NetworkTemplate>> externalMatchedNetworks) {
         for (PaaSNodeTemplate network : allComputeNetworks) {
             MatchedPaaSTemplate externalMatchedNetwork = getMatchedNetwork(network, externalMatchedNetworks);
             if (externalMatchedNetwork != null) {
@@ -73,7 +73,8 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         return null;
     }
 
-    public List<PaaSNodeTemplate> getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> internalMatchedNetworks) {
+    public static List<PaaSNodeTemplate> _getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks,
+            List<MatchedPaaSTemplate<NetworkTemplate>> internalMatchedNetworks) {
         List<PaaSNodeTemplate> internalNetworksNodes = Lists.newArrayList();
         for (PaaSNodeTemplate network : allComputeNetworks) {
             MatchedPaaSTemplate internalMatchedNetwork = getMatchedNetwork(network, internalMatchedNetworks);
@@ -82,6 +83,11 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
             }
         }
         return internalNetworksNodes;
+    }
+
+    public List<PaaSNodeTemplate> getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks,
+            List<MatchedPaaSTemplate<NetworkTemplate>> internalMatchedNetworks) {
+        return NetworkGenerationUtil._getInternalNetworks(allComputeNetworks, internalMatchedNetworks);
     }
 
     public String tryToMapNetworkType(IndexedNodeType type, String defaultType) {
