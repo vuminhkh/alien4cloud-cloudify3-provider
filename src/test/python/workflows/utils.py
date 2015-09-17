@@ -1,5 +1,6 @@
 from handlers import host_post_start
 from handlers import host_pre_stop
+from handlers import _set_send_node_event_on_error_handler
 
 
 def _get_nodes_instances(ctx, node_id):
@@ -68,9 +69,19 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname)
     sequence = TaskSequenceWrapper(graph)
     msg = "Calling operation '{0}' on node '{1}' instance '{2}'".format(operation_fqname, node_id, instance.id)
     sequence.add(instance.send_event(msg))
-    if operation_fqname == 'cloudify.interfaces.lifecycle.start' and _is_host_node(instance):
+    if operation_fqname == 'cloudify.interfaces.lifecycle.start':
         sequence.add(instance.execute_operation(operation_fqname))
-        sequence.add(*host_post_start(ctx, instance))
+        if _is_host_node(instance):
+            sequence.add(*host_post_start(ctx, instance))
+        fork = ForkjoinWrapper(graph)
+        fork.add(instance.execute_operation('cloudify.interfaces.monitoring.start'))
+        establish_tasks = _relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.establish')
+        if len(establish_tasks) > 0:
+            fork.add(*establish_tasks)
+        sequence.add(
+            instance.send_event("Start monitoring on node '{0}' instance '{1}'".format(node_id, instance.id)),
+            forkjoin_sequence(graph, fork, instance, "establish")
+        )
     elif operation_fqname == 'cloudify.interfaces.lifecycle.configure':
         preconf_tasks = _relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.preconfigure')
         if len(preconf_tasks) > 0:
@@ -87,26 +98,25 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname)
     elif operation_fqname == 'cloudify.interfaces.lifecycle.stop':
         if _is_host_node(instance):
             sequence.add(*host_pre_stop(instance))
-        sequence.add(instance.execute_operation(operation_fqname))
+        task = instance.execute_operation(operation_fqname)
+        _set_send_node_event_on_error_handler(task, instance, "Error occurred while stopping node - ignoring...")
+        sequence.add(task)
         # now call unlink onto relations' target
         unlink_tasks = _relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.unlink')
         if len(unlink_tasks) > 0:
+            for task in unlink_tasks:
+                _set_send_node_event_on_error_handler(task, instance, "Error occurred while unlinking node from target - ignoring...")            
             fork = ForkjoinWrapper(graph)
             fork.add(*unlink_tasks)
             sequence.add(forkjoin_sequence(graph, fork, instance, "unlink"))
+    elif operation_fqname == 'cloudify.interfaces.lifecycle.delete':
+        task = instance.execute_operation(operation_fqname)
+        _set_send_node_event_on_error_handler(task, instance, "Error occurred while deleting node - ignoring...")
+        sequence.add(task)
     else:
         # the default behavior : just do the job
         sequence.add(instance.execute_operation(operation_fqname))
-    if operation_fqname == 'cloudify.interfaces.lifecycle.start':
-        fork = ForkjoinWrapper(graph)
-        fork.add(instance.execute_operation('cloudify.interfaces.monitoring.start'))
-        establish_tasks = _relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.establish')
-        if len(establish_tasks) > 0:
-            fork.add(*establish_tasks)
-        sequence.add(
-            instance.send_event("Start monitoring on node '{0}' instance '{1}'".format(node_id, instance.id)),
-            forkjoin_sequence(graph, fork, instance, "establish")
-        )
+
     return sequence
 
 
