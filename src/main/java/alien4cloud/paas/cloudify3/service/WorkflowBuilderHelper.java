@@ -22,6 +22,9 @@ import alien4cloud.paas.wf.NodeActivityStep;
 import alien4cloud.paas.wf.Workflow;
 import alien4cloud.paas.wf.util.WorkflowUtils;
 
+/**
+ * TODO: this class should have several implementations (per provider).
+ */
 @Slf4j
 public class WorkflowBuilderHelper {
 
