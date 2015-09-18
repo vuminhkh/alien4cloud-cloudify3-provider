@@ -190,7 +190,7 @@ public class StatusService {
                 }
                 Map<String, Map<String, InstanceInformation>> information = Maps.newHashMap();
                 for (NodeInstance instance : instances) {
-                    NodeTemplate nodeTemplate = deploymentContext.getTopology().getNodeTemplates().get(instance.getNodeId());
+                    NodeTemplate nodeTemplate = deploymentContext.getDeploymentTopology().getNodeTemplates().get(instance.getNodeId());
                     if (nodeTemplate == null) {
                         // Sometimes we have generated instance that do not exist in alien topology
                         continue;
