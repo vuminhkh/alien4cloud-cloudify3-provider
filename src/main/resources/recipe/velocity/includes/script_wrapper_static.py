@@ -13,19 +13,6 @@ from cloudify import utils
 
 client = CloudifyClient(utils.get_manager_ip(), utils.get_manager_rest_service_port())
 
-def expand_env_map(env_map):
-    result = {}
-    for env_key in env_map:
-        env_value = env_map[env_key]
-        if isinstance(env_value,dict):
-            # if several instances, then the data is a dict
-            # we add key prefixed by the instance.id for each instance
-            for eval_key in env_value:
-                result[eval_key + env_key] = env_value[eval_key]
-        else:
-            result[env_key] = env_value
-    return result
-
 def get_instance_list(node_id):
     result = ''
     all_node_instances = client.node_instances.list(ctx.deployment.id, node_id)
@@ -38,10 +25,25 @@ def get_instance_list(node_id):
 def get_instance_data(entity, data_name, get_data_function):
     data = get_data_function(entity, data_name)
     if data is not None:
-        result_map = {}
         ctx.logger.info(
             'Found the property/attribute {0} with value {1} on the node {2}'.format(data_name, data, entity.node.id))
-        result_map[''] = data
+        return data
+    elif entity.instance.relationships:
+        for relationship in entity.instance.relationships:
+            if 'cloudify.relationships.contained_in' in relationship.type_hierarchy:
+                ctx.logger.info(
+                    'Attribute/Property not found {0} go up to the parent node {1} by following relationship {2}'.format(data_name,
+                                                                                                                         relationship.target.node.id,
+                                                                                                                         relationship.type))
+                return get_instance_data(relationship.target, data_name, get_data_function)
+        return ""
+    else:
+        return ""
+
+def get_other_instances_data(entity, data_name, get_data_function):
+    data = get_data_function(entity, data_name)
+    if data is not None:
+        result_map = {}
         # get all instances data using cfy rest client
         all_node_instances = client.node_instances.list(ctx.deployment.id, entity.node.id)
         for node_instance in all_node_instances:
@@ -57,10 +59,10 @@ def get_instance_data(entity, data_name, get_data_function):
                     'Attribute/Property not found {0} go up to the parent node {1} by following relationship {2}'.format(data_name,
                                                                                                                          relationship.target.node.id,
                                                                                                                          relationship.type))
-                return get_instance_data(relationship.target, data_name, get_data_function)
-        return ""
+                return get_other_instances_data(relationship.target, data_name, get_data_function)
+        return None
     else:
-        return ""
+        return None
 
 
 def get_host(entity):

@@ -246,6 +246,10 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
         return getNodeAttributes(getTargetNode(owner));
     }
 
+    public boolean isGetAttributeFunctionPropertyValue(IValue input) {
+        return (input instanceof FunctionPropertyValue) && ToscaFunctionConstants.GET_ATTRIBUTE.equals(((FunctionPropertyValue) input).getFunction());
+    }
+
     public boolean isFunctionPropertyValue(IValue input) {
         return input instanceof FunctionPropertyValue;
     }

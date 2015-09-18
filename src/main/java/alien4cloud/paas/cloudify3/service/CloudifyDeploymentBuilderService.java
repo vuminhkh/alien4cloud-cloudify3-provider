@@ -129,14 +129,15 @@ public class CloudifyDeploymentBuilderService {
         }
 
         Map<String, MatchedPaaSTemplate<NetworkTemplate>> matchedExternalNetworksMap = buildTemplateMap(matchedExternalNetworks);
+        Map<String, MatchedPaaSTemplate<NetworkTemplate>> matchedInternalNetworksMap = buildTemplateMap(matchedInternalNetworks);
         Map<String, MatchedPaaSComputeTemplate> matchedComputesMap = buildTemplateMap(matchedComputes);
         List<PaaSNodeTemplate> nonNatives = deploymentContext.getPaaSTopology().getNonNatives();
         WorkflowBuilderHelper workflowBuilderService = new WorkflowBuilderHelper(matchedExternalNetworksMap, matchedExternalNetworks, matchedComputesMap,
-                mappingConfigurationHolder, matchedStorages, nonNatives);
+                mappingConfigurationHolder, matchedStorages, nonNatives, matchedInternalNetworksMap, matchedInternalNetworks);
         Map<String, Workflow> workflows = workflowBuilderService.buildPaaSWorkflows(deploymentContext.getTopology().getWorkflows());
 
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(), matchedComputes,
-                matchedInternalNetworks, matchedExternalNetworks, matchedStorages, matchedComputesMap, buildTemplateMap(matchedInternalNetworks),
+                matchedInternalNetworks, matchedExternalNetworks, matchedStorages, matchedComputesMap, matchedInternalNetworksMap,
                 matchedExternalNetworksMap, buildTemplateMap(matchedStorages), nonNatives, IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), getTypesOrderedByDerivedFromHierarchy(deploymentContext
                         .getPaaSTopology().getComputes()), getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()),
