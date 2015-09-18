@@ -22,6 +22,9 @@ import alien4cloud.paas.wf.NodeActivityStep;
 import alien4cloud.paas.wf.Workflow;
 import alien4cloud.paas.wf.util.WorkflowUtils;
 
+/**
+ * TODO: this class should have several implementations (per provider).
+ */
 @Slf4j
 public class WorkflowBuilderHelper {
 
@@ -41,9 +44,14 @@ public class WorkflowBuilderHelper {
 
     private List<PaaSNodeTemplate> nonNatives;
 
+    private Map<String, MatchedPaaSTemplate<NetworkTemplate>> matchedInternalNetworksMap;
+
+    private List<MatchedPaaSTemplate<NetworkTemplate>> matchedInternalNetworks;
+
     public WorkflowBuilderHelper(Map<String, MatchedPaaSTemplate<NetworkTemplate>> matchedExternalNetworksMap,
             List<MatchedPaaSTemplate<NetworkTemplate>> matchedExternalNetworks, Map<String, MatchedPaaSComputeTemplate> matchedComputesMap,
-            MappingConfigurationHolder mappingConfigurationHolder, List<MatchedPaaSTemplate<StorageTemplate>> volumes, List<PaaSNodeTemplate> nonNatives) {
+            MappingConfigurationHolder mappingConfigurationHolder, List<MatchedPaaSTemplate<StorageTemplate>> volumes, List<PaaSNodeTemplate> nonNatives,
+            Map<String, MatchedPaaSTemplate<NetworkTemplate>> matchedInternalNetworksMap, List<MatchedPaaSTemplate<NetworkTemplate>> matchedInternalNetworks) {
         super();
         this.matchedExternalNetworksMap = matchedExternalNetworksMap;
         this.matchedExternalNetworks = matchedExternalNetworks;
@@ -51,6 +59,8 @@ public class WorkflowBuilderHelper {
         this.mappingConfigurationHolder = mappingConfigurationHolder;
         this.volumes = volumes;
         this.nonNatives = nonNatives;
+        this.matchedInternalNetworksMap = matchedInternalNetworksMap;
+        this.matchedInternalNetworks = matchedInternalNetworks;
     }
 
     private AbstractStep getWorkflowStep(Workflow wf, String stepName) {
@@ -95,7 +105,15 @@ public class WorkflowBuilderHelper {
                 }
             }
             if (workflow.isStandard()) {
+                // FIXME: should not be done for amazon
                 WorkflowModifier workflowModifier = getWorkflowModifier(workflow);
+                for (MatchedPaaSTemplate<NetworkTemplate> internalNetwork : matchedInternalNetworksMap.values()) {
+                    String networkId = internalNetwork.getPaaSNodeTemplate().getId();
+                    String subnetId = networkId + "_subnet";
+                    workflowModifier.addNode(workflow, subnetId);
+                    workflowModifier.addHostedOnRelation(workflow, subnetId, networkId);
+                }
+
                 // for compute connected to external network, we want to link them with a floating ip node
                 for (Entry<String, MatchedPaaSComputeTemplate> matchedComputeEntry : matchedComputesMap.entrySet()) {
                     MatchedPaaSComputeTemplate compute = matchedComputeEntry.getValue();
@@ -106,6 +124,17 @@ public class WorkflowBuilderHelper {
                                 + compute.getPaaSNodeTemplate().getId();
                         workflowModifier.addNode(workflow, floatingIpNodeId);
                         workflowModifier.addDependsOnRelation(workflow, compute.getPaaSNodeTemplate().getId(), floatingIpNodeId);
+                    }
+                    // FIXME: should not be done for amazon
+                    boolean hasInternalNetwork = NetworkGenerationUtil._hasMatchedNetwork(compute.getPaaSNodeTemplate().getNetworkNodes(),
+                            matchedInternalNetworks);
+                    if (hasInternalNetwork) {
+                        List<PaaSNodeTemplate> internalNetworkTemplates = NetworkGenerationUtil._getInternalNetworks(compute.getPaaSNodeTemplate()
+                                .getNetworkNodes(), matchedInternalNetworks);
+                        for (PaaSNodeTemplate internalNetworkTemplate : internalNetworkTemplates) {
+                            String subnetId = internalNetworkTemplate.getId() + "_subnet";
+                            workflowModifier.addDependsOnRelation(workflow, compute.getPaaSNodeTemplate().getId(), subnetId);
+                        }
                     }
                 }
                 // now look for configured block storages
