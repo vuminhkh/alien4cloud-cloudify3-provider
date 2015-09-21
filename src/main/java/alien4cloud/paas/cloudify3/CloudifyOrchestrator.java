@@ -12,8 +12,6 @@ import org.apache.commons.lang.NotImplementedException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import alien4cloud.model.cloud.CloudResourceMatcherConfig;
-import alien4cloud.model.cloud.CloudResourceType;
 import alien4cloud.orchestrators.plugin.ILocationConfiguratorPlugin;
 import alien4cloud.orchestrators.plugin.IOrchestratorPlugin;
 import alien4cloud.paas.IPaaSCallback;
@@ -21,13 +19,10 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.location.ITypeAwareLocationConfigurator;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
-import alien4cloud.paas.cloudify3.service.ComputeTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.CustomWorkflowService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
-import alien4cloud.paas.cloudify3.service.NetworkMatcherService;
 import alien4cloud.paas.cloudify3.service.StatusService;
-import alien4cloud.paas.cloudify3.service.StorageTemplateMatcherService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.paas.exception.OperationExecutionException;
@@ -63,15 +58,6 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
 
     @Resource(name = "cloudify-event-service")
     private EventService eventService;
-
-    @Resource(name = "cloudify-compute-template-matcher-service")
-    private ComputeTemplateMatcherService computeTemplateMatcherService;
-
-    @Resource(name = "cloudify-network-matcher-service")
-    private NetworkMatcherService networkMatcherService;
-
-    @Resource(name = "cloudify-storage-matcher-service")
-    private StorageTemplateMatcherService storageMatcherService;
 
     @Resource(name = "cloudify-deployment-builder-service")
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
@@ -156,31 +142,6 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
                 eventsCallback.onFailure(t);
             }
         });
-    }
-
-    /**
-     * ********************************************************************************************************************
-     * *****************************************************Matcher********************************************************
-     * ********************************************************************************************************************
-     */
-
-    @Override
-    public String[] getAvailableResourceIds(CloudResourceType resourceType) {
-        return null;
-    }
-
-    @Override
-    public String[] getAvailableResourceIds(CloudResourceType resourceType, String imageId) {
-        return getAvailableResourceIds(resourceType);
-    }
-
-    @Override
-    public void updateMatcherConfig(CloudResourceMatcherConfig cloudResourceMatcherConfig) {
-        computeTemplateMatcherService.configure(cloudResourceMatcherConfig.getImageMapping(), cloudResourceMatcherConfig.getFlavorMapping(),
-                cloudResourceMatcherConfig.getAvailabilityZoneMapping());
-        networkMatcherService.configure(cloudResourceMatcherConfig.getNetworkMapping());
-        storageMatcherService.configure(cloudResourceMatcherConfig.getStorageMapping());
-        cloudifyDeploymentBuilderService.setCloudResourceMatcherConfig(cloudResourceMatcherConfig);
     }
 
     /**

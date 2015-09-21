@@ -5,10 +5,10 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import alien4cloud.paas.cloudify3.model.NetworkTemplate;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
-import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSTemplate;
@@ -24,7 +24,7 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
-    private boolean isMatched(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
+    private static boolean isMatched(PaaSNodeTemplate network, List<MatchedPaaSTemplate<NetworkTemplate>> matchedNetworks) {
         for (MatchedPaaSTemplate externalMatchedNetwork : matchedNetworks) {
             if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
                 return true;
@@ -33,7 +33,7 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         return false;
     }
 
-    private MatchedPaaSTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSTemplate> matchedNetworks) {
+    private static MatchedPaaSTemplate getMatchedNetwork(PaaSNodeTemplate network, List<MatchedPaaSTemplate<NetworkTemplate>> matchedNetworks) {
         for (MatchedPaaSTemplate externalMatchedNetwork : matchedNetworks) {
             if (externalMatchedNetwork.getPaaSNodeTemplate().getId().equals(network.getId())) {
                 return externalMatchedNetwork;
@@ -42,7 +42,7 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         return null;
     }
 
-    public boolean hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> externalMatchedNetworks) {
+    public static boolean _hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate<NetworkTemplate>> externalMatchedNetworks) {
         if (allComputeNetworks == null || externalMatchedNetworks == null) {
             return false;
         }
@@ -54,13 +54,17 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         return false;
     }
 
-    public String getExternalNetworkName(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> externalMatchedNetworks) {
+    public boolean hasMatchedNetwork(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate<NetworkTemplate>> externalMatchedNetworks) {
+        return NetworkGenerationUtil._hasMatchedNetwork(allComputeNetworks, externalMatchedNetworks);
+    }
+
+    public String getExternalNetworkName(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate<NetworkTemplate>> externalMatchedNetworks) {
         for (PaaSNodeTemplate network : allComputeNetworks) {
             MatchedPaaSTemplate externalMatchedNetwork = getMatchedNetwork(network, externalMatchedNetworks);
             if (externalMatchedNetwork != null) {
                 String externalNetworkId = externalMatchedNetwork.getPaaSResourceId();
                 if (StringUtils.isEmpty(externalNetworkId)) {
-                    throw new BadConfigurationException("External network id must be configured");
+                    return "\"\"";
                 } else {
                     return externalNetworkId;
                 }
@@ -69,7 +73,8 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
         return null;
     }
 
-    public List<PaaSNodeTemplate> getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks, List<MatchedPaaSTemplate> internalMatchedNetworks) {
+    public static List<PaaSNodeTemplate> _getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks,
+            List<MatchedPaaSTemplate<NetworkTemplate>> internalMatchedNetworks) {
         List<PaaSNodeTemplate> internalNetworksNodes = Lists.newArrayList();
         for (PaaSNodeTemplate network : allComputeNetworks) {
             MatchedPaaSTemplate internalMatchedNetwork = getMatchedNetwork(network, internalMatchedNetworks);
@@ -78,6 +83,11 @@ public class NetworkGenerationUtil extends NativeTypeGenerationUtil {
             }
         }
         return internalNetworksNodes;
+    }
+
+    public List<PaaSNodeTemplate> getInternalNetworks(List<PaaSNodeTemplate> allComputeNetworks,
+            List<MatchedPaaSTemplate<NetworkTemplate>> internalMatchedNetworks) {
+        return NetworkGenerationUtil._getInternalNetworks(allComputeNetworks, internalMatchedNetworks);
     }
 
     public String tryToMapNetworkType(IndexedNodeType type, String defaultType) {

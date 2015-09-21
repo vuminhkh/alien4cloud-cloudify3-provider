@@ -9,12 +9,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import alien4cloud.common.AlienConstants;
 import alien4cloud.exception.InvalidArgumentException;
-import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.paas.cloudify3.CloudifyOrchestratorFactory;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
+import alien4cloud.paas.cloudify3.model.StorageTemplate;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.MatchedPaaSComputeTemplate;
@@ -40,8 +40,8 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
     }
 
     public String tryToMapVolumeTypeDerivedFrom(IndexedNodeType type) {
-        return getMappedNativeDerivedFromType(type, NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE, providerMappingConfiguration.getNativeTypes()
-                .getVolumeType(), alienDeployment.getVolumeTypes());
+        return getMappedNativeDerivedFromType(type, NormativeBlockStorageConstants.BLOCKSTORAGE_TYPE,
+                providerMappingConfiguration.getNativeTypes().getVolumeType(), alienDeployment.getVolumeTypes());
     }
 
     public boolean hasConfiguredVolume(List<MatchedPaaSTemplate<StorageTemplate>> volumes) {
@@ -56,17 +56,24 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
     }
 
     public boolean isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
+        return _isConfiguredVolume(volumeTemplate);
+    }
+
+    public static boolean _isConfiguredVolume(PaaSNodeTemplate volumeTemplate) {
         Map<String, AbstractPropertyValue> volumeProperties = volumeTemplate.getNodeTemplate().getProperties();
-        return volumeProperties != null
-                && (volumeProperties.containsKey(NormativeBlockStorageConstants.LOCATION) || volumeProperties
-                        .containsKey(NormativeBlockStorageConstants.FILE_SYSTEM));
+        return volumeProperties != null && (volumeProperties.containsKey(NormativeBlockStorageConstants.LOCATION)
+                || volumeProperties.containsKey(NormativeBlockStorageConstants.FILE_SYSTEM));
     }
 
     public boolean isDeletableVolumeType(IndexedNodeType volumeType) {
         return ToscaUtils.isFromType(AlienCustomTypes.DELETABLE_BLOCKSTORAGE_TYPE, volumeType);
     }
 
-    public String getExternalVolumeId(MatchedPaaSTemplate<StorageTemplate> matchedVolumeTemplate) {
+    public static String getExternalVolumeId(MatchedPaaSTemplate<StorageTemplate> matchedVolumeTemplate) {
+        return _getExternalVolumeId(matchedVolumeTemplate);
+    }
+
+    public static String _getExternalVolumeId(MatchedPaaSTemplate<StorageTemplate> matchedVolumeTemplate) {
         String volumeId = matchedVolumeTemplate.getPaaSResourceId();
         if (!StringUtils.isEmpty(volumeId)) {
             return volumeId;
@@ -95,6 +102,11 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
 
     public PaaSNodeTemplate[] getConfiguredAttachedVolumes(PaaSNodeTemplate node) {
         PaaSNodeTemplate host = node;
+        return _getConfiguredAttachedVolumes(node);
+    }
+
+    public static PaaSNodeTemplate[] _getConfiguredAttachedVolumes(PaaSNodeTemplate node) {
+        PaaSNodeTemplate host = node;
         while (host.getParent() != null) {
             host = host.getParent();
         }
@@ -103,7 +115,7 @@ public class VolumeGenerationUtil extends NativeTypeGenerationUtil {
         }
         List<PaaSNodeTemplate> volumes = Lists.newArrayList();
         for (PaaSNodeTemplate volume : host.getStorageNodes()) {
-            if (isConfiguredVolume(volume)) {
+            if (_isConfiguredVolume(volume)) {
                 volumes.add(volume);
             }
         }

@@ -1,0 +1,55 @@
+from cloudify.decorators import workflow
+from cloudify.workflows import ctx
+from cloudify.workflows import tasks as workflow_tasks
+from utils import set_state_task
+from utils import operation_task
+from utils import link_tasks
+
+
+#foreach($wfEntry in ${deployment.workflows.entrySet()})
+@workflow
+def a4c_${wfEntry.key}(**kwargs):
+    graph = ctx.graph_mode()
+    tasks = {}
+    ctx.internal.send_workflow_event(
+        event_type='workflow_started',
+        message="Starting A4C generated '{0}' workflow execution".format(ctx.workflow_id))
+    _a4c_${wfEntry.key}(ctx, graph, tasks)
+    return graph.execute()
+
+
+#end
+#foreach($wfEntry in ${deployment.workflows.entrySet()})
+def _a4c_${wfEntry.key}(ctx, graph, tasks):
+    #[[#]]#  following code can be pasted in src/test/python/workflows/tasks.py for simulation
+#foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
+#if($util.workflow.isSetStateTask(${wfStepEntry.value}))
+    set_state_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '${wfStepEntry.value.activity.stateName}', '${wfStepEntry.value.name}', tasks)
+#end
+#if($util.workflow.isOperationExecutionTask(${wfStepEntry.value}))
+    operation_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '$util.nonNative.tryToMapToCloudifyInterface(${wfStepEntry.value.activity.interfaceName}).${wfStepEntry.value.activity.operationName}', '${wfStepEntry.value.name}', tasks)
+#end
+#end
+#foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
+#foreach($preceding_step in ${wfStepEntry.value.precedingSteps})
+    link_tasks(graph, '${wfStepEntry.value.name}', '${preceding_step}', tasks)
+#end
+#end
+
+
+#end
+#[[#]]#following code can be pasted in src/test/python/workflows/context.py for simulation
+#[[#]]#def _build_nodes(ctx):
+#foreach($nodeEntry in ${deployment.allNodes.entrySet()})
+    #[[#]]#types = []
+    #[[#]]#types.append('${nodeEntry.value.nodeTemplate.type}')
+#foreach($nodeType in ${nodeEntry.value.indexedToscaElement.derivedFrom})
+    #[[#]]#types.append('${nodeType}')
+#end
+    #[[#]]#node_${nodeEntry.key} = _build_node(ctx, '${nodeEntry.key}', types, 1)
+#end
+#foreach($nodeEntry in ${deployment.allNodes.entrySet()})
+#foreach($relationshipEntry in ${nodeEntry.value.nodeTemplate.relationships.entrySet()})
+    #[[#]]#_add_relationship(node_${nodeEntry.key}, node_${relationshipEntry.value.target})
+#end
+#end

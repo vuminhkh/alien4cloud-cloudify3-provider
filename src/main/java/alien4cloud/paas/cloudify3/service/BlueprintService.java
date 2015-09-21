@@ -146,14 +146,14 @@ public class BlueprintService {
         if (Files.exists(nativeArtifactDirectory)) {
             throw new IOException(nativeArtifactDirectory.getFileName() + " is a reserved name, please choose another name for your archive");
         }
-        if (util.getVolume().hasConfiguredVolume(alienDeployment.getVolumes())) {
-            Path volumeScriptPath = nativeArtifactDirectory.resolve("volume");
-            Files.createDirectories(volumeScriptPath);
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
-        }
+//        if (util.getVolume().hasConfiguredVolume(alienDeployment.getVolumes())) {
+//            Path volumeScriptPath = nativeArtifactDirectory.resolve("volume");
+//            Files.createDirectories(volumeScriptPath);
+//            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
+//            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
+//            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
+//            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
+//        }
         for (PaaSNodeTemplate node : alienDeployment.getNonNatives()) {
             Map<String, Interface> interfaces = util.getNonNative().getNodeInterfaces(node);
             if (MapUtils.isNotEmpty(interfaces)) {
@@ -204,10 +204,26 @@ public class BlueprintService {
         if (!alienDeployment.getNonNatives().isEmpty()) {
             Files.copy(pluginRecipeResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
         }
+        // custom workflows section
+        Path wfPluginDir = generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin");
+        Files.createDirectories(wfPluginDir);
+        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/setup.py"), generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/setup.py"));
+        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/__init__.py"),
+                generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/__init__.py"));
+        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/handlers.py"),
+                generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/handlers.py"));
+        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/utils.py"),
+                generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/utils.py"));
+        VelocityUtil.generate(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/workflows.py.vm"),
+                generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/workflows.py"), context);
+        FileUtil.zip(generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin"),
+                generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin.zip"));
+
         // Generate the blueprint at the end
         VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
     }
+
 
     private OperationWrapper generateOperationScriptWrapper(String interfaceName, String operationName, Operation operation, IPaaSTemplate<?> owner,
             BlueprintGenerationUtil util, Map<String, Object> context, Path generatedBlueprintDirectoryPath,

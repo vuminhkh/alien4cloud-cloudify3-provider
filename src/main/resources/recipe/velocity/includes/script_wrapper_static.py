@@ -8,7 +8,19 @@ import sys
 import time
 import threading
 from StringIO import StringIO
+from cloudify_rest_client import CloudifyClient
+from cloudify import utils
 
+client = CloudifyClient(utils.get_manager_ip(), utils.get_manager_rest_service_port())
+
+def get_instance_list(node_id):
+    result = ''
+    all_node_instances = client.node_instances.list(ctx.deployment.id, node_id)
+    for node_instance in all_node_instances:
+        if len(result) > 0:
+            result += ','
+        result += node_instance.id
+    return result
 
 def get_instance_data(entity, data_name, get_data_function):
     data = get_data_function(entity, data_name)
@@ -27,6 +39,30 @@ def get_instance_data(entity, data_name, get_data_function):
         return ""
     else:
         return ""
+
+def get_other_instances_data(entity, data_name, get_data_function):
+    data = get_data_function(entity, data_name)
+    if data is not None:
+        result_map = {}
+        # get all instances data using cfy rest client
+        all_node_instances = client.node_instances.list(ctx.deployment.id, entity.node.id)
+        for node_instance in all_node_instances:
+            if node_instance.id != entity.instance.id:
+                prop_value = node_instance.runtime_properties.get(data_name, None)
+                ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(data_name, prop_value, entity.node.id, entity.instance.id))
+                result_map[entity.instance.id + '_'] = prop_value
+        return result_map
+    elif entity.instance.relationships:
+        for relationship in entity.instance.relationships:
+            if 'cloudify.relationships.contained_in' in relationship.type_hierarchy:
+                ctx.logger.info(
+                    'Attribute/Property not found {0} go up to the parent node {1} by following relationship {2}'.format(data_name,
+                                                                                                                         relationship.target.node.id,
+                                                                                                                         relationship.type))
+                return get_other_instances_data(relationship.target, data_name, get_data_function)
+        return None
+    else:
+        return None
 
 
 def get_host(entity):
@@ -50,7 +86,7 @@ def parse_output(output):
     outputs = {}
     pattern = re.compile('EXPECTED_OUTPUT_(\w+)=(.*)')
     for line in output.splitlines():
-        match = pattern.match(line) 
+        match = pattern.match(line)
         if match is None:
             last_output = line
         else:
@@ -72,9 +108,9 @@ def execute(script_path, process, outputNames):
 
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
-      
+
     command = '{0} {1}'.format(wrapper_path, script_path)
-    
+
     ctx.logger.info('Executing: {0} in env {1}'.format(command, env))
 
     process = subprocess.Popen(command,
@@ -99,13 +135,13 @@ def execute(script_path, process, outputNames):
 
     stdout_consumer.join()
     stderr_consumer.join()
-    
+
     parsed_output = parse_output(stdout_consumer.buffer.getvalue())
     if outputNames is not None:
         outputNameList = outputNames.split(';')
         for outputName in outputNameList:
             ctx.logger.info('Ouput name: {0} value : {1}'.format(outputName, parsed_output['outputs'][outputName]))
-    
+
     ok_message = "Script {0} executed normally with standard output {1} and error output {2}".format(command, stdout_consumer.buffer.getvalue(),
                                                                                                      stderr_consumer.buffer.getvalue())
     error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,

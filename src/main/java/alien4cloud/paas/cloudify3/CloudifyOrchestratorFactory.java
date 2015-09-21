@@ -10,14 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import alien4cloud.model.cloud.IaaSType;
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.orchestrators.ArtifactSupport;
 import alien4cloud.model.orchestrators.locations.LocationSupport;
 import alien4cloud.orchestrators.plugin.IOrchestratorPluginFactory;
 import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
-import alien4cloud.plugin.model.ManagedPlugin;
 import alien4cloud.tosca.normative.ToscaType;
 
 import com.google.common.collect.Maps;
@@ -27,8 +25,6 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
 
     @Resource
     private ApplicationContext factoryContext;
-
-    private ManagedPlugin pluginConfig;
 
     public static final String DELETABLE_BLOCKSTORAGE = "deletable_blockstorage";
 
@@ -91,12 +87,11 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
 
     @Override
     public LocationSupport getLocationSupport() {
-        return new LocationSupport(false, new String[] { IaaSType.OPENSTACK.toString(), IaaSType.BYON.toString() });
+        return new LocationSupport(false, new String[] { "Openstack", "Byon" });
     }
 
     @Override
     public ArtifactSupport getArtifactSupport() {
-        // TODO Auto-generated method stub
         return null;
     }
 }

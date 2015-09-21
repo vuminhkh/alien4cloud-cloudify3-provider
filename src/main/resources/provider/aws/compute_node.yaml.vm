@@ -1,0 +1,22 @@
+## Compute nodes
+#foreach($matchedPaaSCompute in ${deployment.computes})
+  ${matchedPaaSCompute.paaSNodeTemplate.id}:
+    type: ${util.compute.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.Compute")}
+    properties:
+      image_id: ${matchedPaaSCompute.paaSComputeTemplate.image}
+      instance_type: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
+    instances:
+#if(${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances})
+      deploy: ${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances}
+#else
+      deploy: 1
+#end
+#set( $hasFloatingIp = ${util.network.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})} )
+#if($hasFloatingIp)
+    relationships:
+      - target: ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}
+        type: ${providerMapping.nativeTypes.floatingIpRelationshipType}
+  ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}:
+    type: ${mapping.generatedTypePrefix}.FloatingIP
+#end
+#end

@@ -38,6 +38,22 @@ def get_attribute(entity, attribute_name):
     return attribute_value
 #end
 
+def _all_instances_get_attribute(entity, attribute_name):
+#if(${providerMapping.attributes.compute.public_ip_address})
+    if attribute_name == '${providerMapping.attributes.compute.public_ip_address}':
+        #FIXME: since floating ip is not scalable, no more public ip_address can be found
+        return None
+    else:
+        attribute_value = get_other_instances_data(entity, attribute_name, get_attribute_data)
+        if attribute_value is None:
+            attribute_value = get_other_instances_data(entity, attribute_name, get_property_data)
+        return attribute_value
+#else
+    attribute_value = get_other_instances_data(entity, attribute_name, get_attribute_data)
+    if attribute_value is None:
+        attribute_value = get_other_instances_data(entity, attribute_name, get_property_data)
+    return attribute_value
+#end
 
 def get_property(entity, property_name):
     return get_instance_data(entity, property_name, get_property_data)
@@ -65,16 +81,32 @@ def get_public_ip(entity):
 #include("includes/download_artifacts.py")
 #end
 
-new_script_process = {
-    'env': {
+env_map = {}
+#if($util.nonNative.isOperationOwnedByNode(${operation}))
+env_map['a4c_NODE'] = ctx.node.id
+env_map['a4c_INSTANCE'] = ctx.instance.id
+env_map['a4c_INSTANCES'] = get_instance_list(ctx.node.id)
+#elseif($util.nonNative.isOperationOwnedByRelationship(${operation}))
+env_map['a4c_TARGET_NODE'] = ctx.target.node.id
+env_map['a4c_TARGET_INSTANCE'] = ctx.target.instance.id
+env_map['a4c_TARGET_INSTANCES'] = get_instance_list(ctx.target.node.id)
+env_map['a4c_SOURCE_NODE'] = ctx.source.node.id
+env_map['a4c_SOURCE_INSTANCE'] = ctx.source.instance.id
+env_map['a4c_SOURCE_INSTANCES'] = get_instance_list(ctx.source.node.id)
+#end
 #foreach($inputEntry in $operation.inputParameters.entrySet())
-        '$inputEntry.key': $util.nonNative.formatValue(${operation.owner}, $inputEntry.value)
-#if($velocityCount < $operation.inputParameters.size())
-        ,
+env_map['$inputEntry.key'] = $util.nonNative.formatValue(${operation.owner}, $inputEntry.value)
+#end
+#foreach($inputEntry in $operation.inputParameters.entrySet())
+#if($util.nonNative.isGetAttributeFunctionPropertyValue($inputEntry.value))
+other_instances_map = _all_instances_$util.nonNative.formatValue(${operation.owner}, $inputEntry.value)
+if other_instances_map is not None:
+    for other_instances_key in other_instances_map:
+        env_map[other_instances_key + '$inputEntry.key'] = other_instances_map[other_instances_key]
 #end
 #end
-    }
-}
+
+new_script_process = {'env': env_map}
 
 #if($util.nonNative.operationHasDeploymentArtifacts($operation))
 node_artifacts = {
