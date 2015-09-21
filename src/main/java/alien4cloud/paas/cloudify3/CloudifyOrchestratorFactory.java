@@ -12,6 +12,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 
 import alien4cloud.model.cloud.IaaSType;
 import alien4cloud.model.components.PropertyDefinition;
+import alien4cloud.model.orchestrators.ArtifactSupport;
 import alien4cloud.model.orchestrators.locations.LocationSupport;
 import alien4cloud.orchestrators.plugin.IOrchestratorPluginFactory;
 import alien4cloud.paas.IPaaSProvider;
@@ -42,8 +43,8 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
         deploymentPropertyMap.put(DELETABLE_BLOCKSTORAGE, deletableBlockStorage);
     }
 
-    private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections
-            .synchronizedMap(Maps.<IPaaSProvider, AnnotationConfigApplicationContext> newIdentityHashMap());
+    private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections.synchronizedMap(Maps
+            .<IPaaSProvider, AnnotationConfigApplicationContext> newIdentityHashMap());
 
     @Override
     public Class<CloudConfiguration> getConfigurationType() {
@@ -55,6 +56,7 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
         return new CloudConfiguration();
     }
 
+    @Override
     public CloudifyOrchestrator newInstance() {
         /**
          * Hierarchy of context (parent on the left) :
@@ -90,5 +92,11 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
     @Override
     public LocationSupport getLocationSupport() {
         return new LocationSupport(false, new String[] { IaaSType.OPENSTACK.toString(), IaaSType.BYON.toString() });
+    }
+
+    @Override
+    public ArtifactSupport getArtifactSupport() {
+        // TODO Auto-generated method stub
+        return null;
     }
 }
