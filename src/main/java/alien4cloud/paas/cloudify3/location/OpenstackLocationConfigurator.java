@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.orchestrators.locations.LocationResourceTemplate;
+import alien4cloud.orchestrators.locations.services.LocationResourceGeneratorService;
 import alien4cloud.orchestrators.plugin.ILocationResourceAccessor;
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
@@ -35,8 +36,15 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
     private ArchivePostProcessor postProcessor;
     @Inject
     private ManagedPlugin selfContext;
+    @Inject
+    private LocationResourceGeneratorService resourceGeneratorService;
+    private ResourceGenerator resourceGenerator;
 
     private List<PluginArchive> archives;
+
+    public static final String COMPUTE_TYPE = "alien.nodes.openstack.Compute";
+    public static final String IMAGE_TYPE = "alien.nodes.openstack.Image";
+    public static final String FLAVOR_TYPE = "alien.nodes.openstack.Flavor";
 
     @PostConstruct
     public void postConstruct() {
@@ -70,7 +78,7 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
 
     @Override
     public List<LocationResourceTemplate> instances(ILocationResourceAccessor resourceAccessor) {
-        return null;
+        return resourceGenerator.generateComputes(COMPUTE_TYPE, IMAGE_TYPE, FLAVOR_TYPE, resourceAccessor);
     }
 
     @Override
