@@ -87,4 +87,4 @@ node_types:
         type: boolean
         default: false
       openstack_config:
-        type: alien.data_types.OpenstackConfig
+        type: alien.data.OpenstackConfig
