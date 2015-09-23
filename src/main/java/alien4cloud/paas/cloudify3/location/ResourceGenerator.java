@@ -42,7 +42,7 @@ public class ResourceGenerator {
             log.warn("Skipping auto configuration");
             return null;
         }
-        ComputeContext computeContext = resourceGeneratorService.buildComputeContext("alien.nodes.openstack.Compute", DEFAULT_RESOURCE_NAME_PREFIX,
+        ComputeContext computeContext = resourceGeneratorService.buildComputeContext(computeType, DEFAULT_RESOURCE_NAME_PREFIX,
                 IMAGE_ID_PROP, FLAVOR_ID_PROP, resourceAccessor);
 
         return resourceGeneratorService.generateComputeFromImageAndFlavor(imageContext, flavorContext, computeContext, resourceAccessor);

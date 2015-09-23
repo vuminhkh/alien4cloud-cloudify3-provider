@@ -11,33 +11,34 @@ data_types:
 
   alien.data.OpenstackConfig:
     derived_from: tosca.datatypes.Root
-    username:
-      type: string
-      default: ''
-    password:
-      type: string
-      default: ''
-    tenant_name:
-      type: string
-      default: ''
-    auth_url:
-      type: string
-      default: ''
-    region:
-      type: string
-      default: ''
-    nova_url:
-      type: string
-      default: ''
-    neutron_url:
-      type: string
-      default: ''
-    custom_configuration:
-      type: map
-      entry_schema:
+    properties:
+      username:
+        type: string
+        default: ''
+      password:
+        type: string
+        default: ''
+      tenant_name:
+        type: string
+        default: ''
+      auth_url:
+        type: string
+        default: ''
+      region:
+        type: string
+        default: ''
+      nova_url:
+        type: string
+        default: ''
+      neutron_url:
+        type: string
+        default: ''
+      custom_configuration:
         type: map
         entry_schema:
-          type: string
+          type: map
+          entry_schema:
+            type: string
 
 node_types:
 

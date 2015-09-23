@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.orchestrators.locations.LocationResourceTemplate;
-import alien4cloud.orchestrators.locations.services.LocationResourceGeneratorService;
 import alien4cloud.orchestrators.plugin.ILocationResourceAccessor;
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
@@ -37,7 +36,6 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
     @Inject
     private ManagedPlugin selfContext;
     @Inject
-    private LocationResourceGeneratorService resourceGeneratorService;
     private ResourceGenerator resourceGenerator;
 
     private List<PluginArchive> archives;
