@@ -8,46 +8,20 @@ from graph import Relationship
 def _build_nodes(ctx):
     # just put the generated sequence here :
     types = []
-    types.append('alien.nodes.War')
-    types.append('alien.nodes.LoadBalancedWebApplication')
-    types.append('tosca.nodes.Root')
-    node_War = _build_node(ctx, 'War', types, 1)
-    types = []
-    types.append('alien.nodes.Tomcat')
-    types.append('tosca.nodes.WebServer')
+    types.append('fastconnect.nodes.MapRCore')
     types.append('tosca.nodes.SoftwareComponent')
     types.append('tosca.nodes.Root')
-    node_Tomcat = _build_node(ctx, 'Tomcat', types, 1)
+    node_MapRCore = _build_node(ctx, 'MapRCore', types, 1)
+    types = []
+    types.append('fastconnect.nodes.MapRZookeeper')
+    types.append('tosca.nodes.Root')
+    node_MapRZookeeper = _build_node(ctx, 'MapRZookeeper', types, 1)
     types = []
     types.append('tosca.nodes.Compute')
     types.append('tosca.nodes.Root')
-    node_WebServer = _build_node(ctx, 'WebServer', types, 1)
-    types = []
-    types.append('tosca.nodes.Compute')
-    types.append('tosca.nodes.Root')
-    node_LoadBalancerServer = _build_node(ctx, 'LoadBalancerServer', types, 1)
-    types = []
-    types.append('tosca.nodes.Network')
-    types.append('tosca.nodes.Root')
-    node_Internet = _build_node(ctx, 'Internet', types, 1)
-    types = []
-    types.append('alien.nodes.Java')
-    types.append('tosca.nodes.SoftwareComponent')
-    types.append('tosca.nodes.Root')
-    node_Java = _build_node(ctx, 'Java', types, 1)
-    types = []
-    types.append('alien.nodes.ApacheLoadBalancer')
-    types.append('alien.nodes.LoadBalancer')
-    types.append('tosca.nodes.SoftwareComponent')
-    types.append('tosca.nodes.Root')
-    node_ApacheLoadBalancer = _build_node(ctx, 'ApacheLoadBalancer', types, 1)
-    _add_relationship(node_War, node_Tomcat)
-    _add_relationship(node_War, node_ApacheLoadBalancer)
-    _add_relationship(node_Tomcat, node_Java)
-    _add_relationship(node_Tomcat, node_WebServer)
-    _add_relationship(node_LoadBalancerServer, node_Internet)
-    _add_relationship(node_Java, node_WebServer)
-    _add_relationship(node_ApacheLoadBalancer, node_LoadBalancerServer)
+    node_Compute = _build_node(ctx, 'Compute', types, 1)
+    _add_relationship(node_MapRCore, node_Compute)
+    _add_relationship(node_MapRZookeeper, node_MapRCore)
 
 
 def build_context():

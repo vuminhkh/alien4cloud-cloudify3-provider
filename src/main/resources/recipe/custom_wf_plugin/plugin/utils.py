@@ -1,6 +1,8 @@
 from handlers import host_post_start
 from handlers import host_pre_stop
 from handlers import _set_send_node_event_on_error_handler
+from workflow import WfEvent
+from workflow import build_wf_event
 
 
 def _get_nodes_instances(ctx, node_id):
@@ -20,79 +22,105 @@ def _get_all_nodes_instances(ctx):
     return node_instances
 
 
-def set_state_task(ctx, graph, node_id, state_name, step_id, tasks):
+def set_state_task(ctx, graph, node_id, state_name, step_id, custom_context):
     sequence = None
     instances = _get_nodes_instances(ctx, node_id)
     instance_count = len(instances)
     if instance_count == 1:
         instance = instances[0]
-        sequence = set_state_task_for_instance(graph, node_id, instance, state_name)
+        sequence = set_state_task_for_instance(graph, node_id, instance, state_name, step_id)
     elif instance_count > 1:
         fork = ForkjoinWrapper(graph)
         for instance in instances:
-            fork.add(set_state_task_for_instance(graph, node_id, instance, state_name))
+            fork.add(set_state_task_for_instance(graph, node_id, instance, state_name, step_id))
         msg = "state {0} on all {1} node instances".format(state_name, node_id)
         sequence = forkjoin_sequence(graph, fork, instances[0], msg)
     if sequence is not None:
         sequence.name = step_id
-        tasks[step_id] = sequence
+        # start = ctx.internal.send_workflow_event(event_type='custom_workflow', message=build_wf_event(WfEvent(step_id, "in")))
+        # sequence.set_head(start)
+        # end = ctx.internal.send_workflow_event(event_type='custom_workflow', message=build_wf_event(WfEvent(step_id, "ok")))
+        # sequence.add(end)
+        custom_context.tasks[step_id] = sequence
 
 
-def set_state_task_for_instance(graph, node_id, instance, state_name):
+def set_state_task_for_instance(graph, node_id, instance, state_name, step_id):
     task = TaskSequenceWrapper(graph)
-    msg = "Setting state '{0}' on node '{1}' instance '{2}'".format(state_name, node_id, instance.id)
+    msg = build_wf_event(WfEvent(instance.id, "in", step_id))
     task.add(instance.send_event(msg))
     task.add(instance.set_state(state_name))
+    msg = build_wf_event(WfEvent(instance.id, "ok", step_id))
+    task.add(instance.send_event(msg))
     return task
 
 
-def operation_task(ctx, graph, node_id, operation_fqname, step_id, tasks):
+def operation_task(ctx, graph, node_id, operation_fqname, step_id, custom_context):
     sequence = None
     instances = _get_nodes_instances(ctx, node_id)
+    first_instance = None
     instance_count = len(instances)
     if instance_count == 1:
         instance = instances[0]
-        sequence = operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname)
+        first_instance = instance
+        sequence = operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname, step_id, custom_context)
     elif instance_count > 1:
         fork = ForkjoinWrapper(graph)
         for instance in instances:
-            instance_task = operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname)
+            instance_task = operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname, step_id, custom_context)
             fork.add(instance_task)
         msg = "operation {0} on all {1} node instances".format(operation_fqname, node_id)
-        sequence = forkjoin_sequence(graph, fork, instances[0], msg)
+        first_instance = instances[0]
+        sequence = forkjoin_sequence(graph, fork, first_instance, msg)
     if sequence is not None:
-        tasks[step_id] = sequence
         sequence.name = step_id
+        # start = ctx.internal.send_workflow_event(event_type='custom_workflow', message=build_wf_event(WfEvent(step_id, "in")))
+        # sequence.set_head(start)
+        # end = ctx.internal.send_workflow_event(event_type='custom_workflow', message=build_wf_event(WfEvent(step_id, "ok")))
+        # sequence.add(end)
+        custom_context.tasks[step_id] = sequence
 
 
-def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname):
+def count_relationships(instance):
+    relationship_count = 0
+    for relationship in instance.relationships:
+        relationship_count += 1
+    return relationship_count
+
+def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname, step_id, custom_context):
     sequence = TaskSequenceWrapper(graph)
-    msg = "Calling operation '{0}' on node '{1}' instance '{2}'".format(operation_fqname, node_id, instance.id)
+    msg = build_wf_event(WfEvent(instance.id, "in", step_id))
     sequence.add(instance.send_event(msg))
+    relationship_count = count_relationships(instance)
     if operation_fqname == 'cloudify.interfaces.lifecycle.start':
         sequence.add(instance.execute_operation(operation_fqname))
         if _is_host_node(instance):
             sequence.add(*host_post_start(ctx, instance))
         fork = ForkjoinWrapper(graph)
         fork.add(instance.execute_operation('cloudify.interfaces.monitoring.start'))
-        establish_tasks = _relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.establish')
-        if len(establish_tasks) > 0:
-            fork.add(*establish_tasks)
+        if relationship_count > 0:
+            for relationship in instance.relationships:
+                fork.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.establish'))
+                fork.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.establish'))
         sequence.add(
             instance.send_event("Start monitoring on node '{0}' instance '{1}'".format(node_id, instance.id)),
             forkjoin_sequence(graph, fork, instance, "establish")
         )
     elif operation_fqname == 'cloudify.interfaces.lifecycle.configure':
-        preconf_tasks = _relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.preconfigure')
-        if len(preconf_tasks) > 0:
+        as_target_relationships = custom_context.relationship_targets.get(instance.id, set())
+        if relationship_count > 0 or len(as_target_relationships) > 0:
             preconfigure_tasks = ForkjoinWrapper(graph)
-            preconfigure_tasks.add(*preconf_tasks)
+            for relationship in instance.relationships:
+                preconfigure_tasks.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.preconfigure'))
+            for relationship in as_target_relationships:
+                preconfigure_tasks.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.preconfigure'))
             sequence.add(forkjoin_sequence(graph, preconfigure_tasks, instance, "preconf for {0}".format(instance.id)))
         sequence.add(instance.execute_operation(operation_fqname))
-        postconf_tasks = _relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.postconfigure')
-        if len(postconf_tasks) > 0:
+        if relationship_count > 0 or len(as_target_relationships) > 0:
             postconfigure_tasks = ForkjoinWrapper(graph)
-            postconfigure_tasks.add(*postconf_tasks)
+            for relationship in instance.relationships:
+                postconfigure_tasks.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.postconfigure'))
+            for relationship in as_target_relationships:
+                postconfigure_tasks.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.postconfigure'))
             msg = "postconf for {0}".format(instance.id)
             sequence.add(forkjoin_sequence(graph, postconfigure_tasks, instance, msg))
     elif operation_fqname == 'cloudify.interfaces.lifecycle.stop':
@@ -102,12 +130,15 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname)
         _set_send_node_event_on_error_handler(task, instance, "Error occurred while stopping node - ignoring...")
         sequence.add(task)
         # now call unlink onto relations' target
-        unlink_tasks = _relationship_operations(instance, 'cloudify.interfaces.relationship_lifecycle.unlink')
-        if len(unlink_tasks) > 0:
-            for task in unlink_tasks:
-                _set_send_node_event_on_error_handler(task, instance, "Error occurred while unlinking node from target - ignoring...")            
+        if relationship_count > 0:
             fork = ForkjoinWrapper(graph)
-            fork.add(*unlink_tasks)
+            for relationship in instance.relationships:
+                unlink_task_source = relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.unlink')
+                _set_send_node_event_on_error_handler(unlink_task_source, instance, "Error occurred while unlinking node from target {0} - ignoring...".format(relationship.target_id))
+                fork.add(unlink_task_source)
+                unlink_task_target = relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.unlink')
+                _set_send_node_event_on_error_handler(unlink_task_target, instance, "Error occurred while unlinking node from target {0} - ignoring...".format(relationship.target_id))
+                fork.add(unlink_task_target)
             sequence.add(forkjoin_sequence(graph, fork, instance, "unlink"))
     elif operation_fqname == 'cloudify.interfaces.lifecycle.delete':
         task = instance.execute_operation(operation_fqname)
@@ -116,7 +147,8 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname)
     else:
         # the default behavior : just do the job
         sequence.add(instance.execute_operation(operation_fqname))
-
+    msg = build_wf_event(WfEvent(instance.id, "ok", step_id))
+    sequence.add(instance.send_event(msg))
     return sequence
 
 
@@ -128,15 +160,15 @@ def forkjoin_sequence(graph, forkjoin_wrapper, instance, label):
     return sequence
 
 
-def link_tasks(graph, source_id, target_id, tasks):
-    sources = tasks.get(source_id, None)
+def link_tasks(graph, source_id, target_id, custom_context):
+    sources = custom_context.tasks.get(source_id, None)
     if sources is None:
         return
     if isinstance(sources, TaskSequenceWrapper) or isinstance(sources, ForkjoinWrapper):
         sources = sources.first_tasks
     else:
         sources = [sources]
-    targets = tasks.get(target_id, None)
+    targets = custom_context.tasks.get(target_id, None)
     if targets is None:
         return
     if isinstance(targets, TaskSequenceWrapper) or isinstance(targets, ForkjoinWrapper):
@@ -152,26 +184,24 @@ def _is_host_node(node_instance):
     return 'cloudify.nodes.Compute' in node_instance.node.type_hierarchy
 
 
-def _relationship_operations(node_instance, operation):
-    tasks_with_targets = _relationship_operations_with_targets(
-        node_instance, operation)
-    return [task for task, _ in tasks_with_targets]
-
-
-def _relationship_operations_with_targets(node_instance, operation):
-    tasks = []
-    for relationship in node_instance.relationships:
-        tasks += _relationship_operations_with_target(relationship, operation)
-    return tasks
-
-
-def _relationship_operations_with_target(relationship, operation):
-    return [
-        (relationship.execute_source_operation(operation),
-         relationship.target_id),
-        (relationship.execute_target_operation(operation),
-         relationship.target_id)
-    ]
+# def _relationship_operations(node_instance, operation):
+#     tasks_with_targets = _relationship_operations_with_targets(
+#         node_instance, operation)
+#     return [task for task, _ in tasks_with_targets]
+#
+#
+# def _relationship_operations_with_targets(node_instance, operation):
+#     tasks = []
+#     for relationship in node_instance.relationships:
+#         tasks += _relationship_operations_with_target(relationship, operation)
+#     return tasks
+#
+#
+# def _relationship_operations_with_target(relationship, operation):
+#     return [
+#         (relationship.execute_source_operation(operation),
+#          relationship.target_id)
+#     ]
 
 
 class ForkjoinWrapper(object):
@@ -196,6 +226,7 @@ class ForkjoinWrapper(object):
                 self.graph.add_task(element)
 
 
+
 class TaskSequenceWrapper(object):
 
     def __init__(self, graph, name=""):
@@ -203,6 +234,15 @@ class TaskSequenceWrapper(object):
         self.first_tasks = None
         self.last_tasks = None
         self.name = name
+
+    def set_head(self, task):
+        if self.first_tasks is None:
+            self.add(task)
+        else:
+            self.graph.add_task(task)
+            for next_task in self.first_tasks:
+                self.graph.add_dependency(next_task, task)
+            self.first_tasks = [task]
 
     def add(self, *tasks):
         for element in tasks:
@@ -227,3 +267,28 @@ class TaskSequenceWrapper(object):
                     self.first_tasks = tasks_head
             if tasks_queue is not None:
                 self.last_tasks = tasks_queue
+
+
+class CustomContext(object):
+    def __init__(self, ctx):
+        self.tasks = {}
+        self.relationship_targets = {}
+        self.__build_relationship_targets(ctx)
+
+    '''
+    Build a map containing all the relationships that target a given node instance :
+    - key is target_id (a node instance id)
+    - value is a set of relationships (all relationship that target this node)
+    '''
+    def __build_relationship_targets(self, ctx):
+        node_instances = _get_all_nodes_instances(ctx)
+        for node_instance in node_instances:
+            for relationship in node_instance.relationships:
+                target_relationships = self.relationship_targets.get(relationship.target_id, None)
+                if target_relationships is None:
+                    target_relationships = set()
+                    self.relationship_targets[relationship.target_id] = target_relationships
+                ctx.internal.send_workflow_event(
+                        event_type='other',
+                        message="found a relationship that targets {0} : {1}".format(relationship.target_id, relationship))
+                target_relationships.add(relationship)
