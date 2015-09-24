@@ -49,8 +49,8 @@ def get_other_instances_data(entity, data_name, get_data_function):
         for node_instance in all_node_instances:
             if node_instance.id != entity.instance.id:
                 prop_value = node_instance.runtime_properties.get(data_name, None)
-                ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(data_name, prop_value, entity.node.id, entity.instance.id))
-                result_map[entity.instance.id + '_'] = prop_value
+                ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(data_name, prop_value, entity.node.id, node_instance.id))
+                result_map[node_instance.id + '_'] = prop_value
         return result_map
     elif entity.instance.relationships:
         for relationship in entity.instance.relationships:
