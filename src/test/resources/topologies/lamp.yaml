@@ -36,10 +36,8 @@ topology_template:
     DataBase:
       type: tosca.nodes.Compute
       properties:
-        os_arch:
-          value: x86_64
-        os_type:
-          value: linux
+        os_arch: x86_64
+        os_type: linux
       requirements:
         - network:
             node: InternalNetwork
@@ -59,8 +57,7 @@ topology_template:
     PHP:
       type: alien.nodes.PHP
       properties:
-        version:
-          value: "5"
+        version: "5"
       requirements:
         - host: Server
 
