@@ -29,6 +29,8 @@ import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
+import alien4cloud.paas.wf.WorkflowsBuilderService;
+import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
 
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.SettableFuture;
@@ -55,6 +57,9 @@ public class AbstractDeploymentTest extends AbstractTest {
 
     @Resource
     private ArtifactLocalRepository artifactRepository;
+
+    @Resource
+    private WorkflowsBuilderService workflowBuilderService;
 
     private void cleanDeployments() throws Exception {
         Date now = new Date();
@@ -87,7 +92,12 @@ public class AbstractDeploymentTest extends AbstractTest {
     }
 
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName) {
-        Topology topology = applicationUtil.createAlienApplication(appName, topologyName);
+        final Topology topology = applicationUtil.createAlienApplication(appName, topologyName);
+
+        // init the workflows
+        TopologyContext topologyContext = workflowBuilderService.buildTopologyContext(topology);
+        workflowBuilderService.initWorkflows(topologyContext);        
+        
         PaaSTopologyDeploymentContext deploymentContext = new PaaSTopologyDeploymentContext();
         deploymentContext.setPaaSTopology(topologyTreeBuilderService.buildPaaSTopology(topology));
         deploymentContext.setTopology(topology);
