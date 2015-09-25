@@ -1,0 +1,40 @@
+
+tosca_definitions_version: cloudify_dsl_1_0
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/1.2/plugin.yaml
+
+node_types:
+
+  _a4c.Compute:
+    derived_from: cloudify.openstack.nodes.Server
+    properties:
+      _a4c_native_type:
+        default: compute
+
+
+
+
+
+
+
+node_templates:
+
+  compute:
+    type: _a4c.Compute
+    properties:
+      image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
+      flavor: 2
+    instances:
+      deploy: 1
+
+
+plugins:
+  custom_wf_plugin:
+    executor: central_deployment_agent
+    source: custom_wf_plugin
+
+workflows:
+  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
