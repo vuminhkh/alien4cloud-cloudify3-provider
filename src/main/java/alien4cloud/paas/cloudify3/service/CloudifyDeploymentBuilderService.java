@@ -81,8 +81,8 @@ public class CloudifyDeploymentBuilderService {
         List<MatchedPaaSTemplate<StorageTemplate>> matchedStorages = storageMatcherService.match(deploymentContext.getPaaSTopology().getVolumes(),
                 deploymentContext.getDeploymentSetup().getStorageMapping());
 
-        Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
-        Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
+        Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newLinkedHashMap();
+        Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newLinkedHashMap();
         for (PaaSNodeTemplate nonNative : deploymentContext.getPaaSTopology().getNonNatives()) {
             nonNativesTypesMap.put(nonNative.getIndexedToscaElement().getElementId(), nonNative.getIndexedToscaElement());
             List<PaaSRelationshipTemplate> relationshipTemplates = nonNative.getRelationshipTemplates();
@@ -95,8 +95,8 @@ public class CloudifyDeploymentBuilderService {
             }
         }
 
-        List<MatchedPaaSTemplate<NetworkTemplate>> matchedInternalNetworks = Lists.newArrayList();
-        List<MatchedPaaSTemplate<NetworkTemplate>> matchedExternalNetworks = Lists.newArrayList();
+        List<MatchedPaaSTemplate<NetworkTemplate>> matchedInternalNetworks = Lists.newLinkedList();
+        List<MatchedPaaSTemplate<NetworkTemplate>> matchedExternalNetworks = Lists.newLinkedList();
 
         for (MatchedPaaSTemplate<NetworkTemplate> matchedNetwork : matchedNetworks) {
             if (matchedNetwork.getPaaSResourceTemplate().getIsExternal()) {
@@ -105,7 +105,7 @@ public class CloudifyDeploymentBuilderService {
                 matchedInternalNetworks.add(matchedNetwork);
             }
         }
-        Map<String, Map<String, DeploymentArtifact>> allArtifacts = Maps.newHashMap();
+        Map<String, Map<String, DeploymentArtifact>> allArtifacts = Maps.newLinkedHashMap();
         for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
             PaaSNodeTemplate node = nodeEntry.getValue();
             Map<String, DeploymentArtifact> artifacts = node.getIndexedToscaElement().getArtifacts();
@@ -114,7 +114,7 @@ public class CloudifyDeploymentBuilderService {
             }
         }
 
-        Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newHashMap();
+        Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newLinkedHashMap();
         for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
             List<PaaSRelationshipTemplate> relationships = nodeEntry.getValue().getRelationshipTemplates();
             if (relationships != null && !relationships.isEmpty()) {

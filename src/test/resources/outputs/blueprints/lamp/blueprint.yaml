@@ -61,12 +61,12 @@ node_types:
 
   alien.nodes.Apache:
     derived_from: cloudify.nodes.WebServer
-  alien.nodes.Mysql:
-    derived_from: cloudify.nodes.Database
-  alien.nodes.Wordpress:
-    derived_from: cloudify.nodes.ApplicationModule
   alien.nodes.PHP:
     derived_from: cloudify.nodes.SoftwareComponent
+  alien.nodes.Wordpress:
+    derived_from: cloudify.nodes.ApplicationModule
+  alien.nodes.Mysql:
+    derived_from: cloudify.nodes.Database
 
 relationships:
   _a4c.cloudify.relationships.file_system_depends_on_volume:
