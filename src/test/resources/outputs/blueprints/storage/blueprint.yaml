@@ -113,3 +113,12 @@ node_templates:
         type: cloudify.relationships.depends_on
       - target: Compute
         type: cloudify.relationships.contained_in
+
+plugins:
+  custom_wf_plugin:
+    executor: central_deployment_agent
+    source: custom_wf_plugin
+
+workflows:
+  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall

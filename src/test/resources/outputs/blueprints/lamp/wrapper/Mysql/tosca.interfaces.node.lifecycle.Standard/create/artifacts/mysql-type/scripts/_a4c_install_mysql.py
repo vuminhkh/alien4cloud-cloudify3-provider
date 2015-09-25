@@ -9,7 +9,19 @@ import sys
 import time
 import threading
 from StringIO import StringIO
+from cloudify_rest_client import CloudifyClient
+from cloudify import utils
 
+client = CloudifyClient(utils.get_manager_ip(), utils.get_manager_rest_service_port())
+
+def get_instance_list(node_id):
+    result = ''
+    all_node_instances = client.node_instances.list(ctx.deployment.id, node_id)
+    for node_instance in all_node_instances:
+        if len(result) > 0:
+            result += ','
+        result += node_instance.id
+    return result
 
 def get_instance_data(entity, data_name, get_data_function):
     data = get_data_function(entity, data_name)
@@ -28,6 +40,44 @@ def get_instance_data(entity, data_name, get_data_function):
         return ""
     else:
         return ""
+
+
+def get_other_instances_data(entity, data_name, get_data_function):
+    result_map = {}
+    # get all instances data using cfy rest client
+    all_node_instances = client.node_instances.list(ctx.deployment.id, entity.node.id)
+    for node_instance in all_node_instances:
+        prop_value = __recursively_get_instance_data(data_name, node_instance)
+        if prop_value is not None:
+            ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(data_name, prop_value, entity.node.id, node_instance.id))
+            result_map[node_instance.id + '_'] = prop_value
+    return result_map
+
+
+def __get_relationship(node, target_name, relationship_type):
+    for relationship in node.relationships:
+        if relationship.get('target_id') == target_name and relationship_type in relationship.get('type_hierarchy'):
+            return relationship
+    return None
+
+
+def __recursively_get_instance_data(data_name, node_instance):
+    prop_value = node_instance.runtime_properties.get(data_name, None)
+    if prop_value is not None:
+        return prop_value
+    elif node_instance.relationships:
+        # we have to get the node using the rest client with node_instance.node_id
+        # then we will have the relationships
+        node = client.nodes.get(ctx.deployment.id, node_instance.node_id)
+        for rel in node_instance.relationships:
+            # on rel we have target_name, target_id (instanceId), type
+            relationship = __get_relationship(node, rel.get('target_name'), rel.get('type'))
+            if 'cloudify.relationships.contained_in' in relationship.get('type_hierarchy'):
+                parent_instance = client.node_instances.get(rel.get('target_id'))
+                return __recursively_get_instance_data(data_name, parent_instance)
+        return None
+    else:
+        return None
 
 
 def get_host(entity):
@@ -51,7 +101,7 @@ def parse_output(output):
     outputs = {}
     pattern = re.compile('EXPECTED_OUTPUT_(\w+)=(.*)')
     for line in output.splitlines():
-        match = pattern.match(line) 
+        match = pattern.match(line)
         if match is None:
             last_output = line
         else:
@@ -73,9 +123,9 @@ def execute(script_path, process, outputNames):
 
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
-      
+
     command = '{0} {1}'.format(wrapper_path, script_path)
-    
+
     ctx.logger.info('Executing: {0} in env {1}'.format(command, env))
 
     process = subprocess.Popen(command,
@@ -100,13 +150,13 @@ def execute(script_path, process, outputNames):
 
     stdout_consumer.join()
     stderr_consumer.join()
-    
+
     parsed_output = parse_output(stdout_consumer.buffer.getvalue())
     if outputNames is not None:
         outputNameList = outputNames.split(';')
         for outputName in outputNameList:
             ctx.logger.info('Ouput name: {0} value : {1}'.format(outputName, parsed_output['outputs'][outputName]))
-    
+
     ok_message = "Script {0} executed normally with standard output {1} and error output {2}".format(command, stdout_consumer.buffer.getvalue(),
                                                                                                      stderr_consumer.buffer.getvalue())
     error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,
@@ -146,6 +196,15 @@ def get_attribute(entity, attribute_name):
             attribute_value = get_instance_data(entity, attribute_name, get_property_data)
         return attribute_value
 
+def _all_instances_get_attribute(entity, attribute_name):
+    if attribute_name == 'floating_ip_address':
+        #FIXME: since floating ip is not scalable, no more public ip_address can be found
+        return None
+    else:
+        attribute_value = get_other_instances_data(entity, attribute_name, get_attribute_data)
+        if attribute_value is None:
+            attribute_value = get_other_instances_data(entity, attribute_name, get_property_data)
+        return attribute_value
 
 def get_property(entity, property_name):
     return get_instance_data(entity, property_name, get_property_data)
@@ -192,10 +251,12 @@ def download_artifacts(artifacts, download_dir):
             downloaded_artifacts[artifact_name] = child_download_dir
     return downloaded_artifacts
 
-new_script_process = {
-    'env': {
-    }
-}
+env_map = {}
+env_map['NODE'] = ctx.node.id
+env_map['INSTANCE'] = ctx.instance.id
+env_map['INSTANCES'] = get_instance_list(ctx.node.id)
+
+new_script_process = {'env': env_map}
 
 node_artifacts = {
     "configs": [
