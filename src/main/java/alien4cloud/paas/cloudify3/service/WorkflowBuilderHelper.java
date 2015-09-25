@@ -1,7 +1,7 @@
 package alien4cloud.paas.cloudify3.service;
 
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -85,7 +85,7 @@ public class WorkflowBuilderHelper {
         for (Workflow workflow : workflows.values()) {
             // first iteration to remove useless steps
             Iterator<Entry<String, AbstractStep>> stepIterator = workflow.getSteps().entrySet().iterator();
-            Set<String> removedStep = new HashSet<String>();
+            Set<String> removedStep = new LinkedHashSet<String>();
             while(stepIterator.hasNext()) {
                 Entry<String, AbstractStep> stepEntry = stepIterator.next();
                 String stepName = stepEntry.getKey();
