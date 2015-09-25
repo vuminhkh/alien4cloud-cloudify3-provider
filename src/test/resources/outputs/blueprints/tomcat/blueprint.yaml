@@ -27,12 +27,12 @@ node_types:
         default: network
 
 
-  alien.nodes.Java:
-    derived_from: cloudify.nodes.SoftwareComponent
-  alien.nodes.Tomcat:
-    derived_from: cloudify.nodes.WebServer
   alien.nodes.War:
     derived_from: cloudify.nodes.Root
+  alien.nodes.Tomcat:
+    derived_from: cloudify.nodes.WebServer
+  alien.nodes.Java:
+    derived_from: cloudify.nodes.SoftwareComponent
 
 relationships:
   alien.relationships.WarHostedOnTomcat:

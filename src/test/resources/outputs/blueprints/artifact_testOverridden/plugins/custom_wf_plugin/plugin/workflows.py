@@ -102,6 +102,7 @@ def _a4c_install(ctx, graph, custom_context):
     link_tasks(graph, 'Java_configured', 'configure_Java', custom_context)
     link_tasks(graph, 'Tomcat_starting', 'Tomcat_configured', custom_context)
     link_tasks(graph, 'configure_Tomcat', 'Tomcat_configuring', custom_context)
+    link_tasks(graph, 'Java_configuring', 'Tomcat_created', custom_context)
     link_tasks(graph, 'Java_configuring', 'Java_created', custom_context)
     link_tasks(graph, 'configure_War', 'War_configuring', custom_context)
     link_tasks(graph, 'start_Artifact_Directory_Test', 'Artifact_Directory_Test_starting', custom_context)
