@@ -120,7 +120,9 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
             for relationship in instance.relationships:
                 postconfigure_tasks.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.postconfigure'))
             for relationship in as_target_relationships:
-                postconfigure_tasks.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.postconfigure'))
+                task = relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.postconfigure')
+                _set_send_node_event_on_error_handler(task, instance, "Error occurred while postconfiguring node as target for relationship {0} - ignoring...".format(relationship))
+                postconfigure_tasks.add(task)
             msg = "postconf for {0}".format(instance.id)
             sequence.add(forkjoin_sequence(graph, postconfigure_tasks, instance, msg))
     elif operation_fqname == 'cloudify.interfaces.lifecycle.stop':
