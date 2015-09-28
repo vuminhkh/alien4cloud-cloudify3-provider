@@ -110,6 +110,7 @@ def _a4c_install(ctx, graph, custom_context):
     link_tasks(graph, 'create_BlockStorage', 'BlockStorage_creating', custom_context)
     link_tasks(graph, 'BlockStorage_started', 'start_BlockStorage', custom_context)
     link_tasks(graph, '_a4c_file_system_BlockStorage_configuring', '_a4c_file_system_BlockStorage_created', custom_context)
+    link_tasks(graph, '_a4c_file_system_BlockStorage_configuring', 'Mysql_created', custom_context)
     link_tasks(graph, 'Compute_creating', 'Compute_initial', custom_context)
     link_tasks(graph, 'configure_BlockStorage', 'BlockStorage_configuring', custom_context)
     link_tasks(graph, 'start_Mysql', 'Mysql_starting', custom_context)

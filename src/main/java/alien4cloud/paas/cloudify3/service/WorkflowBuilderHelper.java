@@ -230,9 +230,15 @@ public class WorkflowBuilderHelper {
 
         @Override
         public void addDependsOnRelation(Workflow workflow, String sourceNodeId, String targetNodeId) {
-            AbstractStep source = WorkflowUtils.getStateStepByNode(workflow, sourceNodeId, ToscaNodeLifecycleConstants.CONFIGURING);
-            AbstractStep target = WorkflowUtils.getStateStepByNode(workflow, targetNodeId, ToscaNodeLifecycleConstants.STARTED);
-            WorkflowUtils.linkSteps(target, source);
+            // AbstractStep source = WorkflowUtils.getStateStepByNode(workflow, sourceNodeId, ToscaNodeLifecycleConstants.CONFIGURING);
+            // AbstractStep target = WorkflowUtils.getStateStepByNode(workflow, targetNodeId, ToscaNodeLifecycleConstants.STARTED);
+            // WorkflowUtils.linkSteps(target, source);
+            AbstractStep sourceCreated = WorkflowUtils.getStateStepByNode(workflow, sourceNodeId, ToscaNodeLifecycleConstants.CREATED);
+            AbstractStep targetConfiguring = WorkflowUtils.getStateStepByNode(workflow, targetNodeId, ToscaNodeLifecycleConstants.CONFIGURING);
+            WorkflowUtils.linkSteps(sourceCreated, targetConfiguring);
+            AbstractStep sourceConfiguring = WorkflowUtils.getStateStepByNode(workflow, sourceNodeId, ToscaNodeLifecycleConstants.CONFIGURING);
+            AbstractStep targetStarted = WorkflowUtils.getStateStepByNode(workflow, targetNodeId, ToscaNodeLifecycleConstants.STARTED);
+            WorkflowUtils.linkSteps(targetStarted, sourceConfiguring);
         }
 
     }

@@ -96,6 +96,7 @@ def _a4c_install(ctx, graph, custom_context):
     link_tasks(graph, 'Java_starting', 'Java_configured', custom_context)
     link_tasks(graph, 'War_configured', 'configure_War', custom_context)
     link_tasks(graph, 'start_Tomcat', 'Tomcat_starting', custom_context)
+    link_tasks(graph, '_a4c_floating_ip_Server_configuring', 'Server_created', custom_context)
     link_tasks(graph, '_a4c_floating_ip_Server_configuring', '_a4c_floating_ip_Server_created', custom_context)
     link_tasks(graph, 'Tomcat_creating', 'Tomcat_initial', custom_context)
     link_tasks(graph, 'War_starting', 'War_configured', custom_context)
