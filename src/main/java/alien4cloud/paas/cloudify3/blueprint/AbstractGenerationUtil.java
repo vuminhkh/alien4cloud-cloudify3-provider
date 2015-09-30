@@ -42,10 +42,6 @@ public abstract class AbstractGenerationUtil {
     protected String getNativeType(String id) {
         if (alienDeployment.getComputesMap().containsKey(id)) {
             return NativeType.COMPUTE;
-        } else if (alienDeployment.getVolumesMap().containsKey(id)) {
-            return NativeType.VOLUME;
-        } else if (alienDeployment.getExternalNetworksMap().containsKey(id) || alienDeployment.getInternalNetworksMap().containsKey(id)) {
-            return NativeType.NETWORK;
         } else {
             return null;
         }

@@ -3,8 +3,6 @@ package alien4cloud.paas.cloudify3.service.model;
 import java.util.List;
 import java.util.Map;
 
-import alien4cloud.paas.cloudify3.model.NetworkTemplate;
-import alien4cloud.paas.cloudify3.model.StorageTemplate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,22 +30,9 @@ public class CloudifyDeployment {
      */
     private String deploymentId;
 
-    // TODO Remove all this kind of templates
-    private List<MatchedPaaSComputeTemplate> computes;
+    private List<PaaSNodeTemplate> computes;
 
-    private List<MatchedPaaSTemplate<NetworkTemplate>> internalNetworks;
-
-    private List<MatchedPaaSTemplate<NetworkTemplate>> externalNetworks;
-
-    private List<MatchedPaaSTemplate<StorageTemplate>> volumes;
-
-    private Map<String, MatchedPaaSComputeTemplate> computesMap;
-
-    private Map<String, MatchedPaaSTemplate<NetworkTemplate>> internalNetworksMap;
-
-    private Map<String, MatchedPaaSTemplate<NetworkTemplate>> externalNetworksMap;
-
-    private Map<String, MatchedPaaSTemplate<StorageTemplate>> volumesMap;
+    private Map<String, PaaSNodeTemplate> computesMap;
 
     private List<PaaSNodeTemplate> nonNatives;
 

@@ -69,12 +69,15 @@ node_types:
         type: map
         entry_schema:
           type: string
+        required: false
       use_external_resource:
         type: boolean
         default: false
+        required: false
       resource_id:
         type: string
         default: ''
+        required: false
       image:
         type: string
         default: ''
@@ -84,8 +87,11 @@ node_types:
       management_network_name:
         type: string
         default: ''
+        required: false
       use_password:
         type: boolean
         default: false
+        required: false
       openstack_config:
         type: alien.data.OpenstackConfig
+        required: false

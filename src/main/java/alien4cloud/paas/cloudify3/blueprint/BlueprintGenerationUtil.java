@@ -20,22 +20,19 @@ public class BlueprintGenerationUtil extends AbstractGenerationUtil {
 
     private ComputeGenerationUtil compute;
 
-    private NetworkGenerationUtil network;
-
-    private VolumeGenerationUtil volume;
-
     private NonNativeTypeGenerationUtil nonNative;
 
     private WorkflowGenerationUtil workflow;
+
+    private CommonGenerationUtil common;
 
     public BlueprintGenerationUtil(MappingConfiguration mappingConfiguration, ProviderMappingConfiguration providerMappingConfiguration,
             CloudifyDeployment alienDeployment, Path recipePath, PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
         this.compute = new ComputeGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
-        this.network = new NetworkGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
-        this.volume = new VolumeGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
         this.nonNative = new NonNativeTypeGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath,
                 propertyEvaluatorService);
         this.workflow = new WorkflowGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+        this.common = new CommonGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 }
