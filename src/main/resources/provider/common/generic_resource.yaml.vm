@@ -11,7 +11,7 @@
 #if(${template.scalingPolicy})
     instances:
 #if(${template.scalingPolicy.initialInstances})
-      deploy: ${computeTemplate.scalingPolicy.initialInstances}
+      deploy: ${template.scalingPolicy.initialInstances}
 #else
       deploy: 1
 #end

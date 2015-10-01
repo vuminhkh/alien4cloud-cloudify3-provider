@@ -72,7 +72,6 @@ node_types:
         required: false
       use_external_resource:
         type: boolean
-        default: false
         required: false
       resource_id:
         type: string
@@ -90,7 +89,6 @@ node_types:
         required: false
       use_password:
         type: boolean
-        default: false
         required: false
       openstack_config:
         type: alien.data.OpenstackConfig
