@@ -91,7 +91,7 @@ public class AbstractDeploymentTest extends AbstractTest {
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName) {
         Topology topology = applicationUtil.createAlienApplication(appName, topologyName);
         DeploymentTopology deploymentTopology = generateDeploymentSetup(topology);
-        ReflectionUtil.mergeObject(topology, deploymentTopology);
+        ReflectionUtil.mergeObject(topology, deploymentTopology, "id");
         PaaSTopologyDeploymentContext deploymentContext = new PaaSTopologyDeploymentContext();
         deploymentContext.setPaaSTopology(topologyTreeBuilderService.buildPaaSTopology(topology));
         deploymentContext.setDeploymentTopology(deploymentTopology);
