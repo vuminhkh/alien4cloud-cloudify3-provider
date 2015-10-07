@@ -30,20 +30,19 @@ public class ResourceGenerator {
         ImageFlavorContext imageContext = resourceGeneratorService.buildContext(imageType, "id", resourceAccessor);
         ImageFlavorContext flavorContext = resourceGeneratorService.buildContext(flavorType, "id", resourceAccessor);
         boolean canProceed = true;
-        if (CollectionUtils.isEmpty(imageContext.getTemplates())) {
+        if(CollectionUtils.isEmpty(imageContext.getTemplates())) {
             log.warn("At least one configured image resource is required for the auto-configuration");
             canProceed = false;
         }
-        if (CollectionUtils.isEmpty(flavorContext.getTemplates())) {
+        if(CollectionUtils.isEmpty(flavorContext.getTemplates())) {
             log.warn("At least one configured flavor resource is required for the auto-configuration");
             canProceed = false;
         }
-        if (!canProceed) {
+        if(!canProceed) {
             log.warn("Skipping auto configuration");
             return null;
         }
-        ComputeContext computeContext = resourceGeneratorService.buildComputeContext(computeType, DEFAULT_RESOURCE_NAME_PREFIX,
-                IMAGE_ID_PROP, FLAVOR_ID_PROP, resourceAccessor);
+        ComputeContext computeContext = resourceGeneratorService.buildComputeContext(computeType, null, IMAGE_ID_PROP, FLAVOR_ID_PROP, resourceAccessor);
 
         return resourceGeneratorService.generateComputeFromImageAndFlavor(imageContext, flavorContext, computeContext, resourceAccessor);
     }
