@@ -14,6 +14,10 @@ class Internal(object):
         message = message.replace(".", "_")
         message = message.replace("'", "")
         message = message.replace(":", "_")
+        message = message.replace("{", "_")
+        message = message.replace("}", "_")
+        message = message.replace("\"", "_")
+        message = message.replace(",", "_")
         task = Task("event_{0}_{1}".format(event_type, message))
         return task
 
@@ -55,6 +59,10 @@ class Instance(object):
         msg = msg.replace(".", "_")
         msg = msg.replace("'", "")
         msg = msg.replace(":", "_")
+        msg = msg.replace("{", "_")
+        msg = msg.replace("}", "_")
+        msg = msg.replace("\"", "_")
+        msg = msg.replace(",", "_")        
         task = Task("event_{0}_{1}".format(self.id, msg))
         return task
 

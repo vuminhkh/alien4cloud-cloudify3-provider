@@ -27,20 +27,20 @@ node_types:
         default: network
 
 
+  alien.nodes.WarWithLifeCycleScript:
+    derived_from: cloudify.nodes.Root
   alien.nodes.TestArtifactDirectory:
-    derived_from: cloudify.nodes.SoftwareComponent
-  alien.nodes.Java:
     derived_from: cloudify.nodes.SoftwareComponent
   alien.nodes.Tomcat:
     derived_from: cloudify.nodes.WebServer
-  alien.nodes.WarWithLifeCycleScript:
-    derived_from: cloudify.nodes.Root
+  alien.nodes.Java:
+    derived_from: cloudify.nodes.SoftwareComponent
 
 relationships:
-  alien.relationships.RunOnJVM:
-    derived_from: cloudify.relationships.depends_on
   alien.relationships.WarHostedOnTomcatWithProperties:
     derived_from: cloudify.relationships.contained_in
+  alien.relationships.RunOnJVM:
+    derived_from: cloudify.relationships.depends_on
 
 node_templates:
 
@@ -112,3 +112,12 @@ node_templates:
     relationships:
       - target: Server
         type: cloudify.relationships.contained_in
+
+plugins:
+  custom_wf_plugin:
+    executor: central_deployment_agent
+    source: custom_wf_plugin
+
+workflows:
+  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall

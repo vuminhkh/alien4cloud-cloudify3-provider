@@ -61,12 +61,12 @@ node_types:
 
   alien.nodes.Apache:
     derived_from: cloudify.nodes.WebServer
-  alien.nodes.Mysql:
-    derived_from: cloudify.nodes.Database
-  alien.nodes.Wordpress:
-    derived_from: cloudify.nodes.ApplicationModule
   alien.nodes.PHP:
     derived_from: cloudify.nodes.SoftwareComponent
+  alien.nodes.Wordpress:
+    derived_from: cloudify.nodes.ApplicationModule
+  alien.nodes.Mysql:
+    derived_from: cloudify.nodes.Database
 
 relationships:
   _a4c.cloudify.relationships.file_system_depends_on_volume:
@@ -217,3 +217,12 @@ node_templates:
         type: cloudify.relationships.depends_on
       - target: DataBase
         type: cloudify.relationships.contained_in
+
+plugins:
+  custom_wf_plugin:
+    executor: central_deployment_agent
+    source: custom_wf_plugin
+
+workflows:
+  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall

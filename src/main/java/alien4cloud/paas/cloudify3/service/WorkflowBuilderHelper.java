@@ -1,7 +1,7 @@
 package alien4cloud.paas.cloudify3.service;
 
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -85,7 +85,7 @@ public class WorkflowBuilderHelper {
         for (Workflow workflow : workflows.values()) {
             // first iteration to remove useless steps
             Iterator<Entry<String, AbstractStep>> stepIterator = workflow.getSteps().entrySet().iterator();
-            Set<String> removedStep = new HashSet<String>();
+            Set<String> removedStep = new LinkedHashSet<String>();
             while(stepIterator.hasNext()) {
                 Entry<String, AbstractStep> stepEntry = stepIterator.next();
                 String stepName = stepEntry.getKey();
@@ -230,9 +230,15 @@ public class WorkflowBuilderHelper {
 
         @Override
         public void addDependsOnRelation(Workflow workflow, String sourceNodeId, String targetNodeId) {
-            AbstractStep source = WorkflowUtils.getStateStepByNode(workflow, sourceNodeId, ToscaNodeLifecycleConstants.CONFIGURING);
-            AbstractStep target = WorkflowUtils.getStateStepByNode(workflow, targetNodeId, ToscaNodeLifecycleConstants.STARTED);
-            WorkflowUtils.linkSteps(target, source);
+            // AbstractStep source = WorkflowUtils.getStateStepByNode(workflow, sourceNodeId, ToscaNodeLifecycleConstants.CONFIGURING);
+            // AbstractStep target = WorkflowUtils.getStateStepByNode(workflow, targetNodeId, ToscaNodeLifecycleConstants.STARTED);
+            // WorkflowUtils.linkSteps(target, source);
+            AbstractStep sourceCreated = WorkflowUtils.getStateStepByNode(workflow, sourceNodeId, ToscaNodeLifecycleConstants.CREATED);
+            AbstractStep targetConfiguring = WorkflowUtils.getStateStepByNode(workflow, targetNodeId, ToscaNodeLifecycleConstants.CONFIGURING);
+            WorkflowUtils.linkSteps(sourceCreated, targetConfiguring);
+            AbstractStep sourceConfiguring = WorkflowUtils.getStateStepByNode(workflow, sourceNodeId, ToscaNodeLifecycleConstants.CONFIGURING);
+            AbstractStep targetStarted = WorkflowUtils.getStateStepByNode(workflow, targetNodeId, ToscaNodeLifecycleConstants.STARTED);
+            WorkflowUtils.linkSteps(targetStarted, sourceConfiguring);
         }
 
     }

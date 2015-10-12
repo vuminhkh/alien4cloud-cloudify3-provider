@@ -40,26 +40,40 @@ def get_instance_data(entity, data_name, get_data_function):
     else:
         return ""
 
+
 def get_other_instances_data(entity, data_name, get_data_function):
-    data = get_data_function(entity, data_name)
-    if data is not None:
-        result_map = {}
-        # get all instances data using cfy rest client
-        all_node_instances = client.node_instances.list(ctx.deployment.id, entity.node.id)
-        for node_instance in all_node_instances:
-            if node_instance.id != entity.instance.id:
-                prop_value = node_instance.runtime_properties.get(data_name, None)
-                ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(data_name, prop_value, entity.node.id, entity.instance.id))
-                result_map[entity.instance.id + '_'] = prop_value
-        return result_map
-    elif entity.instance.relationships:
-        for relationship in entity.instance.relationships:
-            if 'cloudify.relationships.contained_in' in relationship.type_hierarchy:
-                ctx.logger.info(
-                    'Attribute/Property not found {0} go up to the parent node {1} by following relationship {2}'.format(data_name,
-                                                                                                                         relationship.target.node.id,
-                                                                                                                         relationship.type))
-                return get_other_instances_data(relationship.target, data_name, get_data_function)
+    result_map = {}
+    # get all instances data using cfy rest client
+    all_node_instances = client.node_instances.list(ctx.deployment.id, entity.node.id)
+    for node_instance in all_node_instances:
+        prop_value = __recursively_get_instance_data(data_name, node_instance)
+        if prop_value is not None:
+            ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(data_name, prop_value, entity.node.id, node_instance.id))
+            result_map[node_instance.id + '_'] = prop_value
+    return result_map
+
+
+def __get_relationship(node, target_name, relationship_type):
+    for relationship in node.relationships:
+        if relationship.get('target_id') == target_name and relationship_type in relationship.get('type_hierarchy'):
+            return relationship
+    return None
+
+
+def __recursively_get_instance_data(data_name, node_instance):
+    prop_value = node_instance.runtime_properties.get(data_name, None)
+    if prop_value is not None:
+        return prop_value
+    elif node_instance.relationships:
+        # we have to get the node using the rest client with node_instance.node_id
+        # then we will have the relationships
+        node = client.nodes.get(ctx.deployment.id, node_instance.node_id)
+        for rel in node_instance.relationships:
+            # on rel we have target_name, target_id (instanceId), type
+            relationship = __get_relationship(node, rel.get('target_name'), rel.get('type'))
+            if 'cloudify.relationships.contained_in' in relationship.get('type_hierarchy'):
+                parent_instance = client.node_instances.get(rel.get('target_id'))
+                return __recursively_get_instance_data(data_name, parent_instance)
         return None
     else:
         return None
