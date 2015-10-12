@@ -15,8 +15,8 @@ import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.cloudify3.blueprint.BlueprintGenerationUtil;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
-import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
-import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
+import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
@@ -43,10 +43,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 public class CustomWorkflowService extends RuntimeService {
 
     @Resource
-    private ExecutionDAO executionDAO;
+    private ExecutionClient executionDAO;
 
     @Resource
-    private NodeInstanceDAO nodeInstanceDAO;
+    private NodeInstanceClient nodeInstanceDAO;
 
     @Resource
     private MappingConfigurationHolder mappingConfigurationHolder;

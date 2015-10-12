@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.dao;
+package alien4cloud.paas.cloudify3.restclient;
 
 import java.util.Date;
 import java.util.Map;
@@ -30,7 +30,7 @@ import com.google.common.util.concurrent.ListenableFuture;
  * @author Minh Khang VU
  */
 @Slf4j
-public abstract class AbstractEventDAO extends AbstractDAO {
+public abstract class AbstractEventClient extends AbstractClient {
 
     public static final String EVENTS_PATH = "/events";
 

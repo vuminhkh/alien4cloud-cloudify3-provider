@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.dao;
+package alien4cloud.paas.cloudify3.restclient;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -24,7 +24,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 @Component
 @Slf4j
-public class BlueprintDAO extends AbstractDAO {
+public class BlueprintClient extends AbstractClient {
 
     public static final String BLUEPRINT_PATH = "/blueprints";
 

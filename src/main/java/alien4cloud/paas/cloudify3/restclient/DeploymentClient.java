@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.dao;
+package alien4cloud.paas.cloudify3.restclient;
 
 import java.util.Map;
 
@@ -21,7 +21,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 @Component
 @Slf4j
-public class DeploymentDAO extends AbstractDAO {
+public class DeploymentClient extends AbstractClient {
 
     public static final String DEPLOYMENTS_PATH = "/deployments";
 

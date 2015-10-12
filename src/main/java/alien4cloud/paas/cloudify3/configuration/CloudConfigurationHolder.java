@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.paas.cloudify3.dao.VersionDAO;
+import alien4cloud.paas.cloudify3.restclient.VersionClient;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.model.Version;
 import alien4cloud.paas.exception.PluginConfigurationException;
@@ -22,7 +22,7 @@ public class CloudConfigurationHolder {
     private CloudConfiguration configuration;
 
     @Resource
-    private VersionDAO versionDAO;
+    private VersionClient versionDAO;
 
     private List<ICloudConfigurationChangeListener> listeners = Lists.newArrayList();
 

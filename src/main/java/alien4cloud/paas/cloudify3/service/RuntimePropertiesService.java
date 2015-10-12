@@ -6,7 +6,7 @@ import javax.annotation.Resource;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 
 import com.google.common.base.Function;
@@ -23,7 +23,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 public class RuntimePropertiesService {
 
     @Resource
-    private NodeInstanceDAO nodeInstanceDAO;
+    private NodeInstanceClient nodeInstanceDAO;
 
     public ListenableFuture<Map<String, Object>> evaluate(String deploymentId, final String nodeName, final String attributeName) {
         ListenableFuture<NodeInstance[]> futureNodeInstance = nodeInstanceDAO.asyncList(deploymentId);

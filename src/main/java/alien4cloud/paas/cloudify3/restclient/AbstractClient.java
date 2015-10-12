@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.dao;
+package alien4cloud.paas.cloudify3.restclient;
 
 import javax.annotation.Resource;
 
@@ -8,7 +8,7 @@ import org.springframework.web.client.AsyncRestTemplate;
 
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 
-public abstract class AbstractDAO {
+public abstract class AbstractClient {
 
     @Resource
     @Getter

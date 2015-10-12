@@ -8,9 +8,9 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
-import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
-import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
-import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
+import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
+import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.ExecutionStatus;
@@ -31,13 +31,13 @@ import com.google.common.util.concurrent.MoreExecutors;
 public abstract class RuntimeService {
 
     @Resource
-    protected DeploymentDAO deploymentDAO;
+    protected DeploymentClient deploymentDAO;
 
     @Resource
-    protected ExecutionDAO executionDAO;
+    protected ExecutionClient executionDAO;
 
     @Resource
-    protected NodeInstanceDAO nodeInstanceDAO;
+    protected NodeInstanceClient nodeInstanceDAO;
 
     protected ListeningScheduledExecutorService scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1));
 

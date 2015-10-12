@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.dao;
+package alien4cloud.paas.cloudify3.restclient;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +12,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 @Slf4j
 @Component
-public class NodeDAO extends AbstractDAO {
+public class NodeClient extends AbstractClient {
 
     public static final String NODES_PATH = "/nodes";
 

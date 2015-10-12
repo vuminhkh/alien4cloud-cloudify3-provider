@@ -19,10 +19,10 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.ICloudConfigurationChangeListener;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
-import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
-import alien4cloud.paas.cloudify3.dao.ExecutionDAO;
-import alien4cloud.paas.cloudify3.dao.NodeDAO;
-import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
+import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
+import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
+import alien4cloud.paas.cloudify3.restclient.NodeClient;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.model.AbstractCloudifyModel;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
@@ -58,16 +58,16 @@ public class StatusService {
     private Map<String, DeploymentStatus> statusCache = Maps.newConcurrentMap();
 
     @Resource
-    private ExecutionDAO executionDAO;
+    private ExecutionClient executionDAO;
 
     @Resource
-    private NodeInstanceDAO nodeInstanceDAO;
+    private NodeInstanceClient nodeInstanceDAO;
 
     @Resource
-    private NodeDAO nodeDAO;
+    private NodeClient nodeDAO;
 
     @Resource
-    private DeploymentDAO deploymentDAO;
+    private DeploymentClient deploymentDAO;
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;

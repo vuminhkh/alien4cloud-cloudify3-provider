@@ -15,7 +15,7 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
+import alien4cloud.paas.cloudify3.restclient.BlueprintClient;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
@@ -31,7 +31,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     private BlueprintService blueprintService;
 
     @Resource
-    private BlueprintDAO blueprintDAO;
+    private BlueprintClient blueprintDAO;
 
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;

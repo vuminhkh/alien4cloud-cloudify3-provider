@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.component.repository.exception.CSARVersionNotFoundException;
-import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
+import alien4cloud.paas.cloudify3.restclient.BlueprintClient;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
@@ -43,7 +43,7 @@ public class DeploymentService extends RuntimeService {
     private BlueprintService blueprintService;
 
     @Resource
-    private BlueprintDAO blueprintDAO;
+    private BlueprintClient blueprintDAO;
 
     @Resource
     private EventService eventService;

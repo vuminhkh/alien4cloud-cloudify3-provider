@@ -20,7 +20,7 @@
 //import alien4cloud.it.provider.util.HttpUtil;
 //import alien4cloud.paas.IPaaSCallback;
 //import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
-//import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
+//import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 //import alien4cloud.paas.cloudify3.model.NodeInstance;
 //import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 //import alien4cloud.paas.cloudify3.service.EventService;
@@ -43,7 +43,7 @@
 //public class TestDeploymentService extends AbstractDeploymentTest {
 //
 //    @Resource
-//    private NodeInstanceDAO nodeInstanceDAO;
+//    private NodeInstanceClient nodeInstanceDAO;
 //
 //    @Resource
 //    private MappingConfigurationHolder mappingConfigurationHolder;

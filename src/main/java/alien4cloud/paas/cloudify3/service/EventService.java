@@ -14,9 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.common.AlienConstants;
-import alien4cloud.paas.cloudify3.dao.DeploymentEventDAO;
-import alien4cloud.paas.cloudify3.dao.NodeDAO;
-import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
+import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
+import alien4cloud.paas.cloudify3.restclient.NodeClient;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.model.AbstractCloudifyModel;
 import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
 import alien4cloud.paas.cloudify3.model.Event;
@@ -53,13 +53,13 @@ import com.google.common.util.concurrent.ListenableFuture;
 public class EventService {
 
     @Resource
-    private DeploymentEventDAO eventDAO;
+    private DeploymentEventClient eventDAO;
 
     @Resource
-    private NodeInstanceDAO nodeInstanceDAO;
+    private NodeInstanceClient nodeInstanceDAO;
 
     @Resource
-    private NodeDAO nodeDAO;
+    private NodeClient nodeDAO;
 
     @Resource
     private StatusService statusService;

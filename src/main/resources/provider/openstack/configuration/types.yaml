@@ -8,7 +8,6 @@ imports:
   - tosca-normative-types:1.0.0.wd06-SNAPSHOT
 
 data_types:
-
   alien.data.OpenstackConfig:
     derived_from: tosca.datatypes.Root
     properties:
@@ -93,3 +92,5 @@ node_types:
       openstack_config:
         type: alien.data.OpenstackConfig
         required: false
+
+  alien.nodes.cloudify.openstack.BlockStorage:

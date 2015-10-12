@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.dao;
+package alien4cloud.paas.cloudify3.restclient;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -18,7 +18,7 @@ import alien4cloud.paas.cloudify3.model.Workflow;
 
 @Component
 @Slf4j
-public class DeploymentEventDAO extends AbstractEventDAO {
+public class DeploymentEventClient extends AbstractEventClient {
 
     protected QueryBuilder createEventsQuery(String executionId, Date timestamp) {
         BoolQueryBuilder eventsQuery = QueryBuilders.boolQuery();

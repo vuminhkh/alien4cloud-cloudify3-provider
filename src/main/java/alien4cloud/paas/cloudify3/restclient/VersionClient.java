@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.dao;
+package alien4cloud.paas.cloudify3.restclient;
 
 import lombok.SneakyThrows;
 
@@ -10,7 +10,7 @@ import alien4cloud.paas.cloudify3.util.FutureUtil;
 import com.google.common.util.concurrent.ListenableFuture;
 
 @Component
-public class VersionDAO extends AbstractDAO {
+public class VersionClient extends AbstractClient {
 
     public static final String VERSION_PATH = "/version";
 

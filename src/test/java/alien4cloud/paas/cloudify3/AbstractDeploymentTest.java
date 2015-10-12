@@ -21,7 +21,7 @@ import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.deployment.DeploymentTopology;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IPaaSCallback;
-import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
+import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
@@ -41,7 +41,7 @@ public class AbstractDeploymentTest extends AbstractTest {
     private EventService eventService;
 
     @Resource
-    private DeploymentDAO deploymentDAO;
+    private DeploymentClient deploymentDAO;
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
