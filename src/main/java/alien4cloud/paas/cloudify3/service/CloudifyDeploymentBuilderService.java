@@ -24,14 +24,6 @@ import com.google.common.collect.Maps;
 @Slf4j
 public class CloudifyDeploymentBuilderService {
 
-    private List<IndexedNodeType> getTypesOrderedByDerivedFromHierarchy(List<PaaSNodeTemplate> nodes) {
-        Map<String, IndexedNodeType> nodeTypeMap = Maps.newHashMap();
-        for (PaaSNodeTemplate node : nodes) {
-            nodeTypeMap.put(node.getIndexedToscaElement().getElementId(), node.getIndexedToscaElement());
-        }
-        return IndexedModelUtils.orderByDerivedFromHierarchy(nodeTypeMap);
-    }
-
     private Map<String, PaaSNodeTemplate> buildTemplateMap(List<PaaSNodeTemplate> templateList) {
         Map<String, PaaSNodeTemplate> computeMap = Maps.newHashMap();
         for (PaaSNodeTemplate nodeTemplate : templateList) {
@@ -40,6 +32,12 @@ public class CloudifyDeploymentBuilderService {
         return computeMap;
     }
 
+    /**
+     * Parse the alien deployment context to produce a more blueprint generation friendly format (make the blueprint generation easier)
+     * 
+     * @param deploymentContext the deployment context
+     * @return the cloudify deployment
+     */
     public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
         Map<String, PaaSNodeTemplate> computesMap = buildTemplateMap(deploymentContext.getPaaSTopology().getComputes());
         Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
@@ -81,11 +79,8 @@ public class CloudifyDeploymentBuilderService {
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
                 deploymentContext.getPaaSTopology().getComputes(), computesMap, deploymentContext.getPaaSTopology().getNonNatives(),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap),
-                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getComputes()),
-                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()),
-                getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()), deploymentContext.getPaaSTopology().getAllNodes(),
-                allArtifacts, allRelationshipArtifacts, deploymentContext.getDeploymentTopology().getProviderDeploymentProperties(),
+                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), deploymentContext.getPaaSTopology().getAllNodes(), allArtifacts,
+                allRelationshipArtifacts, deploymentContext.getDeploymentTopology().getProviderDeploymentProperties(),
                 deploymentContext.getDeploymentTopology().getWorkflows());
         return deployment;
     }

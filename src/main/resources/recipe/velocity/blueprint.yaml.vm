@@ -16,6 +16,8 @@ imports:
 
 node_types:
 
+#parse("types.yaml.vm")
+
 #if($util.collectionHasElement($deployment.nonNativesTypes))
 #foreach($nonNativeType in ${deployment.nonNativesTypes})
   ${nonNativeType.elementId}:

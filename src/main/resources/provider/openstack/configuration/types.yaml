@@ -39,6 +39,15 @@ data_types:
           entry_schema:
             type: string
 
+  alien.data.FloatingIpConfig:
+    derived_from: tosca.datatypes.Root
+    properties:
+      floating_ip_address:
+        type: string
+        required: false
+      floating_network_name:
+        type: string
+
 node_types:
 
   alien.nodes.openstack.Image:
@@ -92,5 +101,46 @@ node_types:
       openstack_config:
         type: alien.data.OpenstackConfig
         required: false
+    attributes:
+      ip_address: { get_attribute: [SELF, ip] }
+      public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
 
-  alien.nodes.cloudify.openstack.BlockStorage:
+# TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
+  alien.nodes.PublicNetwork:
+    abstract: true
+    derived_from: tosca.nodes.Network
+
+  alien.nodes.PrivateNetwork:
+    abstract: true
+    derived_from: tosca.nodes.Network
+
+  alien.nodes.openstack.PublicNetwork:
+    derived_from: alien.nodes.PublicNetwork
+    properties:
+      floating_ip:
+        type: alien.data.FloatingIpConfig
+        required: true
+      use_external_resource:
+        type: boolean
+        required: false
+      resource_id:
+        type: string
+        default: ''
+        required: false
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: false
+
+  alien.nodes.openstack.PrivateNetwork:
+    derived_from: alien.nodes.PrivateNetwork
+    properties:
+      use_external_resource:
+        type: boolean
+        required: false
+      resource_id:
+        type: string
+        default: ''
+        required: false
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: false

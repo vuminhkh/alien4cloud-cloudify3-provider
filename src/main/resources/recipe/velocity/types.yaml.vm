@@ -1,0 +1,35 @@
+## Compute types
+#if($util.common.collectionHasElement(${deployment.computes}))
+  ${mapping.generatedTypePrefix}.Compute:
+    derived_from: ${providerMapping.nativeTypes.computeType}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: compute
+#end
+
+## Floating IP types
+#if($util.common.collectionHasElement(${deployment.externalNetworks}))
+  ${mapping.generatedTypePrefix}.FloatingIP:
+    derived_from: ${providerMapping.nativeTypes.floatingIpType}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: floating_ip
+#end
+
+## Volume types
+#if($util.common.collectionHasElement(${deployment.volumes}))
+  ${mapping.generatedTypePrefix}.Volume:
+    derived_from: ${providerMapping.nativeTypes.volumeType}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: volume
+#end
+
+## Network types
+#if($util.common.collectionHasElement(${deployment.networks}))
+  ${mapping.generatedTypePrefix}.Network:
+    derived_from: ${providerMapping.nativeTypes.volumeType}
+    properties:
+      ${mapping.nativeTypePropertyName}:
+        default: network
+#end

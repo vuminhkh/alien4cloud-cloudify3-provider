@@ -19,10 +19,6 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.ICloudConfigurationChangeListener;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
-import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
-import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
-import alien4cloud.paas.cloudify3.restclient.NodeClient;
-import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.model.AbstractCloudifyModel;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
@@ -31,6 +27,10 @@ import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
 import alien4cloud.paas.cloudify3.model.Workflow;
+import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
+import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
+import alien4cloud.paas.cloudify3.restclient.NodeClient;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.util.DateUtil;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
@@ -48,8 +48,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Handle all deployment status request
- *
- * @author Minh Khang VU
  */
 @Component("cloudify-status-service")
 @Slf4j

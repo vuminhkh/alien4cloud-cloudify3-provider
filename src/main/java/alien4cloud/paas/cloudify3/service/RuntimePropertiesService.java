@@ -6,8 +6,8 @@ import javax.annotation.Resource;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
@@ -16,8 +16,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * This service can be used to retrieve runtime properties of running instances from a deployment
- *
- * @author Minh Khang VU
  */
 @Component
 public class RuntimePropertiesService {

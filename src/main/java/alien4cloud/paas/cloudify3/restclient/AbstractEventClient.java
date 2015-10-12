@@ -26,8 +26,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Base class for event access
- * 
- * @author Minh Khang VU
  */
 @Slf4j
 public abstract class AbstractEventClient extends AbstractClient {

@@ -14,9 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.common.AlienConstants;
-import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
-import alien4cloud.paas.cloudify3.restclient.NodeClient;
-import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.model.AbstractCloudifyModel;
 import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
 import alien4cloud.paas.cloudify3.model.Event;
@@ -24,6 +21,9 @@ import alien4cloud.paas.cloudify3.model.EventType;
 import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
+import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
+import alien4cloud.paas.cloudify3.restclient.NodeClient;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.service.model.NativeType;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
@@ -45,8 +45,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Handle cloudify 3 events request
- *
- * @author Minh Khang VU
  */
 @Component("cloudify-event-service")
 @Slf4j

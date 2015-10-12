@@ -12,12 +12,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.component.repository.exception.CSARVersionNotFoundException;
-import alien4cloud.paas.cloudify3.restclient.BlueprintClient;
 import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
+import alien4cloud.paas.cloudify3.restclient.BlueprintClient;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.exception.PaaSAlreadyDeployedException;
 import alien4cloud.paas.model.DeploymentStatus;
@@ -32,8 +32,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 /**
  * Handle deployment of the topology on cloudify 3. This service handle from the creation of blueprint from alien model to execution of default workflow
  * install, uninstall.
- *
- * @author Minh Khang VU
  */
 @Component("cloudify-deployment-service")
 @Slf4j
@@ -64,9 +62,8 @@ public class DeploymentService extends RuntimeService {
         try {
             blueprintPath = blueprintService.generateBlueprint(alienDeployment);
         } catch (IOException | CSARVersionNotFoundException e) {
-            log.error(
-                    "Unable to generate the blueprint for " + alienDeployment.getDeploymentPaaSId() + " with alien deployment id "
-                            + alienDeployment.getDeploymentId(), e);
+            log.error("Unable to generate the blueprint for " + alienDeployment.getDeploymentPaaSId() + " with alien deployment id "
+                    + alienDeployment.getDeploymentId(), e);
             eventService.registerDeploymentEvent(alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
             return Futures.immediateFailedFuture(e);
         }
@@ -74,8 +71,8 @@ public class DeploymentService extends RuntimeService {
         AsyncFunction<Blueprint, Deployment> createDeploymentFunction = new AsyncFunction<Blueprint, Deployment>() {
             @Override
             public ListenableFuture<Deployment> apply(Blueprint blueprint) throws Exception {
-                return waitForDeploymentExecutionsFinish(deploymentDAO.asyncCreate(alienDeployment.getDeploymentPaaSId(), blueprint.getId(),
-                        Maps.<String, Object> newHashMap()));
+                return waitForDeploymentExecutionsFinish(
+                        deploymentDAO.asyncCreate(alienDeployment.getDeploymentPaaSId(), blueprint.getId(), Maps.<String, Object> newHashMap()));
             }
         };
         ListenableFuture<Deployment> createdDeployment = Futures.transform(createdBlueprint, createDeploymentFunction);
