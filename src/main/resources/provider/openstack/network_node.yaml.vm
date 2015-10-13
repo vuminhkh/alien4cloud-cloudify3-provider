@@ -6,7 +6,7 @@
     properties:
       resource_id: ${network.id}_subnet
       subnet:
-        ip_version: ${network.nodeTemplate.properties.get("ipVersion").value}
+        ip_version: ${network.nodeTemplate.properties.get("ip_version").value}
         cidr: ${network.nodeTemplate.properties.get("cidr").value}
     relationships:
       - target: ${network.id}

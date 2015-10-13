@@ -15,14 +15,17 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import com.google.common.io.Closeables;
+import com.google.common.util.concurrent.SettableFuture;
+
 import alien4cloud.component.repository.ArtifactLocalRepository;
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.deployment.DeploymentTopology;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IPaaSCallback;
-import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
 import alien4cloud.paas.cloudify3.model.Deployment;
+import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
@@ -30,10 +33,9 @@ import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
+import alien4cloud.paas.wf.WorkflowsBuilderService;
+import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
 import alien4cloud.utils.ReflectionUtil;
-
-import com.google.common.io.Closeables;
-import com.google.common.util.concurrent.SettableFuture;
 
 public class AbstractDeploymentTest extends AbstractTest {
 
@@ -57,6 +59,9 @@ public class AbstractDeploymentTest extends AbstractTest {
 
     @Resource
     private ArtifactLocalRepository artifactRepository;
+
+    @Resource
+    private WorkflowsBuilderService workflowBuilderService;
 
     private void cleanDeployments() throws Exception {
         Date now = new Date();
@@ -90,6 +95,9 @@ public class AbstractDeploymentTest extends AbstractTest {
 
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName) {
         Topology topology = applicationUtil.createAlienApplication(appName, topologyName);
+        // init the workflows
+        TopologyContext topologyContext = workflowBuilderService.buildTopologyContext(topology);
+        workflowBuilderService.initWorkflows(topologyContext);
         DeploymentTopology deploymentTopology = generateDeploymentSetup(topology);
         ReflectionUtil.mergeObject(topology, deploymentTopology, "id");
         PaaSTopologyDeploymentContext deploymentContext = new PaaSTopologyDeploymentContext();

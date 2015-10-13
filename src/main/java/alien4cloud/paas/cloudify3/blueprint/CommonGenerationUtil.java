@@ -16,7 +16,7 @@ import alien4cloud.paas.exception.NotSupportedException;
 public class CommonGenerationUtil extends AbstractGenerationUtil {
 
     public CommonGenerationUtil(MappingConfiguration mappingConfiguration, ProviderMappingConfiguration providerMappingConfiguration,
-            CloudifyDeployment alienDeployment, Path recipePath, PropertyEvaluatorService propertyEvaluatorService) {
+                                CloudifyDeployment alienDeployment, Path recipePath, PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
@@ -31,9 +31,9 @@ public class CommonGenerationUtil extends AbstractGenerationUtil {
     public String formatProperties(int indentLevel, Map<String, AbstractPropertyValue> properties) {
         StringBuilder buffer = new StringBuilder();
         for (Map.Entry<String, AbstractPropertyValue> propertyEntry : properties.entrySet()) {
-            if (propertyEntry.getValue() != null) {
+            if (propertyEntry.getValue() != null && !propertyEntry.getKey().startsWith("_a4c_")) {
                 buffer.append("\n").append(indent(indentLevel)).append(propertyEntry.getKey()).append(": ")
-                        .append(formatPropertyValue(indentLevel, propertyEntry.getValue()));
+                        .append(formatPropertyValue(indentLevel + 1, propertyEntry.getValue()));
             }
         }
         return buffer.toString();

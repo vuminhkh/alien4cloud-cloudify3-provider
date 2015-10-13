@@ -30,6 +30,8 @@ public class AbstractTest {
 
     public static final String SINGLE_COMPUTE_TOPOLOGY = "single_compute";
 
+    public static final String NETWORK_TOPOLOGY = "network";
+
     @Value("${cloudify3.externalNetworkName}")
     private String externalNetworkName;
 
