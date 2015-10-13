@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
+import alien4cloud.exception.InvalidArgumentException;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IndexedModelUtils;
 import alien4cloud.model.components.IndexedNodeType;
@@ -16,13 +17,23 @@ import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 @Component("cloudify-deployment-builder-service")
 @Slf4j
 public class CloudifyDeploymentBuilderService {
+
+    private List<IndexedNodeType> getTypesOrderedByDerivedFromHierarchy(List<PaaSNodeTemplate> nodes) {
+        Map<String, IndexedNodeType> nodeTypeMap = Maps.newHashMap();
+        for (PaaSNodeTemplate node : nodes) {
+            nodeTypeMap.put(node.getIndexedToscaElement().getElementId(), node.getIndexedToscaElement());
+        }
+        return IndexedModelUtils.orderByDerivedFromHierarchy(nodeTypeMap);
+    }
 
     private Map<String, PaaSNodeTemplate> buildTemplateMap(List<PaaSNodeTemplate> templateList) {
         Map<String, PaaSNodeTemplate> computeMap = Maps.newHashMap();
@@ -32,14 +43,25 @@ public class CloudifyDeploymentBuilderService {
         return computeMap;
     }
 
-    /**
-     * Parse the alien deployment context to produce a more blueprint generation friendly format (make the blueprint generation easier)
-     * 
-     * @param deploymentContext the deployment context
-     * @return the cloudify deployment
-     */
     public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
+
         Map<String, PaaSNodeTemplate> computesMap = buildTemplateMap(deploymentContext.getPaaSTopology().getComputes());
+        List<PaaSNodeTemplate> allNetworks = deploymentContext.getPaaSTopology().getNetworks();
+        List<PaaSNodeTemplate> publicNetworks = Lists.newArrayList();
+        List<PaaSNodeTemplate> privateNetworks = Lists.newArrayList();
+        for (PaaSNodeTemplate network : allNetworks) {
+            if (ToscaUtils.isFromType("alien.nodes.PublicNetwork", network.getIndexedToscaElement())) {
+                publicNetworks.add(network);
+            } else if (ToscaUtils.isFromType("alien.nodes.PrivateNetwork", network.getIndexedToscaElement())) {
+                privateNetworks.add(network);
+            } else {
+                throw new InvalidArgumentException(
+                        "The type " + network.getTemplate().getType() + " must extends alien.nodes.PublicNetwork or alien.nodes.PrivateNetwork");
+            }
+        }
+        Map<String, PaaSNodeTemplate> publicNetworksMap = buildTemplateMap(publicNetworks);
+        Map<String, PaaSNodeTemplate> privateNetworksMap = buildTemplateMap(privateNetworks);
+
         Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
         Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
         for (PaaSNodeTemplate nonNative : deploymentContext.getPaaSTopology().getNonNatives()) {
@@ -76,11 +98,14 @@ public class CloudifyDeploymentBuilderService {
                 }
             }
         }
+        List<IndexedNodeType> nativeTypes = getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getComputes());
+        nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()));
+        nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()));
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
-                deploymentContext.getPaaSTopology().getComputes(), computesMap, deploymentContext.getPaaSTopology().getNonNatives(),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), deploymentContext.getPaaSTopology().getAllNodes(), allArtifacts,
-                allRelationshipArtifacts, deploymentContext.getDeploymentTopology().getProviderDeploymentProperties(),
+                deploymentContext.getPaaSTopology().getComputes(), computesMap, publicNetworks, publicNetworksMap, privateNetworks, privateNetworksMap,
+                deploymentContext.getPaaSTopology().getNonNatives(), IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
+                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), nativeTypes, deploymentContext.getPaaSTopology().getAllNodes(),
+                allArtifacts, allRelationshipArtifacts, deploymentContext.getDeploymentTopology().getProviderDeploymentProperties(),
                 deploymentContext.getDeploymentTopology().getWorkflows());
         return deployment;
     }

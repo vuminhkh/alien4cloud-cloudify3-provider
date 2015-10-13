@@ -1,35 +1,10 @@
 ## Compute types
-#if($util.common.collectionHasElement(${deployment.computes}))
-  ${mapping.generatedTypePrefix}.Compute:
-    derived_from: ${providerMapping.nativeTypes.computeType}
+#if($util.collectionHasElement(${deployment.nativeTypes}))
+#foreach($nativeType in ${deployment.nativeTypes})
+  ${nativeType.elementId}:
+    derived_from: ${util.nativeType.mapToCloudifyType($nativeType)}
     properties:
       ${mapping.nativeTypePropertyName}:
-        default: compute
+        default: ${util.nativeType.getCloudifyNativeType($nativeType)}
 #end
-
-## Floating IP types
-#if($util.common.collectionHasElement(${deployment.externalNetworks}))
-  ${mapping.generatedTypePrefix}.FloatingIP:
-    derived_from: ${providerMapping.nativeTypes.floatingIpType}
-    properties:
-      ${mapping.nativeTypePropertyName}:
-        default: floating_ip
-#end
-
-## Volume types
-#if($util.common.collectionHasElement(${deployment.volumes}))
-  ${mapping.generatedTypePrefix}.Volume:
-    derived_from: ${providerMapping.nativeTypes.volumeType}
-    properties:
-      ${mapping.nativeTypePropertyName}:
-        default: volume
-#end
-
-## Network types
-#if($util.common.collectionHasElement(${deployment.networks}))
-  ${mapping.generatedTypePrefix}.Network:
-    derived_from: ${providerMapping.nativeTypes.volumeType}
-    properties:
-      ${mapping.nativeTypePropertyName}:
-        default: network
 #end

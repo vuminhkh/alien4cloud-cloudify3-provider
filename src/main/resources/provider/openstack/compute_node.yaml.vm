@@ -1,2 +1,24 @@
 #parse("provider/common/generic_resource.yaml.vm")
-#providerResourceNodes("Compute", ${deployment.computes})
+#foreach($compute in ${deployment.computes})
+#providerResourceNode(${compute.type}, $compute)
+#set( $publicNetworks = ${util.network.getPublicNetworks($compute)} )
+#set( $privateNetworks = ${util.network.getPrivateNetworks($compute)} )
+#if($util.collectionHasElement(${publicNetworks}) || $util.collectionHasElement(${privateNetworks}))
+    relationships:
+#foreach($internalNetwork in ${util.network.getInternalNetworks($compute)})
+      - target: ${internalNetwork.id}
+        type: cloudify.relationships.connected_to
+      - target: ${internalNetwork.id}_subnet
+        type: cloudify.relationships.depends_on
+#end
+#foreach($externalNetwork in ${util.network.getExternalNetworks($compute)})
+      - target: ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}
+        type: ${util.network.getFloatingIPNativeRelationshipType(${externalNetwork.indexedToscaElement})}
+  ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}:
+    type: ${externalNetwork.type}
+    properties:
+      floatingip:
+        floating_network_name: ${util.network.getExternalNetworkName($externalNetwork)}
+#end
+#end
+#end
