@@ -2,11 +2,14 @@ package alien4cloud.paas.cloudify3.service;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Resource;
 
+import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
+import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
@@ -36,6 +39,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 @Component("cloudify-deployment-service")
 @Slf4j
 public class DeploymentService extends RuntimeService {
+    @Resource
+    private DeploymentClient deploymentClient;
+
 
     @Resource
     private BlueprintService blueprintService;
@@ -49,6 +55,19 @@ public class DeploymentService extends RuntimeService {
     @Resource
     private StatusService statusService;
 
+    /**
+     * Deploy a topology to cloudify.
+     * <ul>
+     * <li>Map the "DeploymentPaaSId" used as cloudify 'Blueprint Id' to identify the deployment to alien's "DeploymentId" used to identify the deployment in a4c.</li>
+     * <li>Generate a cloudify blueprint from the topology</li>
+     * <li>Save (Create) the blueprint into cloudify so it is available for deployment (using rest api)</li>
+     * <li>Create a deployment.</li>
+     * <li>Trigger the install workflow.</li>
+     * </ul>
+     *
+     * @param alienDeployment The deployment information based on the a4c topology.
+     * @return A future linked to the install workflow completed execution.
+     */
     public ListenableFuture<Execution> deploy(final CloudifyDeployment alienDeployment) {
         DeploymentStatus currentStatus = statusService.getStatus(alienDeployment.getDeploymentPaaSId());
         if (!DeploymentStatus.UNDEPLOYED.equals(currentStatus)) {
@@ -59,6 +78,7 @@ public class DeploymentService extends RuntimeService {
         log.info("Deploying {} for alien deployment {}", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId());
         eventService.registerDeploymentEvent(alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.DEPLOYMENT_IN_PROGRESS);
 
+        // generate the blueprint and return in case of failure.
         Path blueprintPath;
         try {
             blueprintPath = blueprintService.generateBlueprint(alienDeployment);
@@ -69,49 +89,111 @@ public class DeploymentService extends RuntimeService {
             return Futures.immediateFailedFuture(e);
         }
 
+        // Note: The following code is asynchronous and uses Google Guava Futures to chain (using Futures.transform) several operations.
+        // Each operation is triggered once the previous one has been completed and use the result of the previous operation as a parameter for the next one.
+
+        // Save the blueprint in Cloudify catalog so it is available for deployment.
         ListenableFuture<Blueprint> createdBlueprint = blueprintClient.asyncCreate(alienDeployment.getDeploymentPaaSId(), blueprintPath.toString());
-        AsyncFunction<Blueprint, Deployment> createDeploymentFunction = new AsyncFunction<Blueprint, Deployment>() {
-            @Override
-            public ListenableFuture<Deployment> apply(Blueprint blueprint) throws Exception {
-                return waitForDeploymentExecutionsFinish(
-                        deploymentDAO.asyncCreate(alienDeployment.getDeploymentPaaSId(), blueprint.getId(), Maps.<String, Object> newHashMap()));
-            }
-        };
-        ListenableFuture<Deployment> createdDeployment = Futures.transform(createdBlueprint, createDeploymentFunction);
-        AsyncFunction<Deployment, Execution> startExecutionFunction = new AsyncFunction<Deployment, Execution>() {
-            @Override
-            public ListenableFuture<Execution> apply(Deployment deployment) throws Exception {
-                return waitForExecutionFinish(executionDAO.asyncStart(deployment.getId(), Workflow.INSTALL, null, false, false));
-            }
-        };
-        ListenableFuture<Execution> executionFuture = Futures.transform(createdDeployment, startExecutionFunction);
-        addFailureCallback(executionFuture, "Deployment", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
-        return executionFuture;
+        // Create the deployment in cloudify - result doesn't guarantee that the deployment is created but that the deployment is being created (creating) by cloudify.
+        ListenableFuture<Deployment> creatingDeployment = Futures.transform(createdBlueprint, createDeploymentFunction(alienDeployment.getDeploymentPaaSId(), Maps.<String, Object>newHashMap()));
+        // Wait until the deployment is created
+        ListenableFuture<Deployment> createdDeployment = waitForDeploymentExecutionsFinish(creatingDeployment);
+        // Trigger the install workflow
+        ListenableFuture<Execution> installingExecution = Futures.transform(createdDeployment, installExecutionFunction());
+        // Wait until the install workflow is completed
+        ListenableFuture<Execution> installedExecution = waitForExecutionFinish(installingExecution);
+
+        // Add a callback to handled failures and provide alien with the correct events.
+        addFailureCallback(installedExecution, "Deployment", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
+        return installedExecution;
     }
 
+    /**
+     * Wraps the deployment client asyncCreate operation into an AsyncFunction so it can be chained using Futures.transform and uses the Blueprint as a parameter once available.
+     */
+    private AsyncFunction<Blueprint, Deployment> createDeploymentFunction(final String id, final Map<String, Object> inputs) {
+        return new AsyncFunction<Blueprint, Deployment>() {
+            @Override
+            public ListenableFuture<Deployment> apply(Blueprint blueprint) throws Exception {
+                return deploymentClient.asyncCreate(id, blueprint.getId(), inputs);
+            }
+        };
+    }
+
+    /**
+     * Wraps the deployment client asyncCreate operation into an AsyncFunction so it can be chained using Futures.transform and uses the Blueprint as a parameter once available.
+     */
+    private AsyncFunction<Deployment, Execution> installExecutionFunction() {
+        return new AsyncFunction<Deployment, Execution>() {
+            @Override
+            public ListenableFuture<Execution> apply(Deployment deployment) throws Exception {
+                return executionClient.asyncStart(deployment.getId(), Workflow.INSTALL, null, false, false);
+            }
+        };
+    }
+
+    /**
+     * Undeploy an application from cloudify.
+     * <ul>
+     * <li>Delete alien generated blueprint from the local filesystem.</li>
+     * <li>Delete blueprint from cloudify catalog.</li>
+     * <li>Delete blueprint from cloudify catalog.</li>
+     * </ul>
+     *
+     * @param deploymentContext
+     * @return
+     */
     public ListenableFuture<?> undeploy(final PaaSDeploymentContext deploymentContext) {
+        // check that the application is not already undeployed
         DeploymentStatus currentStatus = statusService.getStatus(deploymentContext.getDeploymentPaaSId());
         if (DeploymentStatus.UNDEPLOYED.equals(currentStatus) || DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS.equals(currentStatus)) {
             log.info("Deployment " + deploymentContext.getDeploymentPaaSId() + " has already been undeployed");
             return Futures.immediateFuture(null);
         }
+
+        // start undeployment process and update alien status.
         log.info("Undeploying recipe {} with alien's deployment id {}", deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId());
         eventService.registerDeploymentEvent(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
                 DeploymentStatus.UNDEPLOYMENT_IN_PROGRESS);
+
+        // Remove blueprint from the file system (alien) - we keep it for debuging perspective as long as deployment is up.
         blueprintService.deleteBlueprint(deploymentContext.getDeploymentPaaSId());
+
+        // Cancel all running executions for this deployment.
         ListenableFuture<NodeInstance[]> cancelRunningExecutionsFuture = cancelAllRunningExecutions(deploymentContext.getDeploymentPaaSId());
-        AsyncFunction<NodeInstance[], Execution> startUninstallFunction = new AsyncFunction<NodeInstance[], Execution>() {
+        // Once all executions are cancelled we start the un-deployment workflow.
+        ListenableFuture<Execution> uninstalled = Futures.transform(cancelRunningExecutionsFuture, uninstallFunction(deploymentContext));
+        // Delete the deployment from cloudify.
+        ListenableFuture<?> deletedDeployment = Futures.transform(uninstalled, deleteDeploymentFunction(deploymentContext));
+        // Delete the blueprint from cloudify.
+        ListenableFuture<?> undeploymentFuture = Futures.transform(deletedDeployment, deleteBlueprintFunction(deploymentContext));
+
+        // Add a callback to handled failures and provide alien with the correct events.
+        // TODO should we check the status of the deployment before we mark it as undeployed ?
+        addFailureCallback(undeploymentFuture, "Undeployment", deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
+                DeploymentStatus.UNDEPLOYED);
+        return undeploymentFuture;
+    }
+
+    private AsyncFunction<NodeInstance[], Execution> uninstallFunction(final PaaSDeploymentContext deploymentContext) {
+        return new AsyncFunction<NodeInstance[], Execution>() {
             @Override
             public ListenableFuture<Execution> apply(NodeInstance[] livingNodes) throws Exception {
                 if (livingNodes != null && livingNodes.length > 0) {
-                    return waitForExecutionFinish(executionDAO.asyncStart(deploymentContext.getDeploymentPaaSId(), Workflow.UNINSTALL, null, false, true));
+                    // trigger the uninstall workflow only if there is some node instances.
+                    ListenableFuture<Execution> triggeredUninstallWorkflow = executionClient.asyncStart(deploymentContext.getDeploymentPaaSId(), Workflow.UNINSTALL, null, false, true);
+                    // ensure that the workflow execution is finished.
+                    return waitForExecutionFinish(triggeredUninstallWorkflow);
                 } else {
                     return Futures.immediateFuture(null);
                 }
             }
         };
-        ListenableFuture<?> startUninstall = Futures.transform(cancelRunningExecutionsFuture, startUninstallFunction);
-        AsyncFunction<Object, Object> deleteDeploymentFunction = new AsyncFunction<Object, Object>() {
+    }
+
+
+    private AsyncFunction<Object, Object> deleteDeploymentFunction(final PaaSDeploymentContext deploymentContext) {
+        return new AsyncFunction<Object, Object>() {
             @Override
             public ListenableFuture<Object> apply(Object input) throws Exception {
                 // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of deployment 2 seconds after the
@@ -119,17 +201,19 @@ public class DeploymentService extends RuntimeService {
                 return Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
                     @Override
                     public ListenableFuture<?> call() throws Exception {
-                        return deploymentDAO.asyncDelete(deploymentContext.getDeploymentPaaSId());
+                        return deploymentClient.asyncDelete(deploymentContext.getDeploymentPaaSId());
                     }
                 }, 2, TimeUnit.SECONDS));
             }
         };
-        ListenableFuture<?> deletedDeployment = Futures.transform(startUninstall, deleteDeploymentFunction);
-        // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of blueprint 2 seconds after the delete of
-        // deployment
-        AsyncFunction<Object, Object> deleteBlueprintFunction = new AsyncFunction<Object, Object>() {
+    }
+
+    private AsyncFunction<Object, Object> deleteBlueprintFunction(final PaaSDeploymentContext deploymentContext) {
+        return new AsyncFunction<Object, Object>() {
             @Override
             public ListenableFuture<Object> apply(Object input) throws Exception {
+                // TODO Due to bug index not refreshed of cloudify 3.1 (will be corrected in 3.2). We schedule the delete of blueprint 2 seconds after the delete of
+                // deployment
                 return Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
                     @Override
                     public ListenableFuture<?> call() throws Exception {
@@ -138,14 +222,10 @@ public class DeploymentService extends RuntimeService {
                 }, 2, TimeUnit.SECONDS));
             }
         };
-        ListenableFuture<?> undeploymentFuture = Futures.transform(deletedDeployment, deleteBlueprintFunction);
-        addFailureCallback(undeploymentFuture, "Undeployment", deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
-                DeploymentStatus.UNDEPLOYED);
-        return undeploymentFuture;
     }
 
     private void addFailureCallback(ListenableFuture future, final String operationName, final String deploymentPaaSId, final String deploymentId,
-            final DeploymentStatus status) {
+                                    final DeploymentStatus status) {
         Futures.addCallback(future, new FutureCallback<Execution>() {
             @Override
             public void onSuccess(Execution result) {

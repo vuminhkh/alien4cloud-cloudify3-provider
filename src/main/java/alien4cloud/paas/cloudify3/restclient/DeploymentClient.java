@@ -2,6 +2,8 @@ package alien4cloud.paas.cloudify3.restclient;
 
 import java.util.Map;
 
+import alien4cloud.paas.cloudify3.model.Blueprint;
+import com.google.common.util.concurrent.AsyncFunction;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 

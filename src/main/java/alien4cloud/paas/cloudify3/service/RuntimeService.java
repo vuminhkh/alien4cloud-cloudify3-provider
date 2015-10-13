@@ -25,22 +25,24 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 /**
- * Base class to manage deployment's runtime
+ * Base class to manage deployment's runtime.
  */
 @Slf4j
 public abstract class RuntimeService {
+    @Resource
+    private NodeInstanceClient nodeInstanceClient;
 
     @Resource
-    protected DeploymentClient deploymentDAO;
-
-    @Resource
-    protected ExecutionClient executionDAO;
-
-    @Resource
-    protected NodeInstanceClient nodeInstanceDAO;
+    protected ExecutionClient executionClient;
 
     protected ListeningScheduledExecutorService scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1));
 
+    /**
+     * This methods uses Futures.transform to recursively check that the execution provided as a parameter is completed (by calling cloudify rest api) before returning it.
+     *
+     * @param futureExecution The future execution that has been triggered but may not be completed.
+     * @return The future execution that is now completed.
+     */
     protected ListenableFuture<Execution> waitForExecutionFinish(final ListenableFuture<Execution> futureExecution) {
         AsyncFunction<Execution, Execution> waitFunc = new AsyncFunction<Execution, Execution>() {
             @Override
@@ -52,11 +54,11 @@ public abstract class RuntimeService {
                     // If it's not finished, schedule another poll in 2 seconds
                     ListenableFuture<Execution> newFutureExecution = Futures
                             .dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<Execution>>() {
-                        @Override
-                        public ListenableFuture<Execution> call() throws Exception {
-                            return executionDAO.asyncRead(execution.getId());
-                        }
-                    }, 2, TimeUnit.SECONDS));
+                                @Override
+                                public ListenableFuture<Execution> call() throws Exception {
+                                    return executionClient.asyncRead(execution.getId());
+                                }
+                            }, 2, TimeUnit.SECONDS));
                     return waitForExecutionFinish(newFutureExecution);
                 }
             }
@@ -64,7 +66,34 @@ public abstract class RuntimeService {
         return Futures.transform(futureExecution, waitFunc);
     }
 
-    protected ListenableFuture<Execution[]> waitForDeploymentExecutionsFinish(final String deploymentId, final ListenableFuture<Execution[]> futureExecutions) {
+    /**
+     * Return a function that waits recursively until the deployment is created in cloudify (All pending executions to create the deployment are indeed completed).
+     *
+     * @return An AsyncFunction that will return the Deployment only after all pending executions to create the deployment are completed.
+     */
+    protected ListenableFuture<Deployment> waitForDeploymentExecutionsFinish(final ListenableFuture<Deployment> futureDeployment) {
+        if (log.isDebugEnabled()) {
+            log.debug("Begin waiting for all executions finished for deployment");
+        }
+        AsyncFunction<Deployment, Deployment> waitFunc = new AsyncFunction<Deployment, Deployment>() {
+            @Override
+            public ListenableFuture<Deployment> apply(final Deployment deployment) throws Exception {
+                final ListenableFuture<Execution[]> futureExecutions = waitForDeploymentExecutionsFinish(deployment.getId(),
+                        executionClient.asyncList(deployment.getId()));
+                Function<Execution[], Deployment> adaptFunc = new Function<Execution[], Deployment>() {
+                    @Override
+                    public Deployment apply(Execution[] input) {
+                        log.info("All execution has finished for deployment {}", deployment.getId());
+                        return deployment;
+                    }
+                };
+                return Futures.transform(futureExecutions, adaptFunc);
+            }
+        };
+        return Futures.transform(futureDeployment, waitFunc);
+    }
+
+    private ListenableFuture<Execution[]> waitForDeploymentExecutionsFinish(final String deploymentId, final ListenableFuture<Execution[]> futureExecutions) {
         AsyncFunction<Execution[], Execution[]> waitFunc = new AsyncFunction<Execution[], Execution[]>() {
             @Override
             public ListenableFuture<Execution[]> apply(final Execution[] executions) throws Exception {
@@ -91,11 +120,11 @@ public abstract class RuntimeService {
                     // If it's not finished, schedule another poll in 2 seconds
                     ListenableFuture<Execution[]> newFutureExecutions = Futures
                             .dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<Execution[]>>() {
-                        @Override
-                        public ListenableFuture<Execution[]> call() throws Exception {
-                            return executionDAO.asyncList(deploymentId);
-                        }
-                    }, 2, TimeUnit.SECONDS));
+                                @Override
+                                public ListenableFuture<Execution[]> call() throws Exception {
+                                    return executionClient.asyncList(deploymentId);
+                                }
+                            }, 2, TimeUnit.SECONDS));
                     return waitForDeploymentExecutionsFinish(deploymentId, newFutureExecutions);
                 }
             }
@@ -103,30 +132,8 @@ public abstract class RuntimeService {
         return Futures.transform(futureExecutions, waitFunc);
     }
 
-    protected ListenableFuture<Deployment> waitForDeploymentExecutionsFinish(final ListenableFuture<Deployment> futureDeployment) {
-        if (log.isDebugEnabled()) {
-            log.debug("Begin waiting for all executions finished for deployment");
-        }
-        AsyncFunction<Deployment, Deployment> waitFunc = new AsyncFunction<Deployment, Deployment>() {
-            @Override
-            public ListenableFuture<Deployment> apply(final Deployment deployment) throws Exception {
-                final ListenableFuture<Execution[]> futureExecutions = waitForDeploymentExecutionsFinish(deployment.getId(),
-                        executionDAO.asyncList(deployment.getId()));
-                Function<Execution[], Deployment> adaptFunc = new Function<Execution[], Deployment>() {
-                    @Override
-                    public Deployment apply(Execution[] input) {
-                        log.info("All execution has finished for deployment {}", deployment.getId());
-                        return deployment;
-                    }
-                };
-                return Futures.transform(futureExecutions, adaptFunc);
-            }
-        };
-        return Futures.transform(futureDeployment, waitFunc);
-    }
-
     protected ListenableFuture<NodeInstance[]> cancelAllRunningExecutions(final String deploymentPaaSId) {
-        ListenableFuture<Execution[]> currentExecutions = executionDAO.asyncList(deploymentPaaSId);
+        ListenableFuture<Execution[]> currentExecutions = executionClient.asyncList(deploymentPaaSId);
         AsyncFunction<Execution[], ?> abortCurrentExecutionsFunction = new AsyncFunction<Execution[], List<Execution>>() {
 
             @Override
@@ -134,7 +141,7 @@ public abstract class RuntimeService {
                 List<ListenableFuture<Execution>> abortExecutions = Lists.newArrayList();
                 for (Execution execution : executions) {
                     if (!ExecutionStatus.isTerminated(execution.getStatus())) {
-                        abortExecutions.add(executionDAO.asyncCancel(execution.getId(), true));
+                        abortExecutions.add(executionClient.asyncCancel(execution.getId(), true));
                     }
                 }
                 return Futures.allAsList(abortExecutions);
@@ -144,7 +151,7 @@ public abstract class RuntimeService {
         AsyncFunction<Object, NodeInstance[]> livingNodesRetrievalFunction = new AsyncFunction<Object, NodeInstance[]>() {
             @Override
             public ListenableFuture<NodeInstance[]> apply(Object input) throws Exception {
-                return nodeInstanceDAO.asyncList(deploymentPaaSId);
+                return nodeInstanceClient.asyncList(deploymentPaaSId);
             }
         };
         return Futures.transform(abortCurrentExecutionsFuture, livingNodesRetrievalFunction);
