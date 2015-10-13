@@ -1,2 +1,14 @@
 #parse("provider/common/generic_resource.yaml.vm")
-#providerResourceNodes("Network", ${deployment.networks})
+#foreach($network in ${deployment.internalNetworks})
+#providerResourceNode(${network.nodeTemplate.type}, $network)
+  ${network.id}_subnet:
+    type: ${util.network.getNativePropertyValue(${network.indexedToscaElement}, "_a4c_subnet_mapped_to")}
+    properties:
+      resource_id: ${network.id}_subnet
+      subnet:
+        ip_version: ${network.nodeTemplate.properties.get("ipVersion").value}
+        cidr: ${network.nodeTemplate.properties.get("cidr").value}
+    relationships:
+      - target: ${network.id}
+        type: cloudify.relationships.contained_in
+#end

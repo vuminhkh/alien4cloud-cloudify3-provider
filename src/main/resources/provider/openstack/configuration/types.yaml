@@ -78,6 +78,11 @@ node_types:
         default: cloudify.openstack.nodes.Server
         constraints:
           - equal: cloudify.openstack.nodes.Server
+      _a4c_native_type:
+        type: string
+        default: compute
+        constraints:
+          - equal: compute
       server:
         type: map
         entry_schema:
@@ -114,10 +119,22 @@ node_types:
   alien.nodes.PublicNetwork:
     abstract: true
     derived_from: tosca.nodes.Network
+    properties:
+      _a4c_native_type:
+        type: string
+        default: floating_ip
+        constraints:
+          - equal: floating_ip
 
   alien.nodes.PrivateNetwork:
     abstract: true
     derived_from: tosca.nodes.Network
+    properties:
+      _a4c_native_type:
+        type: string
+        default: network
+        constraints:
+          - equal: network
 
   alien.nodes.openstack.PublicNetwork:
     derived_from: alien.nodes.PublicNetwork

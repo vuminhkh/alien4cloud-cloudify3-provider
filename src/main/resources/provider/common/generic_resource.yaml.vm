@@ -6,7 +6,7 @@
 
 #macro(providerResourceNode $typeName $template)
   ${template.id}:
-    type: "${mapping.generatedTypePrefix}.$typeName"
+    type: $typeName
     properties: ${util.common.formatProperties(3, $template.nodeTemplate.properties)}
 #if(${template.scalingPolicy})
     instances:

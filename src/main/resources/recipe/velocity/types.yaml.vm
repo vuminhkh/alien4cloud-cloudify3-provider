@@ -1,10 +1,10 @@
 ## Compute types
-#if($util.collectionHasElement(${deployment.nativeTypes}))
+#if($util.common.collectionHasElement(${deployment.nativeTypes}))
 #foreach($nativeType in ${deployment.nativeTypes})
   ${nativeType.elementId}:
-    derived_from: ${util.nativeType.mapToCloudifyType($nativeType)}
+    derived_from: ${util.compute.mapToCloudifyType($nativeType)}
     properties:
       ${mapping.nativeTypePropertyName}:
-        default: ${util.nativeType.getCloudifyNativeType($nativeType)}
+        default: ${util.compute.getCloudifyNativeType($nativeType)}
 #end
 #end

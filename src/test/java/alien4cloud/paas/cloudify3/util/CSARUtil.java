@@ -8,6 +8,7 @@ import javax.annotation.Resource;
 
 import alien4cloud.model.components.Csar;
 import alien4cloud.tosca.parser.ParsingError;
+import alien4cloud.tosca.parser.ParsingErrorLevel;
 import alien4cloud.tosca.parser.ParsingResult;
 import lombok.extern.slf4j.Slf4j;
 
@@ -57,11 +58,17 @@ public class CSARUtil {
         Authentication auth = new TestingAuthenticationToken(Role.ADMIN, "", Role.ADMIN.name());
         SecurityContextHolder.getContext().setAuthentication(auth);
         ParsingResult<Csar> result = archiveUploadService.upload(zipPath);
-        if(result.getContext().getParsingErrors() != null && !result.getContext().getParsingErrors().isEmpty()) {
-            for(ParsingError error: result.getContext().getParsingErrors()) {
+        if (result.getContext().getParsingErrors() != null && !result.getContext().getParsingErrors().isEmpty()) {
+            boolean hasError = false;
+            for (ParsingError error : result.getContext().getParsingErrors()) {
                 log.error("Parsing error: " + error);
+                if (error.getErrorLevel().equals(ParsingErrorLevel.ERROR)) {
+                    hasError = true;
+                }
             }
-            throw new RuntimeException("Parsing of csar failed");
+            if (hasError) {
+                throw new RuntimeException("Parsing of csar failed");
+            }
         }
     }
 
@@ -100,15 +107,15 @@ public class CSARUtil {
 
     public void uploadAll() throws Exception {
         repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_SAMPLES, BRANCH_FOR_SAMPLES, SAMPLES_TYPES_NAME);
-        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_NORMATIVES, "master", TOSCA_NORMATIVE_TYPES_NAME);
+        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_NORMATIVES, "1.0.0.wd06.alien", TOSCA_NORMATIVE_TYPES_NAME);
         repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_STORAGE, "master", ALIEN4CLOUD_STORAGE_TYPES);
         uploadNormativeTypes();
-        uploadStorage();
-        uploadTomcat();
-        uploadApacheTypes();
-        uploadMySqlTypes();
-        uploadPHPTypes();
-        uploadWordpress();
-        uploadArtifactTest();
+//        uploadStorage();
+//        uploadTomcat();
+//        uploadApacheTypes();
+//        uploadMySqlTypes();
+//        uploadPHPTypes();
+//        uploadWordpress();
+//        uploadArtifactTest();
     }
 }

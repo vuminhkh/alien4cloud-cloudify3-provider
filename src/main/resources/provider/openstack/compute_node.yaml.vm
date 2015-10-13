@@ -1,7 +1,7 @@
 #parse("provider/common/generic_resource.yaml.vm")
 #foreach($compute in ${deployment.computes})
-#providerResourceNode(${compute.type}, $compute)
-#set( $publicNetworks = ${util.network.getPublicNetworks($compute)} )
+#providerResourceNode(${compute.nodeTemplate.type}, $compute)
+#set( $publicNetworks = ${util.network.getExternalNetworks($compute)} )
 #set( $privateNetworks = ${util.network.getPrivateNetworks($compute)} )
 #if($util.collectionHasElement(${publicNetworks}) || $util.collectionHasElement(${privateNetworks}))
     relationships:
@@ -13,12 +13,10 @@
 #end
 #foreach($externalNetwork in ${util.network.getExternalNetworks($compute)})
       - target: ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}
-        type: ${util.network.getFloatingIPNativeRelationshipType(${externalNetwork.indexedToscaElement})}
+        type: ${util.network.getNativePropertyValue(${externalNetwork.indexedToscaElement}, "_a4c_floating_ip_relationship_mapped_to")}
   ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}:
     type: ${externalNetwork.type}
-    properties:
-      floatingip:
-        floating_network_name: ${util.network.getExternalNetworkName($externalNetwork)}
+    properties: ${util.common.formatProperties(3, $externalNetwork.nodeTemplate.properties)}
 #end
 #end
 #end

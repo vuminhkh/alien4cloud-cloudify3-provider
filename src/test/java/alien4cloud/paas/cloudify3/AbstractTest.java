@@ -10,18 +10,21 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.google.common.collect.Lists;
+
 import alien4cloud.it.Context;
 import alien4cloud.model.deployment.DeploymentTopology;
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.Topology;
+import alien4cloud.orchestrators.plugin.model.PluginArchive;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
+import alien4cloud.paas.cloudify3.location.OpenstackLocationConfigurator;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
+import alien4cloud.tosca.ArchiveIndexer;
 import alien4cloud.tosca.normative.NormativeComputeConstants;
+import alien4cloud.tosca.parser.ParsingError;
 import alien4cloud.utils.FileUtil;
-
-import com.google.common.collect.Lists;
 
 public class AbstractTest {
 
@@ -41,8 +44,11 @@ public class AbstractTest {
     @Resource
     private CSARUtil csarUtil;
 
-    @Resource(name = "cloudify-deployment-builder-service")
-    private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
+    @Resource
+    private OpenstackLocationConfigurator openstackLocationConfigurator;
+
+    @Resource
+    private ArchiveIndexer archiveIndexer;
 
     @BeforeClass
     public static void cleanup() throws IOException {
@@ -64,6 +70,13 @@ public class AbstractTest {
         cloudConfiguration.setUrl(cloudifyURL);
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         csarUtil.uploadAll();
+        // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded
+        openstackLocationConfigurator.postConstruct();
+        List<ParsingError> parsingErrors = Lists.newArrayList();
+        for (PluginArchive pluginArchive : openstackLocationConfigurator.pluginArchives()) {
+            // index the archive in alien catalog
+            archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
+        }
     }
 
     protected DeploymentTopology generateDeploymentSetup(Topology topology) {
