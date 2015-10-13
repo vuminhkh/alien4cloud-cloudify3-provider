@@ -41,7 +41,7 @@ public class DeploymentService extends RuntimeService {
     private BlueprintService blueprintService;
 
     @Resource
-    private BlueprintClient blueprintDAO;
+    private BlueprintClient blueprintClient;
 
     @Resource
     private EventService eventService;
@@ -58,6 +58,7 @@ public class DeploymentService extends RuntimeService {
         // Cloudify 3 will use recipe id to identify a blueprint and a deployment instead of deployment id
         log.info("Deploying {} for alien deployment {}", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId());
         eventService.registerDeploymentEvent(alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.DEPLOYMENT_IN_PROGRESS);
+
         Path blueprintPath;
         try {
             blueprintPath = blueprintService.generateBlueprint(alienDeployment);
@@ -67,7 +68,8 @@ public class DeploymentService extends RuntimeService {
             eventService.registerDeploymentEvent(alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
             return Futures.immediateFailedFuture(e);
         }
-        ListenableFuture<Blueprint> createdBlueprint = blueprintDAO.asyncCreate(alienDeployment.getDeploymentPaaSId(), blueprintPath.toString());
+
+        ListenableFuture<Blueprint> createdBlueprint = blueprintClient.asyncCreate(alienDeployment.getDeploymentPaaSId(), blueprintPath.toString());
         AsyncFunction<Blueprint, Deployment> createDeploymentFunction = new AsyncFunction<Blueprint, Deployment>() {
             @Override
             public ListenableFuture<Deployment> apply(Blueprint blueprint) throws Exception {
@@ -131,7 +133,7 @@ public class DeploymentService extends RuntimeService {
                 return Futures.dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<?>>() {
                     @Override
                     public ListenableFuture<?> call() throws Exception {
-                        return blueprintDAO.asyncDelete(deploymentContext.getDeploymentPaaSId());
+                        return blueprintClient.asyncDelete(deploymentContext.getDeploymentPaaSId());
                     }
                 }, 2, TimeUnit.SECONDS));
             }
