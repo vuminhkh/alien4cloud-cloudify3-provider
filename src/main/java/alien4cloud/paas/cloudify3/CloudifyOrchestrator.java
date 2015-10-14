@@ -6,6 +6,10 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import alien4cloud.model.topology.LocationPlacementPolicy;
+import alien4cloud.model.topology.NodeGroup;
+import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
+import alien4cloud.paas.cloudify3.error.SingleLocationRequiredException;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang.NotImplementedException;
@@ -68,6 +72,9 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     @Resource
     private StatusService statusService;
 
+    @Resource
+    private MappingConfigurationHolder mappingConfigurationHolder;
+
     /**
      * ********************************************************************************************************************
      * *****************************************************Deployment*****************************************************
@@ -76,8 +83,15 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
 
     @Override
     public void deploy(PaaSTopologyDeploymentContext deploymentContext, final IPaaSCallback callback) {
-        CloudifyDeployment deployment = cloudifyDeploymentBuilderService.buildCloudifyDeployment(deploymentContext);
-        FutureUtil.associateFutureToPaaSCallback(deploymentService.deploy(deployment), callback);
+        try {
+            // Make sure the mapping is initialized for the deployment location
+            mappingConfigurationHolder.loadProviderMapping(deploymentContext.getDeploymentTopology());
+
+            CloudifyDeployment deployment = cloudifyDeploymentBuilderService.buildCloudifyDeployment(deploymentContext);
+            FutureUtil.associateFutureToPaaSCallback(deploymentService.deploy(deployment), callback);
+        } catch (SingleLocationRequiredException e) {
+            callback.onFailure(e);
+        }
     }
 
     @Override

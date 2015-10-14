@@ -22,7 +22,7 @@ public class CloudConfigurationHolder {
     private CloudConfiguration configuration;
 
     @Resource
-    private VersionClient versionDAO;
+    private VersionClient versionClient;
 
     private List<ICloudConfigurationChangeListener> listeners = Lists.newArrayList();
 
@@ -30,7 +30,7 @@ public class CloudConfigurationHolder {
         this.registerListener(new ICloudConfigurationChangeListener() {
             @Override
             public void onConfigurationChange(CloudConfiguration newConfiguration) throws Exception {
-                Version version = versionDAO.read();
+                Version version = versionClient.read();
                 log.info("Configure PaaS provider for Cloudify version " + version.getVersion());
             }
         });
