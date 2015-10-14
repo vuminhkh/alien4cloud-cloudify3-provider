@@ -148,11 +148,7 @@ public class BlueprintService {
                 }
             }
         }
-        Path nativeArtifactDirectory = generatedBlueprintDirectoryPath
-                .resolve(mappingConfigurationHolder.getMappingConfiguration().getNativeArtifactDirectoryName());
-        if (Files.exists(nativeArtifactDirectory)) {
-            throw new IOException(nativeArtifactDirectory.getFileName() + " is a reserved name, please choose another name for your archive");
-        }
+
         for (PaaSNodeTemplate node : alienDeployment.getNonNatives()) {
             Map<String, Interface> interfaces = util.getNonNative().getNodeInterfaces(node);
             if (MapUtils.isNotEmpty(interfaces)) {
