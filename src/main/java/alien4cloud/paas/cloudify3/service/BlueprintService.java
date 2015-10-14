@@ -91,6 +91,12 @@ public class BlueprintService {
         }
     }
 
+    /**
+     * Delete a blueprint on the file system.
+     * 
+     * @param deploymentPaaSId
+     *            Alien's paas deployment id used to identify the blueprint.
+     */
     public void deleteBlueprint(String deploymentPaaSId) {
         try {
             FileUtil.delete(resolveBlueprintPath(deploymentPaaSId));
@@ -102,7 +108,8 @@ public class BlueprintService {
     /**
      * Generate blueprint from an alien deployment request
      *
-     * @param alienDeployment the alien deployment's configuration
+     * @param alienDeployment
+     *            the alien deployment's configuration
      * @return the generated blueprint
      */
     public Path generateBlueprint(CloudifyDeployment alienDeployment) throws IOException, CSARVersionNotFoundException {
@@ -111,10 +118,12 @@ public class BlueprintService {
         if (Files.exists(generatedBlueprintDirectoryPath)) {
             deleteBlueprint(alienDeployment.getDeploymentPaaSId());
         }
+
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
         BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(),
                 mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment, generatedBlueprintDirectoryPath, propertyEvaluatorService);
+
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
@@ -123,21 +132,19 @@ public class BlueprintService {
         context.put("util", util);
         context.put("deployment", alienDeployment);
         context.put("newline", "\n");
+
         // Copy artifacts
-        List<PaaSNodeTemplate> nonNatives = alienDeployment.getNonNatives();
-        if (nonNatives != null) {
-            for (PaaSNodeTemplate nonNative : nonNatives) {
-                IndexedNodeType nonNativeType = nonNative.getIndexedToscaElement();
-                // Don't process a node more than once
-                copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNative.getNodeTemplate(), nonNativeType);
-                copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNativeType);
-                List<PaaSRelationshipTemplate> relationships = nonNative.getRelationshipTemplates();
-                for (PaaSRelationshipTemplate relationship : relationships) {
-                    if (relationship.getSource().equals(nonNative.getId())) {
-                        IndexedRelationshipType relationshipType = relationship.getIndexedToscaElement();
-                        copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationship.getRelationshipTemplate(), relationshipType);
-                        copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationshipType);
-                    }
+        for (PaaSNodeTemplate nonNative : alienDeployment.getNonNatives()) {
+            IndexedNodeType nonNativeType = nonNative.getIndexedToscaElement();
+            // Don't process a node more than once
+            copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNative.getNodeTemplate(), nonNativeType);
+            copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNativeType);
+            List<PaaSRelationshipTemplate> relationships = nonNative.getRelationshipTemplates();
+            for (PaaSRelationshipTemplate relationship : relationships) {
+                if (relationship.getSource().equals(nonNative.getId())) {
+                    IndexedRelationshipType relationshipType = relationship.getIndexedToscaElement();
+                    copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationship.getRelationshipTemplate(), relationshipType);
+                    copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationshipType);
                 }
             }
         }
@@ -196,6 +203,7 @@ public class BlueprintService {
         if (!alienDeployment.getNonNatives().isEmpty()) {
             Files.copy(pluginRecipeResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
         }
+
         // custom workflows section
         Path wfPluginDir = generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin");
         Files.createDirectories(wfPluginDir);
