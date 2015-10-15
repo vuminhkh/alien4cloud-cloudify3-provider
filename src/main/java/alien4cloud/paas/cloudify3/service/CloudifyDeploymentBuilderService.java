@@ -5,6 +5,7 @@ import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.MapUtils;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.exception.InvalidArgumentException;
@@ -12,6 +13,7 @@ import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IndexedModelUtils;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
+import alien4cloud.paas.cloudify3.error.SingleLocationRequiredException;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.model.PaaSNodeTemplate;
@@ -43,8 +45,23 @@ public class CloudifyDeploymentBuilderService {
         return computeMap;
     }
 
-    public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
+    /**
+     * Get the location of the deployment from the context.
+     */
+    private String getLocationType(PaaSTopologyDeploymentContext deploymentContext) {
+        if (MapUtils.isEmpty(deploymentContext.getLocations()) || deploymentContext.getLocations().size() != 1) {
+            throw new SingleLocationRequiredException();
+        }
+        return deploymentContext.getLocations().values().iterator().next().getInfrastructureType();
+    }
 
+    /**
+     * Build the Cloudify deployment from the deployment context. Cloudify deployment has data pre-parsed so that blueprint generation is easier.
+     * 
+     * @param deploymentContext the deployment context
+     * @return the cloudify deployment
+     */
+    public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
         Map<String, PaaSNodeTemplate> computesMap = buildTemplateMap(deploymentContext.getPaaSTopology().getComputes());
         List<PaaSNodeTemplate> allNetworks = deploymentContext.getPaaSTopology().getNetworks();
         List<PaaSNodeTemplate> publicNetworks = Lists.newArrayList();
@@ -102,8 +119,9 @@ public class CloudifyDeploymentBuilderService {
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()));
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()));
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
-                deploymentContext.getPaaSTopology().getComputes(), computesMap, publicNetworks, publicNetworksMap, privateNetworks, privateNetworksMap,
-                deploymentContext.getPaaSTopology().getNonNatives(), IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
+                getLocationType(deploymentContext), deploymentContext.getPaaSTopology().getComputes(), computesMap, publicNetworks, publicNetworksMap,
+                privateNetworks, privateNetworksMap, deploymentContext.getPaaSTopology().getNonNatives(),
+                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), nativeTypes, deploymentContext.getPaaSTopology().getAllNodes(),
                 allArtifacts, allRelationshipArtifacts, deploymentContext.getDeploymentTopology().getProviderDeploymentProperties(),
                 deploymentContext.getDeploymentTopology().getWorkflows());

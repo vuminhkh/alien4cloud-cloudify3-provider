@@ -1,7 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +10,7 @@ import javax.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.model.topology.NodeTemplate;
@@ -284,20 +284,22 @@ public class StatusService {
     }
 
     public Map<String, String> getAttributesFromRuntimeProperties(String type, Map<String, String> runtimeProperties) {
-        Map<String, String> attributes = Maps.newHashMap();
-        Map<String, String> mapping = mappingConfigurationHolder.getProviderMappingConfiguration().getAttributes().get(type);
-        if (mapping != null) {
-            Map<String, String> attributesMapping = alien4cloud.utils.MapUtil.revert(mapping);
-            Iterator<Map.Entry<String, String>> runtimePropertyIterator = runtimeProperties.entrySet().iterator();
-            while (runtimePropertyIterator.hasNext()) {
-                Map.Entry<String, String> runtimePropertyEntry = runtimePropertyIterator.next();
-                String attributeKey = attributesMapping.get(runtimePropertyEntry.getKey());
-                if (attributeKey != null) {
-                    attributes.put(attributeKey, runtimePropertyEntry.getValue());
-                }
-            }
-        }
-        return attributes;
+        throw new NotImplementedException("TODO");
+        // TODO perform attributes mapping
+        // Map<String, String> attributes = Maps.newHashMap();
+        // Map<String, String> mapping = mappingConfigurationHolder.getProviderMappingConfiguration().getAttributes().get(type);
+        // if (mapping != null) {
+        // Map<String, String> attributesMapping = alien4cloud.utils.MapUtil.revert(mapping);
+        // Iterator<Map.Entry<String, String>> runtimePropertyIterator = runtimeProperties.entrySet().iterator();
+        // while (runtimePropertyIterator.hasNext()) {
+        // Map.Entry<String, String> runtimePropertyEntry = runtimePropertyIterator.next();
+        // String attributeKey = attributesMapping.get(runtimePropertyEntry.getKey());
+        // if (attributeKey != null) {
+        // attributes.put(attributeKey, runtimePropertyEntry.getValue());
+        // }
+        // }
+        // }
+        // return attributes;
     }
 
     public String getNativeType(Node node) {

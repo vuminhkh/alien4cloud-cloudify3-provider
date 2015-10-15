@@ -15,11 +15,11 @@ import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.cloudify3.blueprint.BlueprintGenerationUtil;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
-import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
-import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
+import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.exception.OperationExecutionException;
 import alien4cloud.paas.function.FunctionEvaluator;
@@ -90,8 +90,8 @@ public class CustomWorkflowService extends RuntimeService {
                         parameterValue = FunctionEvaluator.evaluateGetPropertyFunction(function, node, deployment.getAllNodes());
                     } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function.getFunction())) {
                         try {
-                            Map<String, String> attributes = MapUtil.toString(runtimePropertiesService.evaluate(deployment.getDeploymentPaaSId(),
-                                    function.getTemplateName(), function.getElementNameToFetch()).get());
+                            Map<String, String> attributes = MapUtil.toString(runtimePropertiesService
+                                    .evaluate(deployment.getDeploymentPaaSId(), function.getTemplateName(), function.getElementNameToFetch()).get());
                             if (MapUtils.isEmpty(attributes)) {
                                 throw new OperationExecutionException("Node " + node.getId() + " do not have any instance at this moment");
                             } else if (attributes.size() > 1) {
@@ -118,23 +118,23 @@ public class CustomWorkflowService extends RuntimeService {
         return workflowParameters;
     }
 
-    public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment, final NodeOperationExecRequest nodeOperationExecRequest) {
-        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(),
-                mappingConfigurationHolder.getProviderMappingConfiguration(), deployment, blueprintService.resolveBlueprintPath(deployment
-                        .getDeploymentPaaSId()), propertyEvaluatorService);
+    public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment,
+            final NodeOperationExecRequest nodeOperationExecRequest) {
+        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(), deployment,
+                blueprintService.resolveBlueprintPath(deployment.getDeploymentPaaSId()), propertyEvaluatorService);
         if (MapUtils.isEmpty(deployment.getAllNodes()) || !deployment.getAllNodes().containsKey(nodeOperationExecRequest.getNodeTemplateName())) {
             throw new OperationExecutionException("Node " + nodeOperationExecRequest.getNodeTemplateName() + " do not exist in the deployment");
         }
         PaaSNodeTemplate node = deployment.getAllNodes().get(nodeOperationExecRequest.getNodeTemplateName());
         Map<String, Interface> nodeInterfaces = util.getNonNative().getNodeInterfaces(node);
         if (MapUtils.isEmpty(nodeInterfaces) || !nodeInterfaces.containsKey(nodeOperationExecRequest.getInterfaceName())) {
-            throw new OperationExecutionException("Interface " + nodeOperationExecRequest.getInterfaceName() + " do not exist for node "
-                    + nodeOperationExecRequest.getNodeTemplateName());
+            throw new OperationExecutionException(
+                    "Interface " + nodeOperationExecRequest.getInterfaceName() + " do not exist for node " + nodeOperationExecRequest.getNodeTemplateName());
         }
         Map<String, Operation> interfaceOperations = nodeInterfaces.get(nodeOperationExecRequest.getInterfaceName()).getOperations();
         if (MapUtils.isEmpty(interfaceOperations) || !interfaceOperations.containsKey(nodeOperationExecRequest.getOperationName())) {
-            throw new OperationExecutionException("Operation " + nodeOperationExecRequest.getOperationName() + " do not exist for interface "
-                    + nodeOperationExecRequest.getInterfaceName());
+            throw new OperationExecutionException(
+                    "Operation " + nodeOperationExecRequest.getOperationName() + " do not exist for interface " + nodeOperationExecRequest.getInterfaceName());
         }
         // Here we are safe, the node, the interface and the operation exists
         Operation operation = interfaceOperations.get(nodeOperationExecRequest.getOperationName());

@@ -15,13 +15,12 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
-import com.google.common.io.Closeables;
-import com.google.common.util.concurrent.SettableFuture;
-
+import alien4cloud.common.AlienConstants;
 import alien4cloud.component.repository.ArtifactLocalRepository;
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.deployment.DeploymentTopology;
+import alien4cloud.model.orchestrators.locations.Location;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.cloudify3.model.Deployment;
@@ -36,6 +35,10 @@ import alien4cloud.paas.plan.TopologyTreeBuilderService;
 import alien4cloud.paas.wf.WorkflowsBuilderService;
 import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
 import alien4cloud.utils.ReflectionUtil;
+
+import com.google.common.collect.Maps;
+import com.google.common.io.Closeables;
+import com.google.common.util.concurrent.SettableFuture;
 
 public class AbstractDeploymentTest extends AbstractTest {
 
@@ -107,6 +110,11 @@ public class AbstractDeploymentTest extends AbstractTest {
         deployment.setId(appName);
         deployment.setOrchestratorDeploymentId(appName);
         deploymentContext.setDeployment(deployment);
+        Map<String, Location> locationMap = Maps.newHashMap();
+        Location location = new Location();
+        location.setInfrastructureType("openstack");
+        locationMap.put(AlienConstants.GROUP_ALL, location);
+        deploymentContext.setLocations(locationMap);
         return deploymentContext;
     }
 

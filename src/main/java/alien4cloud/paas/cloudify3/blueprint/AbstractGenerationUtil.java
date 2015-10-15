@@ -8,7 +8,6 @@ import java.util.Map;
 import lombok.AllArgsConstructor;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
-import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.NativeType;
@@ -17,8 +16,6 @@ import alien4cloud.paas.cloudify3.service.model.NativeType;
 public abstract class AbstractGenerationUtil {
 
     protected MappingConfiguration mappingConfiguration;
-
-    protected ProviderMappingConfiguration providerMappingConfiguration;
 
     protected CloudifyDeployment alienDeployment;
 

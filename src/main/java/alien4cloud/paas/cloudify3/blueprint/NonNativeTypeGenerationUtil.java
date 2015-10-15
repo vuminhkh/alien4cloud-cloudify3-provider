@@ -13,6 +13,7 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
@@ -29,7 +30,6 @@ import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.IPaaSTemplate;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
-import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.OperationWrapper;
@@ -49,9 +49,9 @@ import com.google.common.collect.Maps;
 @Slf4j
 public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
 
-    public NonNativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, ProviderMappingConfiguration providerMappingConfiguration,
-            CloudifyDeployment alienDeployment, Path recipePath, PropertyEvaluatorService propertyEvaluatorService) {
-        super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+    public NonNativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
+            PropertyEvaluatorService propertyEvaluatorService) {
+        super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
     public boolean isStandardLifecycleInterface(String interfaceName) {
@@ -401,8 +401,8 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
             return "get_attribute(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
                     + functionPropertyValue.getElementNameToFetch() + "')";
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
-            return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
-                    + functionPropertyValue.getElementNameToFetch() + "')";
+            return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '" + functionPropertyValue.getElementNameToFetch()
+                    + "')";
         } else if (ToscaFunctionConstants.GET_OPERATION_OUTPUT.equals(functionPropertyValue.getFunction())) {
             return "get_attribute(ctx" + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '_a4c_OO:"
                     + functionPropertyValue.getInterfaceName() + ':' + functionPropertyValue.getOperationName() + ":"
@@ -413,8 +413,8 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     }
 
     private FunctionPropertyValue resolvePropertyMappingInFunction(String realNodeName, FunctionPropertyValue functionPropertyValue) {
-        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(), Lists.newArrayList(functionPropertyValue
-                .getParameters()));
+        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(),
+                Lists.newArrayList(functionPropertyValue.getParameters()));
         String nativeType = getNativeType(realNodeName);
         for (int i = 1; i < resolved.getParameters().size(); i++) {
             String attributeName = resolved.getParameters().get(i);
@@ -429,17 +429,19 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
             return propAttName;
         } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function)) {
             // Get attribute mapping from provider configuration
-            Map<String, String> attributeMapping = providerMappingConfiguration.getAttributes().get(nativeType);
-            if (attributeMapping != null) {
-                String mappedAttributeName = attributeMapping.get(propAttName);
-                if (mappedAttributeName != null) {
-                    return mappedAttributeName;
-                } else {
-                    return propAttName;
-                }
-            } else {
-                return propAttName;
-            }
+            // Map<String, String> attributeMapping = providerMappingConfiguration.getAttributes().get(nativeType);
+            // if (attributeMapping != null) {
+            // String mappedAttributeName = attributeMapping.get(propAttName);
+            // if (mappedAttributeName != null) {
+            // return mappedAttributeName;
+            // } else {
+            // return propAttName;
+            // }
+            // } else {
+            // return propAttName;
+            // }
+            // TODO fix the mapping of attribute
+            throw new NotImplementedException("TODO");
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(function)) {
             // property for native type is prefixed
             return mappingConfiguration.getNativePropertyParent() + "." + propAttName;
@@ -594,7 +596,7 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     public boolean isOperationOwnedByRelationship(OperationWrapper operationWrapper) {
         return (operationWrapper.getOwner() instanceof PaaSRelationshipTemplate);
     }
-    
+
     public boolean isOperationOwnedByNode(OperationWrapper operationWrapper) {
         return (operationWrapper.getOwner() instanceof PaaSNodeTemplate);
     }
