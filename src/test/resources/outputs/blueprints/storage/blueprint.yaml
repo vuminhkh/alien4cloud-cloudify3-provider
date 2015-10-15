@@ -69,7 +69,6 @@ relationships:
           implementation: _a4c_native_artifact/volume/unmount.sh
 
 node_templates:
-
   Compute:
     type: _a4c.Compute
     properties:

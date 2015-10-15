@@ -9,3 +9,4 @@ native_types:
   subnet_type: cloudify.openstack.nodes.Subnet
   volume_type: cloudify.openstack.nodes.Volume
   volume_attach_relationship_type: cloudify.openstack.volume_attached_to_server
+

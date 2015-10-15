@@ -81,15 +81,4 @@ public class CommonGenerationUtil extends AbstractGenerationUtil {
         }
         return buffer.toString();
     }
-
-    // public static void main(String[] args) {
-    // Map<String, Object> test = Maps.newHashMap();
-    // test.put("toto", "tata");
-    // test.put("titi", Maps.newHashMap());
-    // test.put("fcuk", Lists.newArrayList("xx", "yy"));
-    // test.put("fcok", Lists.newArrayList("zz", "tt").toArray());
-    // ((Map<String, Object>) test.get("titi")).put("toctoc", "tactac");
-    // CommonGenerationUtil util = new CommonGenerationUtil(null, null, null, null, null);
-    // System.out.println(util.formatValue(0, test));
-    // }
 }

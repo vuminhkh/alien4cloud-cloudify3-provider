@@ -149,6 +149,7 @@ public class BlueprintService {
             }
         }
 
+        // Wrap all implementation script into a wrapper so it can be called from cloudify 3 with respect of TOSCA.
         for (PaaSNodeTemplate node : alienDeployment.getNonNatives()) {
             Map<String, Interface> interfaces = util.getNonNative().getNodeInterfaces(node);
             if (MapUtils.isNotEmpty(interfaces)) {
@@ -196,6 +197,7 @@ public class BlueprintService {
                 }
             }
         }
+
         if (!alienDeployment.getNonNatives().isEmpty()) {
             Files.copy(pluginRecipeResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
         }

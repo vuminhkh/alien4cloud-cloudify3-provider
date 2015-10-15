@@ -9,6 +9,7 @@ import java.util.Set;
 import javax.annotation.Resource;
 import javax.xml.bind.DatatypeConverter;
 
+import com.google.common.collect.HashBiMap;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
@@ -29,7 +30,7 @@ import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
-import alien4cloud.paas.model.PaaSInstanceStorageMonitorEvent;
+import alien4cloud.paas.model.PaaSInstancePersistentResourceMonitorEvent;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 import alien4cloud.utils.MapUtil;
@@ -143,7 +144,6 @@ public class EventService {
     }
 
     private ListenableFuture<AbstractMonitorEvent[]> enrichAlienEvents(final List<AbstractMonitorEvent> alienEvents) {
-
         // From the list of alien events, get a map of deployment id --> instance state events
         final Map<String, List<PaaSInstanceStateMonitorEvent>> instanceEventByDeployments = extractInstanceStateEventsMap(alienEvents);
 
@@ -198,7 +198,8 @@ public class EventService {
                                                     }
                                                 }
                                                 instanceStateMonitorEventIterator.remove();
-                                                PaaSInstanceStorageMonitorEvent storageEvent = new PaaSInstanceStorageMonitorEvent(instanceStateMonitorEvent,
+                                                PaaSInstancePersistentResourceMonitorEvent storageEvent = new PaaSInstancePersistentResourceMonitorEvent(
+                                                        instanceStateMonitorEvent,
                                                         volumeId, false);
                                                 int eventIndex = alienEvents.indexOf(instanceStateMonitorEvent);
                                                 // Replace the old event with the storage event
@@ -345,43 +346,43 @@ public class EventService {
     private AbstractMonitorEvent toAlienEvent(Event cloudifyEvent) {
         AbstractMonitorEvent alienEvent;
         switch (cloudifyEvent.getEventType()) {
-        case EventType.WORKFLOW_SUCCEEDED:
-            PaaSDeploymentStatusMonitorEvent succeededStatusEvent = new PaaSDeploymentStatusMonitorEvent();
-            if (Workflow.INSTALL.equals(cloudifyEvent.getContext().getWorkflowId())) {
-                succeededStatusEvent.setDeploymentStatus(DeploymentStatus.DEPLOYED);
-            } else if (Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(cloudifyEvent.getContext().getWorkflowId())) {
-                succeededStatusEvent.setDeploymentStatus(DeploymentStatus.UNDEPLOYED);
-            } else {
-                return null;
-            }
-            alienEvent = succeededStatusEvent;
-            break;
-        case EventType.WORKFLOW_FAILED:
-            PaaSDeploymentStatusMonitorEvent failedStatusEvent = new PaaSDeploymentStatusMonitorEvent();
-            failedStatusEvent.setDeploymentStatus(DeploymentStatus.FAILURE);
-            alienEvent = failedStatusEvent;
-            break;
-        case EventType.TASK_SUCCEEDED:
-            if (Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(cloudifyEvent.getContext().getWorkflowId())
-                    && "riemann_controller.tasks.delete".equals(cloudifyEvent.getContext().getTaskName())) {
-                PaaSDeploymentStatusMonitorEvent undeployedEvent = new PaaSDeploymentStatusMonitorEvent();
-                undeployedEvent.setDeploymentStatus(DeploymentStatus.UNDEPLOYED);
-                alienEvent = undeployedEvent;
-            } else {
-                String newInstanceState = CloudifyLifeCycle.getSucceededInstanceState(cloudifyEvent.getContext().getOperation());
-                if (newInstanceState == null) {
+            case EventType.WORKFLOW_SUCCEEDED:
+                PaaSDeploymentStatusMonitorEvent succeededStatusEvent = new PaaSDeploymentStatusMonitorEvent();
+                if (Workflow.INSTALL.equals(cloudifyEvent.getContext().getWorkflowId())) {
+                    succeededStatusEvent.setDeploymentStatus(DeploymentStatus.DEPLOYED);
+                } else if (Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(cloudifyEvent.getContext().getWorkflowId())) {
+                    succeededStatusEvent.setDeploymentStatus(DeploymentStatus.UNDEPLOYED);
+                } else {
                     return null;
                 }
-                PaaSInstanceStateMonitorEvent instanceTaskStartedEvent = new PaaSInstanceStateMonitorEvent();
-                instanceTaskStartedEvent.setInstanceId(cloudifyEvent.getContext().getNodeId());
-                instanceTaskStartedEvent.setNodeTemplateId(cloudifyEvent.getContext().getNodeName());
-                instanceTaskStartedEvent.setInstanceState(newInstanceState);
-                instanceTaskStartedEvent.setInstanceStatus(statusService.getInstanceStatusFromState(newInstanceState));
-                alienEvent = instanceTaskStartedEvent;
-            }
-            break;
-        default:
-            return null;
+                alienEvent = succeededStatusEvent;
+                break;
+            case EventType.WORKFLOW_FAILED:
+                PaaSDeploymentStatusMonitorEvent failedStatusEvent = new PaaSDeploymentStatusMonitorEvent();
+                failedStatusEvent.setDeploymentStatus(DeploymentStatus.FAILURE);
+                alienEvent = failedStatusEvent;
+                break;
+            case EventType.TASK_SUCCEEDED:
+                if (Workflow.DELETE_DEPLOYMENT_ENVIRONMENT.equals(cloudifyEvent.getContext().getWorkflowId())
+                        && "riemann_controller.tasks.delete".equals(cloudifyEvent.getContext().getTaskName())) {
+                    PaaSDeploymentStatusMonitorEvent undeployedEvent = new PaaSDeploymentStatusMonitorEvent();
+                    undeployedEvent.setDeploymentStatus(DeploymentStatus.UNDEPLOYED);
+                    alienEvent = undeployedEvent;
+                } else {
+                    String newInstanceState = CloudifyLifeCycle.getSucceededInstanceState(cloudifyEvent.getContext().getOperation());
+                    if (newInstanceState == null) {
+                        return null;
+                    }
+                    PaaSInstanceStateMonitorEvent instanceTaskStartedEvent = new PaaSInstanceStateMonitorEvent();
+                    instanceTaskStartedEvent.setInstanceId(cloudifyEvent.getContext().getNodeId());
+                    instanceTaskStartedEvent.setNodeTemplateId(cloudifyEvent.getContext().getNodeName());
+                    instanceTaskStartedEvent.setInstanceState(newInstanceState);
+                    instanceTaskStartedEvent.setInstanceStatus(statusService.getInstanceStatusFromState(newInstanceState));
+                    alienEvent = instanceTaskStartedEvent;
+                }
+                break;
+            default:
+                return null;
         }
         alienEvent.setDate(DatatypeConverter.parseDateTime(cloudifyEvent.getTimestamp()).getTimeInMillis());
         String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(cloudifyEvent.getContext().getDeploymentId());
