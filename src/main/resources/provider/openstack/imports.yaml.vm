@@ -1,0 +1,2 @@
+imports:
+  - http://www.getcloudify.org/spec/openstack-plugin/1.2/plugin.yaml
