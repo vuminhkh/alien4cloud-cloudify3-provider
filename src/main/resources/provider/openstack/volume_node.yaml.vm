@@ -1,10 +1,10 @@
 #parse("provider/common/generic_resource.yaml.vm")
 #providerResourceNodes("Volume", ${deployment.volumes})
 
-#foreach($template in $templates)
+#* foreach($template in $templates)
 #if(${template.})
   ${template.id}:
     type: DeletableVolume
     properties: ${util.common.formatProperties(3, $template.nodeTemplate.properties)}
 #end
-#end
+*#

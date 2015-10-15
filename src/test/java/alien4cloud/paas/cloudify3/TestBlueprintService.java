@@ -98,7 +98,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Test
     public void testGenerateBlockStorage() {
-        // testGeneratedBlueprintFile(STORAGE_TOPOLOGY);
+        testGeneratedBlueprintFile(STORAGE_TOPOLOGY);
         Assert.fail("Fix test");
     }
 

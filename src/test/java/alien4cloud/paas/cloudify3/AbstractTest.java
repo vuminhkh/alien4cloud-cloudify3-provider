@@ -29,6 +29,8 @@ public class AbstractTest {
 
     public static final String NETWORK_TOPOLOGY = "network";
 
+    public static final String STORAGE_TOPOLOGY = "storage";
+
     @Value("${cloudify3.externalNetworkName}")
     private String externalNetworkName;
 

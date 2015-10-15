@@ -198,13 +198,13 @@ public class EventService {
                                                     }
                                                 }
                                                 instanceStateMonitorEventIterator.remove();
-                                                PaaSInstancePersistentResourceMonitorEvent storageEvent = new PaaSInstancePersistentResourceMonitorEvent(
+                                                /*PaaSInstancePersistentResourceMonitorEvent storageEvent = new PaaSInstancePersistentResourceMonitorEvent(
                                                         instanceStateMonitorEvent,
-                                                        volumeId, false);
+                                                        volumeId, false);*/
                                                 int eventIndex = alienEvents.indexOf(instanceStateMonitorEvent);
                                                 // Replace the old event with the storage event
                                                 // It's ugly and temporary, as we'll try not to create a new type of event for each native type
-                                                alienEvents.set(eventIndex, storageEvent);
+                                                /*alienEvents.set(eventIndex, storageEvent);*/
                                             }
                                         }
                                     }

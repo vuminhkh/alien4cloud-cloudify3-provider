@@ -19,11 +19,7 @@ public abstract class NativeTypeGenerationUtil extends AbstractGenerationUtil {
     public String mapToCloudifyType(IndexedNodeType toscaNodeType) {
         return getNativePropertyValue(toscaNodeType, MAPPED_TO_KEY);
     }
-
-    public String getCloudifyNativeType(IndexedNodeType toscaNodeType) {
-        return getNativePropertyValue(toscaNodeType, mappingConfiguration.getNativeTypePropertyName());
-    }
-
+    
     public String getNativePropertyValue(IndexedNodeType toscaNodeType, String property) {
         return toscaNodeType.getProperties().get(property).getDefault();
     }

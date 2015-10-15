@@ -303,6 +303,8 @@ public class StatusService {
     }
 
     public String getNativeType(Node node) {
-        return (String) node.getProperties().get(mappingConfigurationHolder.getMappingConfiguration().getNativeTypePropertyName());
+        // FIXME manage this correctly so events keep working.
+        return "";
+        // return (String) node.getProperties().get(mappingConfigurationHolder.getMappingConfiguration().getNativeTypePropertyName());
     }
 }
