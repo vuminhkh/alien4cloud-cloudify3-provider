@@ -8,21 +8,20 @@ import java.nio.file.Files;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import alien4cloud.model.deployment.DeploymentTopology;
 import alien4cloud.model.topology.AbstractPolicy;
 import alien4cloud.model.topology.LocationPlacementPolicy;
 import alien4cloud.model.topology.NodeGroup;
-import alien4cloud.paas.cloudify3.error.SingleLocationRequiredException;
-import lombok.Getter;
-
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
+import alien4cloud.paas.cloudify3.error.SingleLocationRequiredException;
 import alien4cloud.plugin.model.ManagedPlugin;
 import alien4cloud.utils.YamlParserUtil;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component("cloudify-mapping-configuration-holder")
@@ -39,7 +38,9 @@ public class MappingConfigurationHolder {
     @Getter
     private MappingConfiguration mappingConfiguration;
 
+    @Getter
     private String locationType;
+
     private ProviderMappingConfiguration providerMappingConfiguration;
 
     @PostConstruct
@@ -59,9 +60,8 @@ public class MappingConfigurationHolder {
 
     /**
      * Load the provider mapping to deploy the given deployment topology.
-     * 
-     * @param deploymentTopology
-     *            The deployment topology that should contains a single location placement policy.
+     *
+     * @param deploymentTopology The deployment topology that should contains a single location placement policy.
      */
     public void loadProviderMapping(DeploymentTopology deploymentTopology) {
         if (deploymentTopology == null || deploymentTopology.getLocationGroups() == null || deploymentTopology.getLocationGroups().size() != 1) {

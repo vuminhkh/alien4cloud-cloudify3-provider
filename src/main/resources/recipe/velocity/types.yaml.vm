@@ -6,5 +6,9 @@
     properties:
       ${mapping.nativeTypePropertyName}:
         default: ${util.compute.getCloudifyNativeType($nativeType)}
+#foreach($propertyDefinitionEntry in ${nativeType.properties.entrySet()})
+      $propertyDefinitionEntry.key:
+        default: ${util.compute.getDefault($propertyDefinitionEntry.value)}
+#end
 #end
 #end
