@@ -171,12 +171,9 @@ node_types:
 
   alien.nodes.openstack.PublicNetwork:
     derived_from: alien.nodes.PublicNetwork
+    tags:
+      _a4c_mapped_to: cloudify.openstack.nodes.FloatingIP
     properties:
-      _a4c_mapped_to:
-        type: string
-        default: cloudify.openstack.nodes.FloatingIP
-        constraints:
-          - equal: cloudify.openstack.nodes.FloatingIP
       _a4c_floating_ip_relationship_mapped_to:
         type: string
         default: cloudify.openstack.server_connected_to_floating_ip
@@ -198,12 +195,9 @@ node_types:
 
   alien.nodes.openstack.PrivateNetwork:
     derived_from: alien.nodes.PrivateNetwork
+    tags:
+      _a4c_mapped_to: cloudify.openstack.nodes.Network
     properties:
-      _a4c_mapped_to:
-        type: string
-        default: cloudify.openstack.nodes.Network
-        constraints:
-          - equal: cloudify.openstack.nodes.Network
       _a4c_subnet_mapped_to:
         type: string
         default: cloudify.openstack.nodes.Subnet
@@ -226,11 +220,6 @@ node_types:
       This represents a Block Storage (Volume) instance on OpenStack. Cloudify 3 can create this block and will delete it when the application is undeployed,
       even if the volume id is provided.
     properties:
-      _a4c_mapped_to:
-        type: string
-        default: cloudify.openstack.nodes.Volume
-        constraints:
-          - equal: cloudify.openstack.nodes.Volume
       volume:
         type: alien.data.openstack.cinder.v1.VolumeCreateArgs
         required: false
@@ -238,7 +227,11 @@ node_types:
       openstack_config:
         type: alien.data.OpenstackConfig
         required: false
-      # Properties from parent type size, volume_id, snapshot_id will be mapped
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.Volume
+      # Properties from parent type size, volume_id, snapshot_id will be mapped to valid cloudify properties
+      _a4c_prop_map: "{'size': 'volume.size', 'volume_id': 'resource_id', 'snapshot_id': 'volume.snapshot_id '}"
+
 
   alien.cloudify.openstack.nodes.Volume:
     derived_from: alien.cloudify.openstack.nodes.DeletableVolume

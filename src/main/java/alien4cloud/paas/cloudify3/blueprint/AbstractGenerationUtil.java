@@ -36,14 +36,6 @@ public abstract class AbstractGenerationUtil {
         return null;
     }
 
-    protected String getNativeType(String id) {
-        if (alienDeployment.getComputesMap().containsKey(id)) {
-            return NativeType.COMPUTE;
-        } else {
-            return null;
-        }
-    }
-
     public boolean collectionHasElement(Collection<?> list) {
         return list != null && !list.isEmpty();
     }

@@ -58,11 +58,11 @@ public class CloudifyDeploymentBuilderService {
     /**
      * Build the Cloudify deployment from the deployment context. Cloudify deployment has data pre-parsed so that blueprint generation is easier.
      * 
-     * @param deploymentContext the deployment context
+     * @param deploymentContext
+     *            the deployment context
      * @return the cloudify deployment
      */
     public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
-        Map<String, PaaSNodeTemplate> computesMap = buildTemplateMap(deploymentContext.getPaaSTopology().getComputes());
         List<PaaSNodeTemplate> allNetworks = deploymentContext.getPaaSTopology().getNetworks();
         List<PaaSNodeTemplate> publicNetworks = Lists.newArrayList();
         List<PaaSNodeTemplate> privateNetworks = Lists.newArrayList();
@@ -76,8 +76,6 @@ public class CloudifyDeploymentBuilderService {
                         "The type " + network.getTemplate().getType() + " must extends alien.nodes.PublicNetwork or alien.nodes.PrivateNetwork");
             }
         }
-        Map<String, PaaSNodeTemplate> publicNetworksMap = buildTemplateMap(publicNetworks);
-        Map<String, PaaSNodeTemplate> privateNetworksMap = buildTemplateMap(privateNetworks);
 
         Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
         Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
@@ -119,8 +117,10 @@ public class CloudifyDeploymentBuilderService {
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()));
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()));
         CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
-                getLocationType(deploymentContext), deploymentContext.getPaaSTopology().getComputes(), computesMap, publicNetworks, publicNetworksMap,
-                privateNetworks, privateNetworksMap, deploymentContext.getPaaSTopology().getNonNatives(),
+                getLocationType(deploymentContext), deploymentContext.getPaaSTopology().getComputes(),
+                deploymentContext.getPaaSTopology().getVolumes(),
+                publicNetworks,
+                privateNetworks, deploymentContext.getPaaSTopology().getNonNatives(),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
                 IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), nativeTypes, deploymentContext.getPaaSTopology().getAllNodes(),
                 allArtifacts, allRelationshipArtifacts, deploymentContext.getDeploymentTopology().getProviderDeploymentProperties(),

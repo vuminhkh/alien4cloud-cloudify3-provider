@@ -37,15 +37,11 @@ public class CloudifyDeployment {
 
     private List<PaaSNodeTemplate> computes;
 
-    private Map<String, PaaSNodeTemplate> computesMap;
+    private List<PaaSNodeTemplate> volumes;
 
     private List<PaaSNodeTemplate> externalNetworks;
 
-    private Map<String, PaaSNodeTemplate> externalNetworksMap;
-
     private List<PaaSNodeTemplate> internalNetworks;
-
-    private Map<String, PaaSNodeTemplate> internalNetworksMap;
 
     private List<PaaSNodeTemplate> nonNatives;
 

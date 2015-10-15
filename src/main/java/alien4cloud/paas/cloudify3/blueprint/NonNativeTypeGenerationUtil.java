@@ -133,7 +133,8 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     /**
      * Extract interfaces that have implemented operations
      *
-     * @param allInterfaces all interfaces
+     * @param allInterfaces
+     *            all interfaces
      * @return interfaces that have implemented operations
      */
     private Map<String, Interface> getInterfaces(Map<String, Interface> allInterfaces) {
@@ -359,8 +360,10 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     /**
      * Format operation parameter of a node
      *
-     * @param node the node which contains the function property value
-     * @param functionPropertyValue the input which can be a function or a scalar
+     * @param node
+     *            the node which contains the function property value
+     * @param functionPropertyValue
+     *            the input which can be a function or a scalar
      * @return the formatted parameter understandable by Cloudify 3
      */
     public String formatNodeFunctionPropertyValue(String context, PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
@@ -388,8 +391,10 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     /**
      * Format operation parameter of a node
      *
-     * @param relationship the relationship which contains the function property value
-     * @param functionPropertyValue the input which can be a function or a scalar
+     * @param relationship
+     *            the relationship which contains the function property value
+     * @param functionPropertyValue
+     *            the input which can be a function or a scalar
      * @return the formatted parameter understandable by Cloudify 3
      */
     public String formatRelationshipFunctionPropertyValue(String context, PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
@@ -401,7 +406,8 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
             return "get_attribute(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
                     + functionPropertyValue.getElementNameToFetch() + "')";
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
-            return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '" + functionPropertyValue.getElementNameToFetch()
+            return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
+                    + functionPropertyValue.getElementNameToFetch()
                     + "')";
         } else if (ToscaFunctionConstants.GET_OPERATION_OUTPUT.equals(functionPropertyValue.getFunction())) {
             return "get_attribute(ctx" + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '_a4c_OO:"
@@ -415,7 +421,8 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     private FunctionPropertyValue resolvePropertyMappingInFunction(String realNodeName, FunctionPropertyValue functionPropertyValue) {
         FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(),
                 Lists.newArrayList(functionPropertyValue.getParameters()));
-        String nativeType = getNativeType(realNodeName);
+        // FIXME Fix get attribute management.
+        String nativeType = null;
         for (int i = 1; i < resolved.getParameters().size(); i++) {
             String attributeName = resolved.getParameters().get(i);
             resolved.getParameters().set(i, mapPropAttName(functionPropertyValue.getFunction(), attributeName, nativeType));

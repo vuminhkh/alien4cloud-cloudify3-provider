@@ -1,10 +1,10 @@
-#parse("provider/common/generic_resource.yaml.vm")
-#providerResourceNodes("Volume", ${deployment.volumes})
-
-#* foreach($template in $templates)
-#if(${template.})
-  ${template.id}:
-    type: DeletableVolume
-    properties: ${util.common.formatProperties(3, $template.nodeTemplate.properties)}
+#foreach($volumeTemplate in ${deployment.volumes})
+  ${volumeTemplate.id}:
+    type: ${volumeTemplate.nodeTemplate.type}
+#if(${volumeTemplate.nodeTemplate.type}=="alien.cloudify.openstack.nodes.Volume")
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        delete: {}
 #end
-*#
+    properties: ${util.common.formatProperties(3, $volumeTemplate.nodeTemplate.properties)}
+#end

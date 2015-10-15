@@ -28,6 +28,15 @@ topology_template:
             node: Compute
             capability: tosca.capabilities.Attachment
             relationship: tosca.relationships.AttachTo
+    DeletableBlockStorage:
+      type: alien.cloudify.openstack.nodes.DeletableVolume
+      properties:
+        size: 1 GiB
+      requirements:
+        - attachment:
+            node: Compute
+            capability: tosca.capabilities.Attachment
+            relationship: tosca.relationships.AttachTo
 
 #    Mysql:
 #      type: alien.nodes.Mysql
