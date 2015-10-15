@@ -4,6 +4,17 @@
   ${nativeType.elementId}:
     derived_from: ${util.compute.mapToCloudifyType($nativeType)}
     properties:
+#set($attributeMappings = ${util.compute.getAttributesMapping($nativeType.attributes)})
+#foreach($attributeMapping in ${attributeMappings.entrySet()})
+      _a4c_att_$attributeMapping.key:
+        default:
+          function: ${attributeMapping.value.function}
+          parameters:
+#foreach($parameter in ${attributeMappings.entrySet()})
+            - $parameter
+#end
+
+#end
 #foreach($propertyDefinitionEntry in ${nativeType.properties.entrySet()})
       $propertyDefinitionEntry.key:
         default: ${util.compute.getDefault($propertyDefinitionEntry.value)}

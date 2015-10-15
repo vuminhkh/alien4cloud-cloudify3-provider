@@ -13,7 +13,7 @@
 #end
 #foreach($externalNetwork in ${util.network.getExternalNetworks($compute)})
       - target: ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}
-        type: ${util.network.getNativePropertyValue(${externalNetwork.indexedToscaElement}, "_a4c_floating_ip_relationship_mapped_to")}
+        type: cloudify.openstack.server_connected_to_floating_ip
   ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}:
     type: ${externalNetwork.nodeTemplate.type}
     properties: ${util.common.formatProperties(3, $externalNetwork.nodeTemplate.properties)}

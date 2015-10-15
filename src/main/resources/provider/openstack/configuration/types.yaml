@@ -110,12 +110,9 @@ node_types:
 
   alien.nodes.openstack.Compute:
     derived_from: tosca.nodes.Compute
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.Server
     properties:
-      _a4c_mapped_to:
-        type: string
-        default: cloudify.openstack.nodes.Server
-        constraints:
-          - equal: cloudify.openstack.nodes.Server
       server:
         type: map
         entry_schema:
@@ -152,33 +149,16 @@ node_types:
   alien.nodes.PublicNetwork:
     abstract: true
     derived_from: tosca.nodes.Network
-    properties:
-      _a4c_native_type:
-        type: string
-        default: floating_ip
-        constraints:
-          - equal: floating_ip
 
   alien.nodes.PrivateNetwork:
     abstract: true
     derived_from: tosca.nodes.Network
-    properties:
-      _a4c_native_type:
-        type: string
-        default: network
-        constraints:
-          - equal: network
 
   alien.nodes.openstack.PublicNetwork:
     derived_from: alien.nodes.PublicNetwork
     tags:
-      _a4c_mapped_to: cloudify.openstack.nodes.FloatingIP
+      _a4c_c3_derived_from: cloudify.openstack.nodes.FloatingIP
     properties:
-      _a4c_floating_ip_relationship_mapped_to:
-        type: string
-        default: cloudify.openstack.server_connected_to_floating_ip
-        constraints:
-          - equal: cloudify.openstack.server_connected_to_floating_ip
       floating_ip:
         type: alien.data.FloatingIpConfig
         required: true
@@ -196,13 +176,8 @@ node_types:
   alien.nodes.openstack.PrivateNetwork:
     derived_from: alien.nodes.PrivateNetwork
     tags:
-      _a4c_mapped_to: cloudify.openstack.nodes.Network
+      _a4c_c3_derived_from: cloudify.openstack.nodes.Network
     properties:
-      _a4c_subnet_mapped_to:
-        type: string
-        default: cloudify.openstack.nodes.Subnet
-        constraints:
-          - equal: cloudify.openstack.nodes.Subnet
       use_external_resource:
         type: boolean
         required: false

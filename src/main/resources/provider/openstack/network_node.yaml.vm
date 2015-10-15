@@ -2,7 +2,7 @@
 #foreach($network in ${deployment.internalNetworks})
 #providerResourceNode(${network.nodeTemplate.type}, $network)
   ${network.id}_subnet:
-    type: ${util.network.getNativePropertyValue(${network.indexedToscaElement}, "_a4c_subnet_mapped_to")}
+    type: cloudify.openstack.nodes.Subnet
     properties:
       resource_id: ${network.id}_subnet
       subnet:

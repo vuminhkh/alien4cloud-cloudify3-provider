@@ -1,14 +1,19 @@
 package alien4cloud.paas.cloudify3.blueprint;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
+import alien4cloud.model.components.FunctionPropertyValue;
+import alien4cloud.model.components.IValue;
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.tosca.normative.ToscaType;
+
+import com.google.common.collect.Maps;
 
 public class ComputeGenerationUtil extends NativeTypeGenerationUtil {
 
@@ -37,5 +42,15 @@ public class ComputeGenerationUtil extends NativeTypeGenerationUtil {
         } else {
             return "{}";
         }
+    }
+
+    public Map<String, FunctionPropertyValue> getAttributesMapping(Map<String, IValue> attributes) {
+        Map<String, FunctionPropertyValue> functions = Maps.newHashMap();
+        for (Map.Entry<String, IValue> attributeEntry : attributes.entrySet()) {
+            if (attributeEntry.getValue() instanceof FunctionPropertyValue) {
+                functions.put(attributeEntry.getKey(), (FunctionPropertyValue) attributeEntry.getValue());
+            }
+        }
+        return functions;
     }
 }
