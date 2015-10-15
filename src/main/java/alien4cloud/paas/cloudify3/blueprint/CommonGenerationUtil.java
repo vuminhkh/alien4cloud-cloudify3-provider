@@ -8,16 +8,15 @@ import java.util.Map;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.PropertyValue;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
-import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.exception.NotSupportedException;
 
 public class CommonGenerationUtil extends AbstractGenerationUtil {
 
-    public CommonGenerationUtil(MappingConfiguration mappingConfiguration, ProviderMappingConfiguration providerMappingConfiguration,
-                                CloudifyDeployment alienDeployment, Path recipePath, PropertyEvaluatorService propertyEvaluatorService) {
-        super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+    public CommonGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
+            PropertyEvaluatorService propertyEvaluatorService) {
+        super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
     public String indent(int indentLevel) {

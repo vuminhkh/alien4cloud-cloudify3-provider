@@ -121,14 +121,13 @@ public class BlueprintService {
 
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
-        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(),
-                mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment, generatedBlueprintDirectoryPath, propertyEvaluatorService);
+        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(), alienDeployment,
+                generatedBlueprintDirectoryPath, propertyEvaluatorService);
 
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
         context.put("mapping", mappingConfigurationHolder.getMappingConfiguration());
-        context.put("providerMapping", mappingConfigurationHolder.getProviderMappingConfiguration());
         context.put("util", util);
         context.put("deployment", alienDeployment);
         context.put("newline", "\n");

@@ -30,6 +30,11 @@ public class CloudifyDeployment {
      */
     private String deploymentId;
 
+    /**
+     * The type of the location retrieved from alien's deployment topology
+     */
+    private String locationType;
+
     private List<PaaSNodeTemplate> computes;
 
     private Map<String, PaaSNodeTemplate> computesMap;

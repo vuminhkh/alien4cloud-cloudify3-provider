@@ -2,7 +2,6 @@ package alien4cloud.paas.cloudify3;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import javax.annotation.Resource;
 
@@ -10,11 +9,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.google.common.collect.Lists;
-
 import alien4cloud.it.Context;
 import alien4cloud.model.deployment.DeploymentTopology;
-import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
@@ -22,9 +18,10 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.location.OpenstackLocationConfigurator;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
 import alien4cloud.tosca.ArchiveIndexer;
-import alien4cloud.tosca.normative.NormativeComputeConstants;
 import alien4cloud.tosca.parser.ParsingError;
 import alien4cloud.utils.FileUtil;
+
+import com.google.common.collect.Lists;
 
 public class AbstractTest {
 
@@ -82,14 +79,6 @@ public class AbstractTest {
     }
 
     protected DeploymentTopology generateDeploymentSetup(Topology topology) {
-        List<String> nodeIds = Lists.newArrayList();
-        List<String> networkIds = Lists.newArrayList();
-        List<String> blockStorageIds = Lists.newArrayList();
-        for (Map.Entry<String, NodeTemplate> nodeTemplateEntry : topology.getNodeTemplates().entrySet()) {
-            if (NormativeComputeConstants.COMPUTE_TYPE.equals(nodeTemplateEntry.getValue().getType())) {
-                nodeIds.add(nodeTemplateEntry.getKey());
-            }
-        }
         DeploymentTopology deploymentTopology = new DeploymentTopology();
         return deploymentTopology;
     }

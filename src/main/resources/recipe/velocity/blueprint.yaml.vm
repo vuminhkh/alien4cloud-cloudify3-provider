@@ -10,9 +10,7 @@ tosca_definitions_version: $mapping.dslVersion
 
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
-#foreach($import in $providerMapping.imports)
-  - $import
-#end
+#parse("provider/${deployment.locationType}/imports.yaml.vm")
 
 node_types:
 
@@ -37,9 +35,9 @@ relationships:
 
 node_templates:
 
-#parse("provider/${cloud.provider}/compute_node.yaml.vm")
-#parse("provider/${cloud.provider}/network_node.yaml.vm")
-#parse("provider/${cloud.provider}/volume_node.yaml.vm")
+#parse("provider/${deployment.locationType}/compute_node.yaml.vm")
+#parse("provider/${deployment.locationType}/network_node.yaml.vm")
+#parse("provider/${deployment.locationType}/volume_node.yaml.vm")
 
 #foreach($nonNativeNode in $deployment.nonNatives)
   $nonNativeNode.id:
