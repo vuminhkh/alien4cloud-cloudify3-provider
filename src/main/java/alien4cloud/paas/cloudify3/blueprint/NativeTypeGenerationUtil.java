@@ -2,12 +2,12 @@ package alien4cloud.paas.cloudify3.blueprint;
 
 import java.nio.file.Path;
 
-import alien4cloud.model.common.Tag;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.utils.TagUtil;
 
 public abstract class NativeTypeGenerationUtil extends AbstractGenerationUtil {
     public static final String MAPPED_TO_KEY = "_a4c_c3_derived_from";
@@ -17,14 +17,20 @@ public abstract class NativeTypeGenerationUtil extends AbstractGenerationUtil {
         super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
+    /**
+     * Utility method used by velocity generator in order to find the cloudify type from a cloudify tosca type.
+     * 
+     * @param toscaNodeType
+     *            The tosca node type.
+     * @return The matching cloudify's type.
+     */
     public String mapToCloudifyType(IndexedNodeType toscaNodeType) {
-        for (Tag tag : toscaNodeType.getTags()) {
-            if (tag.getName().equals(MAPPED_TO_KEY)) {
-                return tag.getValue();
-            }
+        String cloudifyType = TagUtil.getTagValue(toscaNodeType.getTags(), MAPPED_TO_KEY);
+        if (cloudifyType == null) {
+            throw new BadConfigurationException("In the type " + toscaNodeType.getElementId() + " the tag " + MAPPED_TO_KEY
+                    + " is mandatory in order to know which cloudify native type to map to");
         }
-        throw new BadConfigurationException("In the type " + toscaNodeType.getElementId() + " the tag " + MAPPED_TO_KEY
-                + " is mandatory in order to know which cloudify native type to map to");
+        return cloudifyType;
     }
 
     public String getNativePropertyValue(IndexedNodeType toscaNodeType, String property) {
