@@ -63,6 +63,39 @@ public class CloudifyDeploymentBuilderService {
      * @return the cloudify deployment
      */
     public CloudifyDeployment buildCloudifyDeployment(PaaSTopologyDeploymentContext deploymentContext) {
+        CloudifyDeployment cloudifyDeployment = new CloudifyDeployment();
+
+        processNetworks(cloudifyDeployment, deploymentContext);
+        processNonNativeTypes(cloudifyDeployment, deploymentContext);
+        processDeploymentArtifacts(cloudifyDeployment, deploymentContext);
+
+        List<IndexedNodeType> nativeTypes = getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getComputes());
+        nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()));
+        nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()));
+
+        cloudifyDeployment.setDeploymentPaaSId(deploymentContext.getDeploymentPaaSId());
+        cloudifyDeployment.setDeploymentId(deploymentContext.getDeploymentId());
+        cloudifyDeployment.setLocationType(getLocationType(deploymentContext));
+        cloudifyDeployment.setComputes(deploymentContext.getPaaSTopology().getComputes());
+        cloudifyDeployment.setVolumes(deploymentContext.getPaaSTopology().getVolumes());
+        cloudifyDeployment.setNativeTypes(nativeTypes);
+        cloudifyDeployment.setAllNodes(deploymentContext.getPaaSTopology().getAllNodes());
+        cloudifyDeployment.setProviderDeploymentProperties(deploymentContext.getDeploymentTopology().getProviderDeploymentProperties());
+        cloudifyDeployment.setWorkflows(deploymentContext.getDeploymentTopology().getWorkflows());
+
+        return cloudifyDeployment;
+    }
+
+    /**
+     * Map the networks from the topology to either public or private network.
+     * Cloudify 3 plugin indeed maps the public network to floating ips while private network are mapped to network and subnets.
+     *
+     * @param cloudifyDeployment
+     *            The cloudify deployment context with private and public networks mapped.
+     * @param deploymentContext
+     *            The deployment context from alien 4 cloud.
+     */
+    private void processNetworks(CloudifyDeployment cloudifyDeployment, PaaSTopologyDeploymentContext deploymentContext) {
         List<PaaSNodeTemplate> allNetworks = deploymentContext.getPaaSTopology().getNetworks();
         List<PaaSNodeTemplate> publicNetworks = Lists.newArrayList();
         List<PaaSNodeTemplate> privateNetworks = Lists.newArrayList();
@@ -77,6 +110,20 @@ public class CloudifyDeploymentBuilderService {
             }
         }
 
+        cloudifyDeployment.setExternalNetworks(publicNetworks);
+        cloudifyDeployment.setInternalNetworks(privateNetworks);
+    }
+
+    /**
+     * Extract the types of all types that are not provided by cloudify (non-native types) for both nodes and relationships.
+     * Types have to be generated in the blueprint in correct order (based on derived from hierarchy).
+     *
+     * @param cloudifyDeployment
+     *            The cloudify deployment context with private and public networks mapped.
+     * @param deploymentContext
+     *            The deployment context from alien 4 cloud.
+     */
+    private void processNonNativeTypes(CloudifyDeployment cloudifyDeployment, PaaSTopologyDeploymentContext deploymentContext) {
         Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
         Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
         for (PaaSNodeTemplate nonNative : deploymentContext.getPaaSTopology().getNonNatives()) {
@@ -90,41 +137,43 @@ public class CloudifyDeploymentBuilderService {
                 }
             }
         }
-        Map<String, Map<String, DeploymentArtifact>> allArtifacts = Maps.newHashMap();
-        for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
-            PaaSNodeTemplate node = nodeEntry.getValue();
-            Map<String, DeploymentArtifact> artifacts = node.getIndexedToscaElement().getArtifacts();
-            if (artifacts != null && !artifacts.isEmpty()) {
-                allArtifacts.put(node.getId(), artifacts);
-            }
-        }
 
+        cloudifyDeployment.setNonNativesTypes(IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap));
+        cloudifyDeployment.setNonNativesRelationshipTypes(IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap));
+    }
+
+    private void processDeploymentArtifacts(CloudifyDeployment cloudifyDeployment, PaaSTopologyDeploymentContext deploymentContext) {
+        Map<String, Map<String, DeploymentArtifact>> allArtifacts = Maps.newHashMap();
         Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newHashMap();
         for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
-            List<PaaSRelationshipTemplate> relationships = nodeEntry.getValue().getRelationshipTemplates();
-            if (relationships != null && !relationships.isEmpty()) {
-                for (PaaSRelationshipTemplate relationship : relationships) {
-                    Map<String, DeploymentArtifact> artifacts = relationship.getIndexedToscaElement().getArtifacts();
-                    if (artifacts != null && !artifacts.isEmpty()) {
-                        allRelationshipArtifacts.put(
-                                new Relationship(relationship.getId(), relationship.getSource(), relationship.getRelationshipTemplate().getTarget()),
-                                artifacts);
-                    }
-                }
-            }
+            PaaSNodeTemplate node = nodeEntry.getValue();
+            // add the node artifacts
+            putArtifacts(allArtifacts, node.getId(), node.getIndexedToscaElement().getArtifacts());
+            // add the relationships artifacts
+            addRelationshipsArtifacts(allRelationshipArtifacts, nodeEntry.getValue().getRelationshipTemplates());
         }
-        List<IndexedNodeType> nativeTypes = getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getComputes());
-        nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()));
-        nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()));
-        CloudifyDeployment deployment = new CloudifyDeployment(deploymentContext.getDeploymentPaaSId(), deploymentContext.getDeploymentId(),
-                getLocationType(deploymentContext), deploymentContext.getPaaSTopology().getComputes(),
-                deploymentContext.getPaaSTopology().getVolumes(),
-                publicNetworks,
-                privateNetworks, deploymentContext.getPaaSTopology().getNonNatives(),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesTypesMap),
-                IndexedModelUtils.orderByDerivedFromHierarchy(nonNativesRelationshipsTypesMap), nativeTypes, deploymentContext.getPaaSTopology().getAllNodes(),
-                allArtifacts, allRelationshipArtifacts, deploymentContext.getDeploymentTopology().getProviderDeploymentProperties(),
-                deploymentContext.getDeploymentTopology().getWorkflows());
-        return deployment;
+
+        cloudifyDeployment.setAllDeploymentArtifacts(allArtifacts);
+        cloudifyDeployment.setAllRelationshipDeploymentArtifacts(allRelationshipArtifacts);
+    }
+
+    private void addRelationshipsArtifacts(Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts,
+            List<PaaSRelationshipTemplate> relationships) {
+        if (relationships == null || relationships.isEmpty()) {
+            return;
+        }
+
+        for (PaaSRelationshipTemplate relationship : relationships) {
+            Map<String, DeploymentArtifact> artifacts = relationship.getIndexedToscaElement().getArtifacts();
+
+            putArtifacts(allRelationshipArtifacts, new Relationship(relationship.getId(), relationship.getSource(), relationship.getRelationshipTemplate()
+                    .getTarget()), artifacts);
+        }
+    }
+
+    private <T> void putArtifacts(Map<T, Map<String, DeploymentArtifact>> targetMap, T key, Map<String, DeploymentArtifact> artifacts) {
+        if (artifacts != null && !artifacts.isEmpty()) {
+            targetMap.put(key, artifacts);
+        }
     }
 }
