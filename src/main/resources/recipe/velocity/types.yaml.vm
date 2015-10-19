@@ -10,12 +10,11 @@
         default:
           function: ${attributeMapping.value.function}
           parameters:
-#foreach($parameter in ${attributeMappings.entrySet()})
+#foreach($parameter in ${attributeMapping.value.parameters})
             - $parameter
 #end
-
 #end
-#foreach($propertyDefinitionEntry in ${nativeType.properties.entrySet()})
+#foreach($propertyDefinitionEntry in ${util.compute.getToscaProperties($nativeType).entrySet()})
       $propertyDefinitionEntry.key:
         default: ${util.compute.getDefault($propertyDefinitionEntry.value)}
 #end

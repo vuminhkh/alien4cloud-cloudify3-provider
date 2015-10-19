@@ -11,7 +11,9 @@ imports:
   - apache-type:2.0.0-SNAPSHOT
   - mysql-type:2.0.0-SNAPSHOT
   - wordpress-type:2.0.0-SNAPSHOT
+
 topology_template:
+
   node_templates:
 
     NetPub:
@@ -44,16 +46,6 @@ topology_template:
             capability: tosca.capabilities.Connectivity
             relationship: tosca.relationships.Network
 
-    DataBaseStorage:
-      type: alien.nodes.ConfigurableBlockStorage
-      properties:
-        file_system: ext4
-        location: /var/mysql
-      requirements:
-        - attachment:
-            node: DataBase
-            capability: tosca.capabilities.Attachment
-            relationship: tosca.relationships.AttachTo
     PHP:
       type: alien.nodes.PHP
       properties:

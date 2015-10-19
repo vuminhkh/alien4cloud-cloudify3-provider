@@ -159,7 +159,7 @@ node_types:
     tags:
       _a4c_c3_derived_from: cloudify.openstack.nodes.FloatingIP
     properties:
-      floating_ip:
+      floatingip:
         type: alien.data.FloatingIpConfig
         required: true
       use_external_resource:
