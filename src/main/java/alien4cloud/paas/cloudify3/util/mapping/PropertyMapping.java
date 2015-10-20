@@ -14,6 +14,5 @@ import com.google.common.collect.Lists;
 @Setter
 public class PropertyMapping {
     // Optional sub-paths to map
-    List<String> sourcePaths = Lists.newArrayList();
-    List<TargetMapping> targetMapping = Lists.newArrayList();
+    List<PropertySubMapping> subMappings = Lists.newArrayList();
 }

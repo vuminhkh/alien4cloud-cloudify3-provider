@@ -7,33 +7,24 @@ imports:
 node_types:
 
   alien.nodes.openstack.Compute:
-    derived_from: ${util.compute.mapToCloudifyType($nativeType)}
+    derived_from: cloudify.openstack.nodes.Server
     properties:
-      _a4c_mapped_to:
-        default: cloudify.openstack.nodes.Server
-      server:
-        default: {}
-      use_external_resource:
-        default: ""
-      resource_id:
-        default: ""
-      image:
-        default: ""
-      flavor:
-        default: ""
-      management_network_name:
-        default: ""
-      use_password:
-        default: ""
-      openstack_config:
-        default: {}
+      _a4c_att_public_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - TARGET
+            - cloudify.openstack.server_connected_to_floating_ip
+            - floating_ip_address
+      _a4c_att_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - ip
   alien.cloudify.openstack.nodes.DeletableVolume:
     derived_from: cloudify.openstack.nodes.Volume
     properties:
-      volume:
-        default: {}
-      openstack_config:
-        default: {}
       size:
         default: ""
       volume_id:
@@ -43,12 +34,6 @@ node_types:
   alien.cloudify.openstack.nodes.Volume:
     derived_from: cloudify.openstack.nodes.Volume
     properties:
-      _a4c_persistent_resource_id:
-        default: volume_id
-      volume:
-        default: {}
-      openstack_config:
-        default: {}
       size:
         default: ""
       volume_id:
@@ -73,11 +58,14 @@ node_templates:
       cloudify.interfaces.lifecycle:
         delete: {}
     properties: 
-      size: 1 GiB
+      volume: 
+        size: 1.0
+      _a4c_persistent_resource_id: volume_id
   DeletableBlockStorage:
     type: alien.cloudify.openstack.nodes.DeletableVolume
     properties: 
-      size: 1 GiB
+      volume: 
+        size: 1.0
 
 
 plugins:

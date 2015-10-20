@@ -6,5 +6,5 @@
       cloudify.interfaces.lifecycle:
         delete: {}
 #end
-    properties: ${util.common.formatProperties(3, $volumeTemplate.nodeTemplate.properties)}
+    properties: ${util.common.formatProperties(3, $volumeTemplate.nodeTemplate.properties, $deployment.propertyMappings.get($volumeTemplate.nodeTemplate.type))}
 #end

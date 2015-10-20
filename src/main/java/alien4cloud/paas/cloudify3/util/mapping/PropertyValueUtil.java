@@ -4,12 +4,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import alien4cloud.utils.services.PropertyValueService;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 
 import alien4cloud.model.components.*;
+import alien4cloud.paas.cloudify3.error.PropertyValueMappingException;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -27,41 +29,47 @@ public final class PropertyValueUtil {
      * @param properties
      *            The properties to map.
      */
-    public void mapProperties(Map<String, PropertyMapping> propMappings, Map<String, AbstractPropertyValue> properties) {
+    public static Map<String, AbstractPropertyValue> mapProperties(Map<String, PropertyMapping> propMappings, Map<String, AbstractPropertyValue> properties) {
         if (propMappings == null || propMappings.isEmpty()) {
             // do not change prop map
-            return;
+            return properties;
         }
 
         Map<String, AbstractPropertyValue> mappedProperties = Maps.newHashMap();
 
-        for (Map.Entry<String, AbstractPropertyValue> property : properties.entrySet()) {
-            PropertyMapping mapping = propMappings.get(property.getKey());
+        for (Map.Entry<String, AbstractPropertyValue> propertyEntry : properties.entrySet()) {
+            PropertyValue sourcePropertyValue = (PropertyValue) propertyEntry.getValue();
 
-            if (mapping == null || mapping.getSourcePaths().size() == 0) {
+            PropertyMapping mapping = propMappings.get(propertyEntry.getKey());
+
+            if (sourcePropertyValue == null) {
+                continue;
+            }
+
+            if (mapping == null || mapping.getSubMappings().size() == 0) {
                 // if the property is not mapped, just keep it as is.
-                PropertyValue mappedProperty = PropertyValueUtil.merge((PropertyValue) property.getValue(),
-                        (PropertyValue) mappedProperties.get(property.getKey()));
-                mappedProperties.put(property.getKey(), mappedProperty);
+                PropertyValue mappedProperty = PropertyValueUtil.merge(sourcePropertyValue,
+                        (PropertyValue) mappedProperties.get(propertyEntry.getKey()));
+                mappedProperties.put(propertyEntry.getKey(), mappedProperty);
             } else {
                 // if the property is mapped then apply the mapping.
-                for (int i = 0; i < mapping.getSourcePaths().size(); i++) {
-                    String sourcePath = mapping.getSourcePaths().get(i);
-                    TargetMapping targetMapping = mapping.getTargetMapping().get(i);
+                for (PropertySubMapping subMapping : mapping.getSubMappings()) {
+                    String sourcePath = subMapping.getSourceMapping().getPath();
+                    TargetMapping targetMapping = subMapping.getTargetMapping();
 
                     if (targetMapping.getProperty() == null) {
                         continue; // skip this property
                     }
 
-                    Object sourceValue = extractValue((PropertyValue) property, sourcePath);
+                    Object sourceValue = PropertyValueService.getValue(sourcePropertyValue.getValue(), sourcePath);
                     // if there is a specified unit, convert the value to the expected unit.
                     if (targetMapping.getUnit() != null) {
                         // need the property type to IComparablePropertyType
-                        sourceValue = convertValue((String) sourceValue, targetMapping.getUnit());
+                        sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(), subMapping.getSourceMapping()
+                                .getPropertyDefinition());
                     }
 
                     PropertyValue targetProperty = (PropertyValue) mappedProperties.get(targetMapping.getProperty());
-                    // BeanWrapper rootBw = new BeanWrapperImpl(t);
                     if (targetMapping.getPath() == null) {
                         // set the property with the value
                         PropertyValue mappedProperty = PropertyValueUtil.merge(propertyValueFromObject(sourceValue),
@@ -71,30 +79,20 @@ public final class PropertyValueUtil {
                         // extract the value
                         Object targetValue = sourceValue;
                         if (targetProperty != null) {
-                            targetValue = extractValue(targetProperty, targetMapping.getPath());
+                            targetValue = PropertyValueService.getValue(targetProperty.getValue(), targetMapping.getPath());
                             merge(sourceValue, targetValue);
                         } else {
                             targetProperty = propertyValueFromObject(new HashMap<>());
+                            mappedProperties.put(targetMapping.getProperty(), targetProperty);
                         }
                         // set the value
-                        BeanWrapper rootBw = new BeanWrapperImpl(targetProperty.getValue());
-                        rootBw.setPropertyValue(targetMapping.getPath(), targetValue);
+                        setValue(targetProperty.getValue(), targetMapping.getPath(), targetValue);
                     }
                 }
             }
         }
-    }
 
-    private String convertValue(String sourceValue, String unit) {
-        return sourceValue;
-    }
-
-    private Object extractValue(PropertyValue property, String path) {
-        if (path == null) {
-            return property.getValue();
-        }
-        BeanWrapper target = new BeanWrapperImpl(property.getValue());
-        return target.getPropertyValue(path);
+        return mappedProperties;
     }
 
     /**
@@ -104,7 +102,7 @@ public final class PropertyValueUtil {
      *            The object to wrap into a PropertyValue.
      * @return A property value that wraps the given object.
      */
-    private PropertyValue propertyValueFromObject(Object object) {
+    private static PropertyValue propertyValueFromObject(Object object) {
         if (object instanceof Map) {
             return new ComplexPropertyValue((Map<String, Object>) object);
         }
@@ -141,6 +139,25 @@ public final class PropertyValueUtil {
     private static void merge(Object sourcePropertyValueObject, Object targetPropertyValueObject) {
         // TODO do the merge
 
+    }
+
+    private static void setValue(Object target, String path, Object value) {
+        String[] pathElements = path.split("\\.");
+        Object current = target;
+        for (int i = 0; i < pathElements.length - 1; i++) {
+            String pathElement = pathElements[i];
+            if (current instanceof Map) {
+                current = ((Map) current).get(pathElement);
+            } else {
+                throw new PropertyValueMappingException("Expected a map");
+            }
+        }
+        if (current instanceof Map) {
+            // target should be a map
+            ((Map) current).put(pathElements[pathElements.length - 1], value);
+        } else {
+            throw new PropertyValueMappingException("Expected a map");
+        }
     }
 
     /**

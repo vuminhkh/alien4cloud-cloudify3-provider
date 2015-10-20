@@ -10,6 +10,9 @@ import alien4cloud.model.components.PropertyValue;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
+import alien4cloud.paas.cloudify3.util.mapping.PropertyMapping;
+import alien4cloud.paas.cloudify3.util.mapping.PropertyValueUtil;
 import alien4cloud.paas.exception.NotSupportedException;
 
 public class CommonGenerationUtil extends AbstractGenerationUtil {
@@ -36,6 +39,22 @@ public class CommonGenerationUtil extends AbstractGenerationUtil {
             }
         }
         return buffer.toString();
+    }
+
+    /**
+     * Apply properties mapping and then format properties for cloudify blueprint.
+     * 
+     * @param indentLevel
+     *            The indentation level for the properties.
+     * @param properties
+     *            The properties values map.
+     * @param propMappings
+     *            The mapping configuration to map values.
+     * @return The formatted properties string to insert in the blueprint.
+     */
+    public String formatProperties(int indentLevel, Map<String, AbstractPropertyValue> properties, Map<String, PropertyMapping> propMappings) {
+        Map<String, AbstractPropertyValue> mappedProperties = PropertyValueUtil.mapProperties(propMappings, properties);
+        return formatProperties(indentLevel, mappedProperties);
     }
 
     private String formatPropertyValue(int indentLevel, AbstractPropertyValue propertyValue) {

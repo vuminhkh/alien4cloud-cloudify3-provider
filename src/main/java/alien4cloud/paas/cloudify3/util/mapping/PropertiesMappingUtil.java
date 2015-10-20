@@ -1,4 +1,4 @@
-package alien4cloud.paas.cloudify3.blueprint;
+package alien4cloud.paas.cloudify3.util.mapping;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -17,6 +17,8 @@ import alien4cloud.utils.TagUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
+
+import javax.xml.transform.Source;
 
 /**
  * Perform mapping of properties
@@ -47,7 +49,7 @@ public class PropertiesMappingUtil {
             }
             try {
                 Map<String, Object> mappingsDef = mapper.readValue(mappingStr, typeRef);
-                Map<String, PropertyMapping> mappings = fromFullPathMap(mappingsDef);
+                Map<String, PropertyMapping> mappings = fromFullPathMap(mappingsDef, nodeType);
                 propertyMappingsByTypes.put(nodeType.getElementId(), mappings);
             } catch (IOException e) {
                 log.error("Failed to load property mapping, will be ignored", e);
@@ -56,7 +58,7 @@ public class PropertiesMappingUtil {
         return propertyMappingsByTypes;
     }
 
-    private static Map<String, PropertyMapping> fromFullPathMap(Map<String, Object> parsedMappings) {
+    private static Map<String, PropertyMapping> fromFullPathMap(Map<String, Object> parsedMappings, IndexedNodeType nodeType) {
         Map<String, PropertyMapping> propertyMappings = Maps.newHashMap();
 
         for (Map.Entry<String, Object> parsedMapping : parsedMappings.entrySet()) {
@@ -65,7 +67,7 @@ public class PropertiesMappingUtil {
             if (propertyMapping == null) {
                 propertyMapping = new PropertyMapping();
             }
-            propertyMapping.getSourcePaths().add(key[1]);
+
             TargetMapping targetMapping = new TargetMapping();
             String mappingString;
             if (parsedMapping.getValue() instanceof String) {
@@ -77,6 +79,12 @@ public class PropertiesMappingUtil {
             String[] splitMappingString = asPropAndSubPath(mappingString);
             targetMapping.setProperty(splitMappingString[0]);
             targetMapping.setPath(splitMappingString[1]);
+            targetMapping.setPropertyDefinition(nodeType.getProperties().get(targetMapping.getProperty()));
+
+            SourceMapping sourceMapping = new SourceMapping(key[1], nodeType.getProperties().get(key[0]));
+
+            PropertySubMapping propertySubMapping = new PropertySubMapping(sourceMapping, targetMapping);
+            propertyMapping.getSubMappings().add(propertySubMapping);
             propertyMappings.put(key[0], propertyMapping);
         }
 
@@ -95,6 +103,6 @@ public class PropertiesMappingUtil {
         if (index < 1 || index == fullPath.length()) {
             return new String[] { fullPath, null };
         }
-        return new String[] { fullPath.substring(0, index), fullPath.substring(index) };
+        return new String[] { fullPath.substring(0, index), fullPath.substring(index + 1) };
     }
 }

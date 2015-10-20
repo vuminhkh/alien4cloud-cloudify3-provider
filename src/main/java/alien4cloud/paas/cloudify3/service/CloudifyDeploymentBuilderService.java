@@ -3,6 +3,7 @@ package alien4cloud.paas.cloudify3.service;
 import java.util.List;
 import java.util.Map;
 
+import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.MapUtils;
@@ -92,7 +93,8 @@ public class CloudifyDeploymentBuilderService {
         cloudifyDeployment.setProviderDeploymentProperties(deploymentContext.getDeploymentTopology().getProviderDeploymentProperties());
         cloudifyDeployment.setWorkflows(deploymentContext.getDeploymentTopology().getWorkflows());
 
-
+        // load the mappings for the native types.
+        cloudifyDeployment.setPropertyMappings(PropertiesMappingUtil.loadPropertyMappings(cloudifyDeployment.getNativeTypes()));
 
         return cloudifyDeployment;
     }
