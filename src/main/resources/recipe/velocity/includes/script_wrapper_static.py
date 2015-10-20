@@ -13,6 +13,57 @@ from cloudify import utils
 
 client = CloudifyClient(utils.get_manager_ip(), utils.get_manager_rest_service_port())
 
+def get_attribute(entity, attribute_name):
+#if(${providerMapping.attributes.compute.public_ip_address})
+    if attribute_name == '${providerMapping.attributes.compute.public_ip_address}':
+        return get_public_ip(entity)
+    else:
+        attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
+        if attribute_value is None:
+            attribute_value = get_instance_data(entity, attribute_name, get_property_data)
+        return attribute_value
+#else
+    attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
+    if attribute_value is None:
+        attribute_value = get_instance_data(entity, attribute_name, get_property_data)
+    return attribute_value
+#end
+
+def _all_instances_get_attribute(entity, attribute_name):
+#if(${providerMapping.attributes.compute.public_ip_address})
+    if attribute_name == '${providerMapping.attributes.compute.public_ip_address}':
+        #FIXME: since floating ip is not scalable, no more public ip_address can be found
+        return None
+    else:
+        attribute_value = get_other_instances_data(entity, attribute_name, get_attribute_data)
+        if attribute_value is None:
+            attribute_value = get_other_instances_data(entity, attribute_name, get_property_data)
+        return attribute_value
+#else
+    attribute_value = get_other_instances_data(entity, attribute_name, get_attribute_data)
+    if attribute_value is None:
+        attribute_value = get_other_instances_data(entity, attribute_name, get_property_data)
+    return attribute_value
+#end
+
+def get_property(entity, property_name):
+    return get_instance_data(entity, property_name, get_property_data)
+
+def get_public_ip(entity):
+    host = get_host(entity)
+    public_ip = host.instance.runtime_properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
+    if public_ip is not None:
+        return public_ip
+    public_ip = host.node.properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
+    if public_ip is not None:
+        return public_ip
+    if host.instance.relationships:
+        for relationship in host.instance.relationships:
+            if 'cloudify.relationships.connected_to' in relationship.type_hierarchy:
+                if relationship.target.node.id == '${mapping.generatedTypePrefix}_floating_ip_' + host.node.id:
+                    return relationship.target.instance.runtime_properties['${providerMapping.attributes.compute.public_ip_address}']
+    return ""
+
 def get_instance_list(node_id):
     result = ''
     all_node_instances = client.node_instances.list(ctx.deployment.id, node_id)

@@ -2,20 +2,15 @@ package alien4cloud.paas.cloudify3.blueprint;
 
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import alien4cloud.model.components.AbstractPropertyValue;
-import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.PropertyValue;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.exception.NotSupportedException;
-import alien4cloud.utils.TagUtil;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class CommonGenerationUtil extends AbstractGenerationUtil {
 
@@ -35,8 +30,10 @@ public class CommonGenerationUtil extends AbstractGenerationUtil {
     public String formatProperties(int indentLevel, Map<String, AbstractPropertyValue> properties) {
         StringBuilder buffer = new StringBuilder();
         for (Map.Entry<String, AbstractPropertyValue> propertyEntry : properties.entrySet()) {
-            buffer.append("\n").append(indent(indentLevel)).append(propertyEntry.getKey()).append(": ")
-                    .append(formatPropertyValue(indentLevel + 1, propertyEntry.getValue()));
+            if (propertyEntry.getValue() != null) {
+                buffer.append("\n").append(indent(indentLevel)).append(propertyEntry.getKey()).append(": ")
+                        .append(formatPropertyValue(indentLevel + 1, propertyEntry.getValue()));
+            }
         }
         return buffer.toString();
     }

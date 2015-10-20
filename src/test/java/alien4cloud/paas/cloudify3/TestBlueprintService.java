@@ -6,6 +6,8 @@ import java.nio.file.StandardCopyOption;
 
 import javax.annotation.Resource;
 
+import lombok.SneakyThrows;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +22,6 @@ import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.util.FileTestUtil;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.utils.FileUtil;
-import lombok.SneakyThrows;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
@@ -92,8 +93,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Test
     public void testGenerateLamp() {
-        // testGeneratedBlueprintFile(LAMP_TOPOLOGY);
-        Assert.fail("Fix test");
+        testGeneratedBlueprintFile(LAMP_TOPOLOGY);
     }
 
     @Test

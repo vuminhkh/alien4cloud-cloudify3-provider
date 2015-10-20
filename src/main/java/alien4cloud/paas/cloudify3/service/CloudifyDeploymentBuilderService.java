@@ -37,12 +37,15 @@ public class CloudifyDeploymentBuilderService {
         return IndexedModelUtils.orderByDerivedFromHierarchy(nodeTypeMap);
     }
 
-    private Map<String, PaaSNodeTemplate> buildTemplateMap(List<PaaSNodeTemplate> templateList) {
-        Map<String, PaaSNodeTemplate> computeMap = Maps.newHashMap();
-        for (PaaSNodeTemplate nodeTemplate : templateList) {
-            computeMap.put(nodeTemplate.getId(), nodeTemplate);
+    private Map<String, IndexedNodeType> getDerivedFromTypesMap(List<PaaSNodeTemplate> nodes) {
+        Map<String, IndexedNodeType> derivedFromTypesMap = Maps.newHashMap();
+        for (PaaSNodeTemplate node : nodes) {
+            List<IndexedNodeType> derivedFroms = node.getDerivedFroms();
+            for (IndexedNodeType derivedFrom : derivedFroms) {
+                derivedFromTypesMap.put(derivedFrom.getElementId(), derivedFrom);
+            }
         }
-        return computeMap;
+        return derivedFromTypesMap;
     }
 
     /**
@@ -72,13 +75,19 @@ public class CloudifyDeploymentBuilderService {
         List<IndexedNodeType> nativeTypes = getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getComputes());
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()));
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()));
+        Map<String, IndexedNodeType> nativeTypesDerivedFrom = getDerivedFromTypesMap(deploymentContext.getPaaSTopology().getComputes());
+        nativeTypesDerivedFrom.putAll(getDerivedFromTypesMap(deploymentContext.getPaaSTopology().getVolumes()));
+        nativeTypesDerivedFrom.putAll(getDerivedFromTypesMap(deploymentContext.getPaaSTopology().getNetworks()));
 
         cloudifyDeployment.setDeploymentPaaSId(deploymentContext.getDeploymentPaaSId());
         cloudifyDeployment.setDeploymentId(deploymentContext.getDeploymentId());
         cloudifyDeployment.setLocationType(getLocationType(deploymentContext));
         cloudifyDeployment.setComputes(deploymentContext.getPaaSTopology().getComputes());
         cloudifyDeployment.setVolumes(deploymentContext.getPaaSTopology().getVolumes());
+        cloudifyDeployment.setNonNatives(deploymentContext.getPaaSTopology().getNonNatives());
         cloudifyDeployment.setNativeTypes(nativeTypes);
+        cloudifyDeployment.setNativeTypesHierarchy(nativeTypesDerivedFrom);
+
         cloudifyDeployment.setAllNodes(deploymentContext.getPaaSTopology().getAllNodes());
         cloudifyDeployment.setProviderDeploymentProperties(deploymentContext.getDeploymentTopology().getProviderDeploymentProperties());
         cloudifyDeployment.setWorkflows(deploymentContext.getDeploymentTopology().getWorkflows());
@@ -168,8 +177,8 @@ public class CloudifyDeploymentBuilderService {
         for (PaaSRelationshipTemplate relationship : relationships) {
             Map<String, DeploymentArtifact> artifacts = relationship.getIndexedToscaElement().getArtifacts();
 
-            putArtifacts(allRelationshipArtifacts, new Relationship(relationship.getId(), relationship.getSource(), relationship.getRelationshipTemplate()
-                    .getTarget()), artifacts);
+            putArtifacts(allRelationshipArtifacts,
+                    new Relationship(relationship.getId(), relationship.getSource(), relationship.getRelationshipTemplate().getTarget()), artifacts);
         }
     }
 
