@@ -1,0 +1,10 @@
+{
+  "size": 100,
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "asc"
+      }
+    }
+  ]
+}

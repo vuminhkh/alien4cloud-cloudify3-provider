@@ -14,6 +14,53 @@ from cloudify import utils
 
 client = CloudifyClient(utils.get_manager_ip(), utils.get_manager_rest_service_port())
 
+
+def has_attribute_mapping(entity, attribute_name):
+    return entity.node.properties['_a4c_att_' + attribute_name] is not None
+
+
+def process_attribute_mapping(entity, attribute_name, data_retriever_function):
+    # This is where attribute mapping is defined in the cloudify type
+    mapping_configuration = entity.node.properties['_a4c_att_' + attribute_name]
+    if mapping_configuration:
+        # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
+        # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
+        if mapping_configuration.parameters[0] == 'SELF':
+            return data_retriever_function(entity, mapping_configuration.parameters[1])
+        elif mapping_configuration.parameters[0] == 'TARGET' and entity.instance.relationships:
+            for relationship in entity.instance.relationships:
+                if mapping_configuration.parameters[1] in relationship.type_hierarchy:
+                    return data_retriever_function(relationship.target.instance, mapping_configuration.parameters[2])
+    return None
+
+
+def get_attribute(entity, attribute_name):
+    if has_attribute_mapping(entity, attribute_name):
+        return process_attribute_mapping(entity, attribute_name, get_attribute)
+    attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
+    if attribute_value is None:
+        attribute_value = get_instance_data(entity, attribute_name, get_property_data)
+    return attribute_value
+
+
+def _all_instances_get_attribute(entity, attribute_name):
+    if has_attribute_mapping(entity, attribute_name):
+        return process_attribute_mapping(entity, attribute_name, _all_instances_get_attribute)
+    result_map = {}
+    # get all instances data using cfy rest client
+    all_node_instances = client.node_instances.list(ctx.deployment.id, entity.node.id)
+    for node_instance in all_node_instances:
+        prop_value = __recursively_get_instance_data(attribute_name, node_instance)
+        if prop_value is not None:
+            ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(data_name, prop_value, entity.node.id, node_instance.id))
+            result_map[node_instance.id + '_'] = prop_value
+    return result_map
+
+
+def get_property(entity, property_name):
+    return get_instance_data(entity, property_name, get_property_data)
+
+
 def get_instance_list(node_id):
     result = ''
     all_node_instances = client.node_instances.list(ctx.deployment.id, node_id)
@@ -22,6 +69,7 @@ def get_instance_list(node_id):
             result += ','
         result += node_instance.id
     return result
+
 
 def get_instance_data(entity, data_name, get_data_function):
     data = get_data_function(entity, data_name)
@@ -42,18 +90,6 @@ def get_instance_data(entity, data_name, get_data_function):
         return ""
 
 
-def get_other_instances_data(entity, data_name, get_data_function):
-    result_map = {}
-    # get all instances data using cfy rest client
-    all_node_instances = client.node_instances.list(ctx.deployment.id, entity.node.id)
-    for node_instance in all_node_instances:
-        prop_value = __recursively_get_instance_data(data_name, node_instance)
-        if prop_value is not None:
-            ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(data_name, prop_value, entity.node.id, node_instance.id))
-            result_map[node_instance.id + '_'] = prop_value
-    return result_map
-
-
 def __get_relationship(node, target_name, relationship_type):
     for relationship in node.relationships:
         if relationship.get('target_id') == target_name and relationship_type in relationship.get('type_hierarchy'):
@@ -61,10 +97,10 @@ def __get_relationship(node, target_name, relationship_type):
     return None
 
 
-def __recursively_get_instance_data(data_name, node_instance):
-    prop_value = node_instance.runtime_properties.get(data_name, None)
-    if prop_value is not None:
-        return prop_value
+def __recursively_get_instance_data(attribute_name, node_instance):
+    attribute_value = node_instance.runtime_properties.get(attribute_name, None)
+    if attribute_value is not None:
+        return attribute_value
     elif node_instance.relationships:
         # we have to get the node using the rest client with node_instance.node_id
         # then we will have the relationships
@@ -74,7 +110,7 @@ def __recursively_get_instance_data(data_name, node_instance):
             relationship = __get_relationship(node, rel.get('target_name'), rel.get('type'))
             if 'cloudify.relationships.contained_in' in relationship.get('type_hierarchy'):
                 parent_instance = client.node_instances.get(rel.get('target_id'))
-                return __recursively_get_instance_data(data_name, parent_instance)
+                return __recursively_get_instance_data(attribute_name, parent_instance)
         return None
     else:
         return None
@@ -95,6 +131,7 @@ def get_attribute_data(entity, attribute_name):
 def get_property_data(entity, property_name):
     return entity.node.properties.get(property_name, None)
 
+
 def parse_output(output):
     # by convention, the last output is the result of the operation
     last_output = None
@@ -109,6 +146,7 @@ def parse_output(output):
             output_value = match.group(2)
             outputs[output_name] = output_value
     return {'last_output':last_output, 'outputs':outputs}
+
 
 def execute(script_path, process, outputNames):
     wrapper_path = ctx.download_resource("scriptWrapper.sh")
@@ -170,6 +208,7 @@ def execute(script_path, process, outputNames):
 
     return parsed_output
 
+
 class OutputConsumer(object):
     def __init__(self, out):
         self.out = out
@@ -185,46 +224,6 @@ class OutputConsumer(object):
 
     def join(self):
         self.consumer.join()
-
-
-def get_attribute(entity, attribute_name):
-    if attribute_name == 'floating_ip_address':
-        return get_public_ip(entity)
-    else:
-        attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
-        if attribute_value is None:
-            attribute_value = get_instance_data(entity, attribute_name, get_property_data)
-        return attribute_value
-
-def _all_instances_get_attribute(entity, attribute_name):
-    if attribute_name == 'floating_ip_address':
-        #FIXME: since floating ip is not scalable, no more public ip_address can be found
-        return None
-    else:
-        attribute_value = get_other_instances_data(entity, attribute_name, get_attribute_data)
-        if attribute_value is None:
-            attribute_value = get_other_instances_data(entity, attribute_name, get_property_data)
-        return attribute_value
-
-def get_property(entity, property_name):
-    return get_instance_data(entity, property_name, get_property_data)
-
-
-def get_public_ip(entity):
-    host = get_host(entity)
-    public_ip = host.instance.runtime_properties.get('floating_ip_address', None)
-    if public_ip is not None:
-        return public_ip
-    public_ip = host.node.properties.get('floating_ip_address', None)
-    if public_ip is not None:
-        return public_ip
-    if host.instance.relationships:
-        for relationship in host.instance.relationships:
-            if 'cloudify.relationships.connected_to' in relationship.type_hierarchy:
-                if relationship.target.node.id == '_a4c_floating_ip_' + host.node.id:
-                    return relationship.target.instance.runtime_properties['floating_ip_address']
-    return ""
-
 
 
 env_map = {}
@@ -252,6 +251,6 @@ for k,v in parsed_output['outputs'].items():
     ctx.instance.runtime_properties['_a4c_OO:tosca.interfaces.relationship.Configure:pre_configure_source:{0}'.format(k)] = v
 
 
-ctx.source.instance.runtime_properties['wordpress_url'] = r'http://' + get_attribute(ctx.source, 'floating_ip_address') + r':' + r'80' + r'/'
+ctx.source.instance.runtime_properties['wordpress_url'] = r'http://' + get_attribute(ctx.source, 'public_ip_address') + r':' + r'80' + r'/'
 ctx.source.instance.update()
 ctx.target.instance.update()

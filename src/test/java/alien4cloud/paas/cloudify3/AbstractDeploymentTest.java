@@ -93,7 +93,7 @@ public class AbstractDeploymentTest extends AbstractTest {
 
     @After
     public void after() throws Exception {
-        cleanDeployments();
+//        cleanDeployments();
     }
 
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName) {
