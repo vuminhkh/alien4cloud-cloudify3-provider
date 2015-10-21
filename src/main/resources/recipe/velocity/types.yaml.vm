@@ -3,7 +3,7 @@
 #foreach($nativeType in ${deployment.nativeTypes})
   ${nativeType.elementId}:
     derived_from: ${util.natives.mapToCloudifyType($nativeType)}
-#set($persistentResourceMapping = ${util.natives.getPersistentResourceIdMapping($nativeType.properties)})
+#set($getPersistentResourceId = ${util.natives.getPersistentResourceId($nativeType.tags)})
 #set($attributeMappings = ${util.natives.getAttributesMapping($nativeType.attributes)})
 #if(${util.mapHasEntries($attributeMappings)} || $persistentResourceMapping)
     properties:
@@ -16,9 +16,9 @@
             - $parameter
 #end
 #end
-#if($persistentResourceMapping)
-      $persistentResourceMapping.key:
-        default: "${persistentResourceMapping.value.default}"
+#if($getPersistentResourceId)
+      _a4c_persistent_resource_id:
+        default: "${getPersistentResourceId}"
 #end
 #end
 #end

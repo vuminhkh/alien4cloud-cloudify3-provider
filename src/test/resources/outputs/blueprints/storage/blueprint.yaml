@@ -24,22 +24,8 @@ node_types:
             - ip
   alien.cloudify.openstack.nodes.DeletableVolume:
     derived_from: cloudify.openstack.nodes.Volume
-    properties:
-      size:
-        default: ""
-      volume_id:
-        default: ""
-      snapshot_id:
-        default: ""
   alien.cloudify.openstack.nodes.Volume:
     derived_from: cloudify.openstack.nodes.Volume
-    properties:
-      size:
-        default: ""
-      volume_id:
-        default: ""
-      snapshot_id:
-        default: ""
 
 
 
@@ -60,7 +46,6 @@ node_templates:
     properties: 
       volume: 
         size: 1.0
-      _a4c_persistent_resource_id: volume_id
   DeletableBlockStorage:
     type: alien.cloudify.openstack.nodes.DeletableVolume
     properties: 

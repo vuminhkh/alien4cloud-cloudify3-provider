@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import alien4cloud.model.common.Tag;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IValue;
@@ -144,12 +145,14 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
         return functions;
     }
 
-    public Map.Entry<String, PropertyDefinition> getPersistentResourceIdMapping(Map<String, PropertyDefinition> properties) {
-        for (Map.Entry<String, PropertyDefinition> propertyEntry : properties.entrySet()) {
-            if (propertyEntry.getKey().equals("_a4c_persistent_resource_id")) {
-                return propertyEntry;
-            }
-        }
-        return null;
+    /**
+     * Get the value of the _a4c_persistent_resource_id tag.
+     * 
+     * @param tags
+     *            The list of tags in which to search.
+     * @return The value of the _a4c_persistent_resource_id tag or null if the tag is not present in the list.
+     */
+    public String getPersistentResourceId(List<Tag> tags) {
+        return TagUtil.getTagValue(tags, "_a4c_persistent_resource_id");
     }
 }
