@@ -1,13 +1,15 @@
 #parse("provider/common/generic_resource.yaml.vm")
 #foreach($network in ${deployment.internalNetworks})
-#providerResourceNode(${network.nodeTemplate.type}, $network)
+  ${network.id}:
+    type: ${network.nodeTemplate.type}
+    properties:
+      resource_id: ${network.id}
+${util.natives.formatProperties(3, ${network.nodeTemplate.properties}, ${util.natives.loadPropertyMapping(${network.indexedToscaElement}, "_a4c_c3_network_prop_map")})}
   ${network.id}_subnet:
     type: cloudify.openstack.nodes.Subnet
     properties:
       resource_id: ${network.id}_subnet
-      subnet:
-        ip_version: ${network.nodeTemplate.properties.get("ip_version").value}
-        cidr: ${network.nodeTemplate.properties.get("cidr").value}
+${util.natives.formatProperties(3, ${network.nodeTemplate.properties}, ${util.natives.loadPropertyMapping(${network.indexedToscaElement}, "_a4c_c3_subnet_prop_map")})}
     relationships:
       - target: ${network.id}
         type: cloudify.relationships.contained_in

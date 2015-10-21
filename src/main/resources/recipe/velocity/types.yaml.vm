@@ -2,9 +2,11 @@
 #if($util.common.collectionHasElement(${deployment.nativeTypes}))
 #foreach($nativeType in ${deployment.nativeTypes})
   ${nativeType.elementId}:
-    derived_from: ${util.compute.mapToCloudifyType($nativeType)}
+    derived_from: ${util.natives.mapToCloudifyType($nativeType)}
+#set($persistentResourceMapping = ${util.natives.getPersistentResourceIdMapping($nativeType.properties)})
+#set($attributeMappings = ${util.natives.getAttributesMapping($nativeType.attributes)})
+#if(${util.mapHasEntries($attributeMappings)} || $persistentResourceMapping)
     properties:
-#set($attributeMappings = ${util.compute.getAttributesMapping($nativeType.attributes)})
 #foreach($attributeMapping in ${attributeMappings.entrySet()})
       _a4c_att_$attributeMapping.key:
         default:
@@ -14,9 +16,10 @@
             - $parameter
 #end
 #end
-#foreach($propertyDefinitionEntry in ${util.compute.getToscaProperties($nativeType).entrySet()})
-      $propertyDefinitionEntry.key:
-        default: ${util.compute.getDefault($propertyDefinitionEntry.value)}
+#if($persistentResourceMapping)
+      $persistentResourceMapping.key:
+        default: "${persistentResourceMapping.value.default}"
+#end
 #end
 #end
 #end

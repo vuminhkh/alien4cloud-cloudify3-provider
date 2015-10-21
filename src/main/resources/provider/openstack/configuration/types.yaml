@@ -48,6 +48,17 @@ data_types:
       floating_network_name:
         type: string
 
+  alien.data.SubnetConfig:
+    derived_from: tosca.datatypes.Root
+    properties:
+      ip_version:
+        type: integer
+        default: 4
+        constraints:
+          - valid_values: [ 4, 6 ]
+      cidr:
+        type: string
+
   alien.data.openstack.cinder.v1.VolumeCreateArgs:
     properties:
       tenant_id:
@@ -158,17 +169,12 @@ node_types:
     derived_from: alien.nodes.PublicNetwork
     tags:
       _a4c_c3_derived_from: cloudify.openstack.nodes.FloatingIP
+      _a4c_c3_floating_ip_prop_map: >
+        {"cidr": null, "ip_version": null, "network_id": null, "gateway_ip": null, "network_name": "floatingip.floating_network_name"}
     properties:
       floatingip:
         type: alien.data.FloatingIpConfig
         required: true
-      use_external_resource:
-        type: boolean
-        required: false
-      resource_id:
-        type: string
-        default: ''
-        required: false
       openstack_config:
         type: alien.data.OpenstackConfig
         required: false
@@ -177,6 +183,10 @@ node_types:
     derived_from: alien.nodes.PrivateNetwork
     tags:
       _a4c_c3_derived_from: cloudify.openstack.nodes.Network
+      _a4c_c3_network_prop_map: >
+        {"cidr": null, "ip_version": null, "network_id": "resource_id", "subnet_id": null, "gateway_ip": null, "network_name": null}
+      _a4c_c3_subnet_prop_map: >
+        {"cidr": "subnet.cidr", "ip_version": "subnet.ip_version", "subnet_id": "resource_id", "network_id": null, "gateway_ip": null, "network_name": null}
     properties:
       use_external_resource:
         type: boolean
@@ -184,6 +194,13 @@ node_types:
       resource_id:
         type: string
         default: ''
+        required: false
+      subnet_id:
+        type: string
+        default: ''
+        required: false
+      subnet:
+        type: alien.data.SubnetConfig
         required: false
       openstack_config:
         type: alien.data.OpenstackConfig

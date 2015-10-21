@@ -44,13 +44,4 @@ public class ComputeGenerationUtil extends NativeTypeGenerationUtil {
         }
     }
 
-    public Map<String, FunctionPropertyValue> getAttributesMapping(Map<String, IValue> attributes) {
-        Map<String, FunctionPropertyValue> functions = Maps.newHashMap();
-        for (Map.Entry<String, IValue> attributeEntry : attributes.entrySet()) {
-            if (attributeEntry.getValue() instanceof FunctionPropertyValue) {
-                functions.put(attributeEntry.getKey(), (FunctionPropertyValue) attributeEntry.getValue());
-            }
-        }
-        return functions;
-    }
 }

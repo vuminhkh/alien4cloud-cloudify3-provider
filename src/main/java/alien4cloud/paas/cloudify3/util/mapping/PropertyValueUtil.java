@@ -4,14 +4,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import alien4cloud.utils.services.PropertyValueService;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.BeanWrapperImpl;
-
-import alien4cloud.model.components.*;
+import alien4cloud.model.components.AbstractPropertyValue;
+import alien4cloud.model.components.ComplexPropertyValue;
+import alien4cloud.model.components.ListPropertyValue;
+import alien4cloud.model.components.PropertyValue;
+import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.cloudify3.error.PropertyValueMappingException;
+import alien4cloud.utils.services.PropertyValueService;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -48,8 +48,7 @@ public final class PropertyValueUtil {
 
             if (mapping == null || mapping.getSubMappings().size() == 0) {
                 // if the property is not mapped, just keep it as is.
-                PropertyValue mappedProperty = PropertyValueUtil.merge(sourcePropertyValue,
-                        (PropertyValue) mappedProperties.get(propertyEntry.getKey()));
+                PropertyValue mappedProperty = PropertyValueUtil.merge(sourcePropertyValue, (PropertyValue) mappedProperties.get(propertyEntry.getKey()));
                 mappedProperties.put(propertyEntry.getKey(), mappedProperty);
             } else {
                 // if the property is mapped then apply the mapping.
@@ -65,22 +64,21 @@ public final class PropertyValueUtil {
                     // if there is a specified unit, convert the value to the expected unit.
                     if (targetMapping.getUnit() != null) {
                         // need the property type to IComparablePropertyType
-                        sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(), subMapping.getSourceMapping()
-                                .getPropertyDefinition());
+                        sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(),
+                                subMapping.getSourceMapping().getPropertyDefinition());
                     }
 
                     PropertyValue targetProperty = (PropertyValue) mappedProperties.get(targetMapping.getProperty());
                     if (targetMapping.getPath() == null) {
                         // set the property with the value
-                        PropertyValue mappedProperty = PropertyValueUtil.merge(propertyValueFromObject(sourceValue),
-                                targetProperty);
+                        PropertyValue mappedProperty = PropertyValueUtil.merge(propertyValueFromObject(sourceValue), targetProperty);
                         mappedProperties.put(targetMapping.getProperty(), mappedProperty);
                     } else {
                         // extract the value
                         Object targetValue = sourceValue;
                         if (targetProperty != null) {
                             targetValue = PropertyValueService.getValue(targetProperty.getValue(), targetMapping.getPath());
-                            merge(sourceValue, targetValue);
+                            targetValue = merge(sourceValue, targetValue);
                         } else {
                             targetProperty = propertyValueFromObject(new HashMap<>());
                             mappedProperties.put(targetMapping.getProperty(), targetProperty);
@@ -132,13 +130,21 @@ public final class PropertyValueUtil {
         // perform the property merge.
         Object clonedSource = deepClone(source.getValue());
         // merge the clonedSource into the target value
-        merge(clonedSource, target.getValue());
+        target.setValue(merge(clonedSource, target.getValue()));
         return target;
     }
 
-    private static void merge(Object sourcePropertyValueObject, Object targetPropertyValueObject) {
-        // TODO do the merge
-
+    private static Object merge(Object sourcePropertyValueObject, Object targetPropertyValueObject) {
+        if (targetPropertyValueObject == null) {
+            return sourcePropertyValueObject;
+        }
+        if (sourcePropertyValueObject instanceof Map && targetPropertyValueObject instanceof Map) {
+            Map result = Maps.newHashMap((Map) targetPropertyValueObject);
+            result.putAll((Map) sourcePropertyValueObject);
+            return result;
+        } else {
+            return sourcePropertyValueObject;
+        }
     }
 
     private static void setValue(Object target, String path, Object value) {
@@ -202,8 +208,8 @@ public final class PropertyValueUtil {
         } else if (propertyValueObject instanceof String) {
             clone = propertyValueObject;
         } else {
-            log.warn("Property deep clone is just making a simple copy for type {} and value {}. Expecting a String for these situations.", propertyValueObject
-                    .getClass().getName(), propertyValueObject);
+            log.warn("Property deep clone is just making a simple copy for type {} and value {}. Expecting a String for these situations.",
+                    propertyValueObject.getClass().getName(), propertyValueObject);
             clone = propertyValueObject;
         }
 

@@ -21,6 +21,8 @@ public class BlueprintGenerationUtil extends AbstractGenerationUtil {
 
     private NonNativeTypeGenerationUtil nonNative;
 
+    private NativeTypeGenerationUtil natives;
+
     private WorkflowGenerationUtil workflow;
 
     private CommonGenerationUtil common;
@@ -35,5 +37,6 @@ public class BlueprintGenerationUtil extends AbstractGenerationUtil {
         this.workflow = new WorkflowGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
         this.common = new CommonGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
         this.network = new NetworkGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+        this.natives = new NativeTypeGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 }

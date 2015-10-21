@@ -16,7 +16,7 @@
         type: cloudify.openstack.server_connected_to_floating_ip
   ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}:
     type: ${externalNetwork.nodeTemplate.type}
-    properties: ${util.common.formatProperties(3, $externalNetwork.nodeTemplate.properties)}
+    properties: ${util.natives.formatProperties(3, ${externalNetwork.nodeTemplate.properties}, ${util.natives.loadPropertyMapping(${externalNetwork.indexedToscaElement}, "_a4c_c3_floating_ip_prop_map")})}
 #end
 #end
 #end

@@ -3,7 +3,6 @@ package alien4cloud.paas.cloudify3.service.model;
 import java.util.List;
 import java.util.Map;
 
-import alien4cloud.paas.cloudify3.util.mapping.PropertyMapping;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,6 +10,7 @@ import lombok.Setter;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
+import alien4cloud.paas.cloudify3.util.mapping.PropertyMapping;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.wf.Workflow;
 
@@ -73,5 +73,5 @@ public class CloudifyDeployment {
 
     private Map<String, Workflow> workflows;
 
-    Map<String, Map<String, PropertyMapping>> propertyMappings;
+    private Map<String, Map<String, PropertyMapping>> propertyMappings;
 }
