@@ -1,7 +1,6 @@
 package alien4cloud.paas.cloudify3.model;
 
 import java.util.List;
-import java.util.Map;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -14,19 +13,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @EqualsAndHashCode
 @JsonIgnoreProperties(ignoreUnknown = true)
 @SuppressWarnings("PMD.UnusedPrivateField")
-public class NodeInstance extends AbstractCloudifyModel {
+public class Relationship {
 
-    private String id;
+    private String targetId;
 
-    private String nodeId;
+    private String type;
 
-    private String hostId;
-
-    private String deploymentId;
-
-    private Map<String, Object> runtimeProperties;
-
-    private String state;
-
-    private List<RelationshipInstance> relationships;
+    private List<String> typeHierarchy;
 }

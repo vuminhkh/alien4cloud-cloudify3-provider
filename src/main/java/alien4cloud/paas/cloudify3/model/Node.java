@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.model;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,4 +34,6 @@ public class Node extends AbstractCloudifyModel {
     private Set<String> typeHierarchy;
 
     private String type;
+
+    private List<Relationship> relationships;
 }

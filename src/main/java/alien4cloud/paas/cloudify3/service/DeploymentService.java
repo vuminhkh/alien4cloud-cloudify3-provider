@@ -8,8 +8,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Resource;
 
-import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
-import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
@@ -21,6 +19,7 @@ import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.BlueprintClient;
+import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.exception.PaaSAlreadyDeployedException;
 import alien4cloud.paas.model.DeploymentStatus;
@@ -106,7 +105,8 @@ public class DeploymentService extends RuntimeService {
         ListenableFuture<Execution> installedExecution = waitForExecutionFinish(installingExecution);
 
         // Add a callback to handled failures and provide alien with the correct events.
-        addFailureCallback(installedExecution, "Deployment", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(), DeploymentStatus.FAILURE);
+        addFailureCallback(installedExecution, "Deployment", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(),
+                DeploymentStatus.FAILURE);
         return installedExecution;
     }
 
