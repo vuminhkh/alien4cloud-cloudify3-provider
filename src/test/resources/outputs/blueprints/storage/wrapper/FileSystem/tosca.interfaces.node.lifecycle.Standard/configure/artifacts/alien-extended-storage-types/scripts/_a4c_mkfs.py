@@ -256,6 +256,13 @@ env_map = {}
 env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
+env_map['LOCATION'] = r'/usr/data'
+env_map['FS_NAME'] = get_attribute(ctx, 'fs_name')
+env_map['FS_TYPE'] = r'ext4'
+other_instances_map = _all_instances_get_attribute(ctx, 'fs_name')
+if other_instances_map is not None:
+    for other_instances_key in other_instances_map:
+        env_map[other_instances_key + 'FS_NAME'] = other_instances_map[other_instances_key]
 
 new_script_process = {'env': env_map}
 
@@ -266,10 +273,10 @@ if inputs.get('process', None) is not None and inputs['process'].get('env', None
     new_script_process['env'].update(inputs['process']['env'])
 
 operationOutputNames = None
-parsed_output = execute(ctx.download_resource('artifacts/apache-type/scripts/start_apache.sh'), new_script_process, operationOutputNames)
+parsed_output = execute(ctx.download_resource('artifacts/alien-extended-storage-types/scripts/mkfs.sh'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))
-    ctx.instance.runtime_properties['_a4c_OO:tosca.interfaces.node.lifecycle.Standard:start:{0}'.format(k)] = v
+    ctx.instance.runtime_properties['_a4c_OO:tosca.interfaces.node.lifecycle.Standard:configure:{0}'.format(k)] = v
 
 
 ctx.instance.update()

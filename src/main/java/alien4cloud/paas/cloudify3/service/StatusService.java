@@ -8,11 +8,17 @@ import java.util.Set;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.paas.IPaaSCallback;
@@ -42,15 +48,7 @@ import alien4cloud.paas.model.InstanceStatus;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
 import alien4cloud.utils.MapUtil;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Handle all deployment status request
@@ -175,9 +173,9 @@ public class StatusService {
     }
 
     public void getInstancesInformation(final PaaSTopologyDeploymentContext deploymentContext,
-            final IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
+                                        final IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
         if (!statusCache.containsKey(deploymentContext.getDeploymentPaaSId())) {
-            callback.onSuccess(Maps.<String, Map<String, InstanceInformation>> newHashMap());
+            callback.onSuccess(Maps.<String, Map<String, InstanceInformation>>newHashMap());
             return;
         }
         ListenableFuture<NodeInstance[]> instancesFuture = nodeInstanceDAO.asyncList(deploymentContext.getDeploymentPaaSId());
@@ -230,18 +228,18 @@ public class StatusService {
                     if (MapUtils.isNotEmpty(nodeTemplate.getAttributes())) {
                         instanceInformation.setAttributes(nodeTemplate.getAttributes());
                     }
-                    if (node != null && runtimeProperties != null) {
-                        String nativeType = node.getProperties() != null ? getNativeType(node) : null;
-                        if (nativeType != null) {
-                            Map<String, String> attributes = getAttributesFromRuntimeProperties(nativeType, runtimeProperties);
-                            if (instanceInformation.getAttributes() == null) {
-                                instanceInformation.setAttributes(Maps.<String, String> newHashMap());
-                            }
-                            instanceInformation.getAttributes().putAll(attributes);
-                        } else {
-                            instanceInformation.getAttributes().putAll(runtimeProperties);
-                        }
-                    }
+//                    if (node != null && runtimeProperties != null) {
+//                        String nativeType = node.getProperties() != null ? getNativeType(node) : null;
+//                        if (nativeType != null) {
+//                            Map<String, String> attributes = getAttributesFromRuntimeProperties(nativeType, runtimeProperties);
+//                            if (instanceInformation.getAttributes() == null) {
+//                                instanceInformation.setAttributes(Maps.<String, String>newHashMap());
+//                            }
+//                            instanceInformation.getAttributes().putAll(attributes);
+//                        } else {
+//                            instanceInformation.getAttributes().putAll(runtimeProperties);
+//                        }
+//                    }
                     nodeInformation.put(instanceId, instanceInformation);
                 }
                 String floatingIpPrefix = mappingConfigurationHolder.getMappingConfiguration().getGeneratedNodePrefix() + "_floating_ip_";
@@ -265,86 +263,86 @@ public class StatusService {
                 if (log.isDebugEnabled()) {
                     log.debug("Problem retrieving instance information for deployment <" + deploymentContext.getDeploymentPaaSId() + "> ");
                 }
-                callback.onSuccess(Maps.<String, Map<String, InstanceInformation>> newHashMap());
+                callback.onSuccess(Maps.<String, Map<String, InstanceInformation>>newHashMap());
             }
         });
     }
-
-    private Set<String> getMappedAttributes(Map<String, Object> properties) {
-        Set<String> mappedAttributes = Sets.newHashSet();
-        for (Map.Entry<String, Object> propertyEntry : properties.entrySet()) {
-            if (propertyEntry.getKey().startsWith("_a4c_att_")) {
-                mappedAttributes.add(propertyEntry.getKey().substring("_a4c_att_".length()));
-            }
-        }
-        return mappedAttributes;
-    }
-
-    private RelationshipInstance getRelationshipInstance(NodeInstance instance, Relationship relationship) {
-        for (RelationshipInstance relationshipInstance : instance.getRelationships()) {
-            if (relationshipInstance.getTargetName().equals(relationship.getTargetId())) {
-                return relationshipInstance;
-            }
-        }
-        return null;
-    }
-
-    private Map<String, String> getAttributes(Node node, NodeInstance instance, Map<String, Node> nodeMap, Map<String, NodeInstance> nodeInstanceMap) {
-        Map<String, Object> properties = node.getProperties();
-        Map<String, Object> attributes = Maps.newHashMap();
-        Set<String> mappedAttributes = getMappedAttributes(properties);
-        for (String mappedAttribute : mappedAttributes) {
-            attributes.put(mappedAttribute, getMappedAttributeValue(mappedAttribute, node, instance, nodeMap, nodeInstanceMap));
-        }
-        try {
-            return MapUtil.toString(attributes);
-        } catch (JsonProcessingException e) {
-            log.error("Unable to stringify attributes", e);
-            return null;
-        }
-    }
-
-    private Relationship getRelationshipOfType(Node node, String type) {
-        for (Relationship relationship : node.getRelationships()) {
-            if (relationship.getTypeHierarchy().contains(type)) {
-                return relationship;
-            }
-        }
-        return null;
-    }
-
-    private String getMappedAttributeValue(String mappedAttribute, Node node, NodeInstance instance, Map<String, Node> nodeMap,
-            Map<String, NodeInstance> nodeInstanceMap) {
-        if (node.getProperties().containsKey("_a4c_att_" + mappedAttribute)) {
-            Map<String, Object> mappingConfiguration = (Map<String, Object>) node.getProperties().get("_a4c_att_" + mappedAttribute);
-            List<String> parameters = (List<String>) mappingConfiguration.get("parameters");
-            String function = (String) mappingConfiguration.get("function");
-            if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function)) {
-                String entity = parameters.get(0);
-                if (ToscaFunctionConstants.SELF.equals(entity)) {
-                    String fromAttribute = parameters.get(1);
-                    instance.getRuntimeProperties().get(fromAttribute);
-                } else if (ToscaFunctionConstants.TARGET.equals(entity)) {
-                    String relationshipType = parameters.get(1);
-                    Relationship relationship = getRelationshipOfType(node, relationshipType);
-                    if (relationship != null) {
-                        Node targetNode = nodeMap.get(relationship.getTargetId());
-                        RelationshipInstance relationshipInstance = getRelationshipInstance(instance, relationship);
-                        NodeInstance targetInstance = nodeInstanceMap.get(relationshipInstance.getTargetId());
-                        return getMappedAttributeValue(parameters.get(2), targetNode, targetInstance, nodeMap, nodeInstanceMap);
-                    }
-
-                } else {
-                    throw new NotSupportedException("TARGET or SELF are the only entities supported for the moment for attribute mapping");
-                }
-            } else {
-                throw new NotSupportedException("get_attribute is the only one supported for the moment for attribute mapping");
-            }
-        } else {
-
-        }
-        return null;
-    }
+//
+//    private Map<String, Map<String, Object>> getAttributesMappingConfiguration(Map<String, Object> properties) {
+//        Set<String> mappedAttributes = Sets.newHashSet();
+//        for (Map.Entry<String, Object> propertyEntry : properties.entrySet()) {
+//            if (propertyEntry.getKey().startsWith("_a4c_att_")) {
+//                mappedAttributes.add(propertyEntry.getKey().substring("_a4c_att_".length()));
+//            }
+//        }
+//        return mappedAttributes;
+//    }
+//
+//    private RelationshipInstance getRelationshipInstance(NodeInstance instance, Relationship relationship) {
+//        for (RelationshipInstance relationshipInstance : instance.getRelationships()) {
+//            if (relationshipInstance.getTargetName().equals(relationship.getTargetId())) {
+//                return relationshipInstance;
+//            }
+//        }
+//        return null;
+//    }
+//
+//    private Map<String, String> getAttributes(Node node, NodeInstance instance, Map<String, Node> nodeMap, Map<String, NodeInstance> nodeInstanceMap) {
+//        Map<String, Object> properties = node.getProperties();
+//        Map<String, Object> attributes = Maps.newHashMap();
+//        Set<String> mappedAttributes = getMappedAttributes(properties);
+//        for (String mappedAttribute : mappedAttributes) {
+//            attributes.put(mappedAttribute, getMappedAttributeValue(mappedAttribute, node, instance, nodeMap, nodeInstanceMap));
+//        }
+//        try {
+//            return MapUtil.toString(attributes);
+//        } catch (JsonProcessingException e) {
+//            log.error("Unable to stringify attributes", e);
+//            return null;
+//        }
+//    }
+//
+//    private Relationship getRelationshipOfType(Node node, String type) {
+//        for (Relationship relationship : node.getRelationships()) {
+//            if (relationship.getTypeHierarchy().contains(type)) {
+//                return relationship;
+//            }
+//        }
+//        return null;
+//    }
+//
+//    private String getMappedAttributeValue(String mappedAttribute, Node node, NodeInstance instance, Map<String, Node> nodeMap,
+//                                           Map<String, NodeInstance> nodeInstanceMap) {
+//        if (node.getProperties().containsKey("_a4c_att_" + mappedAttribute)) {
+//            Map<String, Object> mappingConfiguration = (Map<String, Object>) node.getProperties().get("_a4c_att_" + mappedAttribute);
+//            List<String> parameters = (List<String>) mappingConfiguration.get("parameters");
+//            String function = (String) mappingConfiguration.get("function");
+//            if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function)) {
+//                String entity = parameters.get(0);
+//                if (ToscaFunctionConstants.SELF.equals(entity)) {
+//                    String fromAttribute = parameters.get(1);
+//                    instance.getRuntimeProperties().get(fromAttribute);
+//                } else if (ToscaFunctionConstants.TARGET.equals(entity)) {
+//                    String relationshipType = parameters.get(1);
+//                    Relationship relationship = getRelationshipOfType(node, relationshipType);
+//                    if (relationship != null) {
+//                        Node targetNode = nodeMap.get(relationship.getTargetId());
+//                        RelationshipInstance relationshipInstance = getRelationshipInstance(instance, relationship);
+//                        NodeInstance targetInstance = nodeInstanceMap.get(relationshipInstance.getTargetId());
+//                        return getMappedAttributeValue(parameters.get(2), targetNode, targetInstance, nodeMap, nodeInstanceMap);
+//                    }
+//
+//                } else {
+//                    throw new NotSupportedException("TARGET or SELF are the only entities supported for the moment for attribute mapping");
+//                }
+//            } else {
+//                throw new NotSupportedException("get_attribute is the only one supported for the moment for attribute mapping");
+//            }
+//        } else {
+//
+//        }
+//        return null;
+//    }
 
     public void registerDeploymentEvent(String deploymentPaaSId, DeploymentStatus deploymentStatus) {
         this.statusCache.put(deploymentPaaSId, deploymentStatus);
@@ -352,47 +350,22 @@ public class StatusService {
 
     public InstanceStatus getInstanceStatusFromState(String state) {
         switch (state) {
-        case NodeInstanceStatus.STARTED:
-            return InstanceStatus.SUCCESS;
-        case NodeInstanceStatus.UNINITIALIZED:
-        case NodeInstanceStatus.STOPPING:
-        case NodeInstanceStatus.STOPPED:
-        case NodeInstanceStatus.STARTING:
-        case NodeInstanceStatus.CONFIGURING:
-        case NodeInstanceStatus.CONFIGURED:
-        case NodeInstanceStatus.CREATING:
-        case NodeInstanceStatus.CREATED:
-        case NodeInstanceStatus.DELETING:
-            return InstanceStatus.PROCESSING;
-        case NodeInstanceStatus.DELETED:
-            return null;
-        default:
-            return InstanceStatus.FAILURE;
+            case NodeInstanceStatus.STARTED:
+                return InstanceStatus.SUCCESS;
+            case NodeInstanceStatus.UNINITIALIZED:
+            case NodeInstanceStatus.STOPPING:
+            case NodeInstanceStatus.STOPPED:
+            case NodeInstanceStatus.STARTING:
+            case NodeInstanceStatus.CONFIGURING:
+            case NodeInstanceStatus.CONFIGURED:
+            case NodeInstanceStatus.CREATING:
+            case NodeInstanceStatus.CREATED:
+            case NodeInstanceStatus.DELETING:
+                return InstanceStatus.PROCESSING;
+            case NodeInstanceStatus.DELETED:
+                return null;
+            default:
+                return InstanceStatus.FAILURE;
         }
-    }
-
-    public Map<String, String> getAttributesFromRuntimeProperties(String type, Map<String, String> runtimeProperties) {
-        throw new NotImplementedException("TODO");
-        // TODO perform attributes mapping
-        // Map<String, String> attributes = Maps.newHashMap();
-        // Map<String, String> mapping = mappingConfigurationHolder.getProviderMappingConfiguration().getAttributes().get(type);
-        // if (mapping != null) {
-        // Map<String, String> attributesMapping = alien4cloud.utils.MapUtil.revert(mapping);
-        // Iterator<Map.Entry<String, String>> runtimePropertyIterator = runtimeProperties.entrySet().iterator();
-        // while (runtimePropertyIterator.hasNext()) {
-        // Map.Entry<String, String> runtimePropertyEntry = runtimePropertyIterator.next();
-        // String attributeKey = attributesMapping.get(runtimePropertyEntry.getKey());
-        // if (attributeKey != null) {
-        // attributes.put(attributeKey, runtimePropertyEntry.getValue());
-        // }
-        // }
-        // }
-        // return attributes;
-    }
-
-    public String getNativeType(Node node) {
-        // FIXME manage this correctly so events keep working.
-        return "";
-        // return (String) node.getProperties().get(mappingConfigurationHolder.getMappingConfiguration().getNativeTypePropertyName());
     }
 }

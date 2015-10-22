@@ -27,7 +27,12 @@ node_types:
   alien.cloudify.openstack.nodes.Volume:
     derived_from: cloudify.openstack.nodes.Volume
 
+  alien.nodes.LinuxFileSystem:
+    derived_from: cloudify.nodes.SoftwareComponent
 
+relationships:
+  alien.relationships.LinuxPartition:
+    derived_from: cloudify.relationships.depends_on
 
 node_templates:
 
@@ -45,7 +50,7 @@ node_templates:
         delete: {}
     properties: 
       volume: 
-        size: 1.0
+        size: 1
     relationships:
       - target: Compute
         type: cloudify.openstack.volume_attached_to_server
@@ -53,11 +58,28 @@ node_templates:
     type: alien.cloudify.openstack.nodes.DeletableVolume
     properties: 
       volume: 
-        size: 1.0
+        size: 1
     relationships:
       - target: Compute
         type: cloudify.openstack.volume_attached_to_server
 
+  FileSystem:
+    type: alien.nodes.LinuxFileSystem
+    instances:
+      deploy: 1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        stop: wrapper/FileSystem/tosca.interfaces.node.lifecycle.Standard/stop/artifacts/alien-extended-storage-types/scripts/_a4c_unmount.py
+        start: wrapper/FileSystem/tosca.interfaces.node.lifecycle.Standard/start/artifacts/alien-extended-storage-types/scripts/_a4c_mount.py
+        configure: wrapper/FileSystem/tosca.interfaces.node.lifecycle.Standard/configure/artifacts/alien-extended-storage-types/scripts/_a4c_mkfs.py
+    relationships:
+      - target: BlockStorage
+        type: alien.relationships.LinuxPartition
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            preconfigure: wrapper/FileSystem_BlockStorage/linuxPartitionBlockStorage/artifacts/alien-extended-storage-types/scripts/_a4c_fdisk.py
+      - target: Compute
+        type: cloudify.relationships.contained_in
 
 plugins:
   custom_wf_plugin:

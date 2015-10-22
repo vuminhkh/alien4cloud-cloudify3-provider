@@ -15,50 +15,87 @@ from cloudify import utils
 client = CloudifyClient(utils.get_manager_ip(), utils.get_manager_rest_service_port())
 
 
+def get_host(entity):
+    if entity.instance.relationships:
+        for relationship in entity.instance.relationships:
+            if 'cloudify.relationships.contained_in' in relationship.type_hierarchy:
+                return relationship.target
+    return None
+
+
 def has_attribute_mapping(entity, attribute_name):
-    return entity.node.properties['_a4c_att_' + attribute_name] is not None
+    ctx.logger.info('Check if it exists mapping for attribute {0} in {1}'.format(attribute_name, entity.node.properties))
+    return ('_a4c_att_' + attribute_name) in entity.node.properties
 
 
 def process_attribute_mapping(entity, attribute_name, data_retriever_function):
     # This is where attribute mapping is defined in the cloudify type
     mapping_configuration = entity.node.properties['_a4c_att_' + attribute_name]
+    ctx.logger.info('Mapping configuration found for attribute {0} is {1}'.format(attribute_name, mapping_configuration))
     if mapping_configuration:
         # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
         # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
-        if mapping_configuration.parameters[0] == 'SELF':
-            return data_retriever_function(entity, mapping_configuration.parameters[1])
-        elif mapping_configuration.parameters[0] == 'TARGET' and entity.instance.relationships:
+        if mapping_configuration['parameters'][0] == 'SELF':
+            return data_retriever_function(entity, mapping_configuration['parameters'][1])
+        elif mapping_configuration['parameters'][0] == 'TARGET' and entity.instance.relationships:
             for relationship in entity.instance.relationships:
-                if mapping_configuration.parameters[1] in relationship.type_hierarchy:
-                    return data_retriever_function(relationship.target.instance, mapping_configuration.parameters[2])
+                if mapping_configuration['parameters'][1] in relationship.type_hierarchy:
+                    return data_retriever_function(relationship.target, mapping_configuration['parameters'][2])
     return None
 
 
 def get_attribute(entity, attribute_name):
     if has_attribute_mapping(entity, attribute_name):
-        return process_attribute_mapping(entity, attribute_name, get_attribute)
-    attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
-    if attribute_value is None:
-        attribute_value = get_instance_data(entity, attribute_name, get_property_data)
-    return attribute_value
+        # First check if any mapping exist for attribute
+        mapped_value = process_attribute_mapping(entity, attribute_name, get_attribute)
+        ctx.logger.info('Mapping exists for attribute {0} with value {1}'.format(attribute_name, mapped_value))
+        return mapped_value
+    # No mapping exist, try to get directly the attribute from the entity
+    attribute_value = entity.instance.runtime_properties.get(attribute_name, None)
+    if attribute_value is not None:
+        ctx.logger.info('Found the attribute {0} with value {1} on the node {2}'.format(attribute_name, attribute_value, entity.node.id))
+        return attribute_value
+    # Attribute retrieval fails, fall back to property
+    property_value = entity.node.properties.get(attribute_name, None)
+    if property_value is not None:
+        return property_value
+    # Property retrieval fails, fall back to host instance
+    host = get_host(entity)
+    if host is not None:
+        ctx.logger.info('Attribute/Property not found {0} go up to the parent node {1}'.format(attribute_name, host.node.id))
+        return get_attribute(host, attribute_name)
+    # Nothing is found
+    return ""
 
 
 def _all_instances_get_attribute(entity, attribute_name):
-    if has_attribute_mapping(entity, attribute_name):
-        return process_attribute_mapping(entity, attribute_name, _all_instances_get_attribute)
     result_map = {}
     # get all instances data using cfy rest client
+    # we have to get the node using the rest client with node_instance.node_id
+    # then we will have the relationships
+    node = client.nodes.get(ctx.deployment.id, entity.node.id)
     all_node_instances = client.node_instances.list(ctx.deployment.id, entity.node.id)
     for node_instance in all_node_instances:
-        prop_value = __recursively_get_instance_data(attribute_name, node_instance)
+        prop_value = __recursively_get_instance_data(node, node_instance, attribute_name)
         if prop_value is not None:
-            ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(data_name, prop_value, entity.node.id, node_instance.id))
+            ctx.logger.info('Found the property/attribute {0} with value {1} on the node {2} instance {3}'.format(attribute_name, prop_value, entity.node.id,
+                                                                                                                  node_instance.id))
             result_map[node_instance.id + '_'] = prop_value
     return result_map
 
 
 def get_property(entity, property_name):
-    return get_instance_data(entity, property_name, get_property_data)
+    # Try to get the property value on the node
+    property_value = entity.node.properties.get(property_name, None)
+    if property_value is not None:
+        ctx.logger.info('Found the property {0} with value {1} on the node {2}'.format(property_name, property_value, entity.node.id))
+        return property_value
+    # No property found on the node, fall back to the host
+    host = get_host(entity)
+    if host is not None:
+        ctx.logger.info('Property not found {0} go up to the parent node {1}'.format(property_name, host.node.id))
+        return get_property(host, property_name)
+    return ""
 
 
 def get_instance_list(node_id):
@@ -71,25 +108,6 @@ def get_instance_list(node_id):
     return result
 
 
-def get_instance_data(entity, data_name, get_data_function):
-    data = get_data_function(entity, data_name)
-    if data is not None:
-        ctx.logger.info(
-            'Found the property/attribute {0} with value {1} on the node {2}'.format(data_name, data, entity.node.id))
-        return data
-    elif entity.instance.relationships:
-        for relationship in entity.instance.relationships:
-            if 'cloudify.relationships.contained_in' in relationship.type_hierarchy:
-                ctx.logger.info(
-                    'Attribute/Property not found {0} go up to the parent node {1} by following relationship {2}'.format(data_name,
-                                                                                                                         relationship.target.node.id,
-                                                                                                                         relationship.type))
-                return get_instance_data(relationship.target, data_name, get_data_function)
-        return ""
-    else:
-        return ""
-
-
 def __get_relationship(node, target_name, relationship_type):
     for relationship in node.relationships:
         if relationship.get('target_id') == target_name and relationship_type in relationship.get('type_hierarchy'):
@@ -97,39 +115,47 @@ def __get_relationship(node, target_name, relationship_type):
     return None
 
 
-def __recursively_get_instance_data(attribute_name, node_instance):
+def __has_attribute_mapping(node, attribute_name):
+    ctx.logger.info('Check if it exists mapping for attribute {0} in {1}'.format(attribute_name, node.properties))
+    return ('_a4c_att_' + attribute_name) in node.properties
+
+
+def __process_attribute_mapping(node, node_instance, attribute_name, data_retriever_function):
+    # This is where attribute mapping is defined in the cloudify type
+    mapping_configuration = node.properties['_a4c_att_' + attribute_name]
+    ctx.logger.info('Mapping configuration found for attribute {0} is {1}'.format(attribute_name, mapping_configuration))
+    if mapping_configuration:
+        # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
+        # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
+        if mapping_configuration['parameters'][0] == 'SELF':
+            return data_retriever_function(node, node_instance, mapping_configuration['parameters'][1])
+        elif mapping_configuration['parameters'][0] == 'TARGET' and node_instance.relationships:
+            for rel in node_instance.relationships:
+                relationship = __get_relationship(node, rel.get('target_name'), rel.get('type'))
+                if mapping_configuration['parameters'][1] in relationship.get('type_hierarchy'):
+                    target_instance = client.node_instances.get(rel.get('target_id'))
+                    target_node = client.nodes.get(ctx.deployment.id, target_instance.node_id)
+                    return data_retriever_function(target_node, target_instance, mapping_configuration['parameters'][2])
+    return None
+
+
+def __recursively_get_instance_data(node, node_instance, attribute_name):
+    if __has_attribute_mapping(node, attribute_name):
+        return __process_attribute_mapping(node, node_instance, attribute_name, __recursively_get_instance_data)
     attribute_value = node_instance.runtime_properties.get(attribute_name, None)
     if attribute_value is not None:
         return attribute_value
     elif node_instance.relationships:
-        # we have to get the node using the rest client with node_instance.node_id
-        # then we will have the relationships
-        node = client.nodes.get(ctx.deployment.id, node_instance.node_id)
         for rel in node_instance.relationships:
             # on rel we have target_name, target_id (instanceId), type
             relationship = __get_relationship(node, rel.get('target_name'), rel.get('type'))
             if 'cloudify.relationships.contained_in' in relationship.get('type_hierarchy'):
                 parent_instance = client.node_instances.get(rel.get('target_id'))
-                return __recursively_get_instance_data(attribute_name, parent_instance)
+                parent_node = client.nodes.get(ctx.deployment.id, parent_instance.node_id)
+                return __recursively_get_instance_data(parent_node, parent_instance, attribute_name)
         return None
     else:
         return None
-
-
-def get_host(entity):
-    if entity.instance.relationships:
-        for relationship in entity.instance.relationships:
-            if 'cloudify.relationships.contained_in' in relationship.type_hierarchy:
-                return get_host(relationship.target)
-    return entity
-
-
-def get_attribute_data(entity, attribute_name):
-    return entity.instance.runtime_properties.get(attribute_name, None)
-
-
-def get_property_data(entity, property_name):
-    return entity.node.properties.get(property_name, None)
 
 
 def parse_output(output):
@@ -145,7 +171,7 @@ def parse_output(output):
             output_name = match.group(1)
             output_value = match.group(2)
             outputs[output_name] = output_value
-    return {'last_output':last_output, 'outputs':outputs}
+    return {'last_output': last_output, 'outputs': outputs}
 
 
 def execute(script_path, process, outputNames):

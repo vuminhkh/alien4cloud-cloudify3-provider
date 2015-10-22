@@ -8,13 +8,12 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
-import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.exception.InvalidArgumentException;
@@ -42,15 +41,13 @@ import alien4cloud.paas.plan.ToscaRelationshipLifecycleConstants;
 import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
 import alien4cloud.utils.FileUtil;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     public NonNativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
-            PropertyEvaluatorService propertyEvaluatorService) {
+                                       PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
@@ -133,8 +130,7 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     /**
      * Extract interfaces that have implemented operations
      *
-     * @param allInterfaces
-     *            all interfaces
+     * @param allInterfaces all interfaces
      * @return interfaces that have implemented operations
      */
     private Map<String, Interface> getInterfaces(Map<String, Interface> allInterfaces) {
@@ -182,40 +178,11 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
         return nodeName;
     }
 
-    private String getNodeNameHasPropertyOrAttribute(String parentNodeName, PaaSNodeTemplate node, String attributeName, String functionName) {
-        String nodeName = doGetNodeNameHasPropertyOrAttribute(node, attributeName, functionName);
-        if (nodeName == null) {
-            // Not found just take the initial value and emit warning
-            log.warn("Node {} ask for property/attribute {} of node {} but it's not found", parentNodeName, attributeName, node.getId());
-            return node.getId();
-        } else {
-            return nodeName;
-        }
-    }
-
-    private String doGetNodeNameHasPropertyOrAttribute(PaaSNodeTemplate node, String attributeName, String functionName) {
-        Set<String> propertiesOrAttributes = null;
-        if (ToscaFunctionConstants.GET_PROPERTY.equals(functionName)) {
-            if (node.getIndexedToscaElement().getProperties() != null) {
-                propertiesOrAttributes = node.getIndexedToscaElement().getProperties().keySet();
-            }
-        } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(functionName)) {
-            if (node.getIndexedToscaElement().getAttributes() != null) {
-                propertiesOrAttributes = node.getIndexedToscaElement().getAttributes().keySet();
-            }
-        }
-        if (propertiesOrAttributes == null || !propertiesOrAttributes.contains(attributeName)) {
-            if (node.getParent() != null) {
-                return doGetNodeNameHasPropertyOrAttribute(node.getParent(), attributeName, functionName);
-            } else {
-                return null;
-            }
-        } else {
-            return node.getId();
-        }
-    }
-
     public Map<String, IValue> getNodeAttributes(PaaSNodeTemplate nodeTemplate) {
+        if (!isNonNative(nodeTemplate)) {
+            // Do not try to publish attributes for non native nodes
+            return null;
+        }
         if (MapUtils.isEmpty(nodeTemplate.getIndexedToscaElement().getAttributes())) {
             return null;
         }
@@ -311,17 +278,17 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
                 // Function case
                 FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) concatParam;
                 switch (functionPropertyValue.getFunction()) {
-                case ToscaFunctionConstants.GET_ATTRIBUTE:
-                    pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
-                    break;
-                case ToscaFunctionConstants.GET_PROPERTY:
-                    pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
-                    break;
-                case ToscaFunctionConstants.GET_OPERATION_OUTPUT:
-                    pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
-                    break;
-                default:
-                    throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not yet supported");
+                    case ToscaFunctionConstants.GET_ATTRIBUTE:
+                        pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
+                        break;
+                    case ToscaFunctionConstants.GET_PROPERTY:
+                        pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
+                        break;
+                    case ToscaFunctionConstants.GET_OPERATION_OUTPUT:
+                        pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
+                        break;
+                    default:
+                        throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not yet supported");
                 }
             } else {
                 throw new NotSupportedException("Do not support nested concat in a concat, please simplify your usage");
@@ -338,39 +305,21 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     public String formatFunctionPropertyValue(String context, IPaaSTemplate<?> owner, FunctionPropertyValue functionPropertyValue) {
         if (owner instanceof PaaSNodeTemplate) {
-            return formatNodeFunctionPropertyValue(context, (PaaSNodeTemplate) owner, functionPropertyValue);
+            return formatNodeFunctionPropertyValue(context, functionPropertyValue);
         } else if (owner instanceof PaaSRelationshipTemplate) {
-            return formatRelationshipFunctionPropertyValue(context, (PaaSRelationshipTemplate) owner, functionPropertyValue);
+            return formatRelationshipFunctionPropertyValue(context, functionPropertyValue);
         } else {
             throw new NotSupportedException("Un-managed paaS template type " + owner.getClass().getSimpleName());
         }
     }
 
-    public FunctionPropertyValue processNodeOperationInputFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
-        String concreteNode = resolveKeyWordInNodeFunction(node, functionPropertyValue);
-        String concreteNodeWithAttribute = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(concreteNode),
-                functionPropertyValue.getElementNameToFetch(), functionPropertyValue.getFunction());
-        return resolvePropertyMappingInFunction(concreteNodeWithAttribute, functionPropertyValue);
-    }
-
-    public String formatNodeFunctionPropertyValue(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
-        return formatNodeFunctionPropertyValue("", node, functionPropertyValue);
-    }
-
     /**
      * Format operation parameter of a node
      *
-     * @param node
-     *            the node which contains the function property value
-     * @param functionPropertyValue
-     *            the input which can be a function or a scalar
+     * @param functionPropertyValue the input which can be a function or a scalar
      * @return the formatted parameter understandable by Cloudify 3
      */
-    public String formatNodeFunctionPropertyValue(String context, PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
-        String concreteNode = resolveKeyWordInNodeFunction(node, functionPropertyValue);
-        String concreteNodeWithAttribute = getNodeNameHasPropertyOrAttribute(node.getId(), alienDeployment.getAllNodes().get(concreteNode),
-                functionPropertyValue.getElementNameToFetch(), functionPropertyValue.getFunction());
-        functionPropertyValue = resolvePropertyMappingInFunction(concreteNodeWithAttribute, functionPropertyValue);
+    public String formatNodeFunctionPropertyValue(String context, FunctionPropertyValue functionPropertyValue) {
         if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(functionPropertyValue.getFunction())) {
             return "get_attribute(ctx" + context + ", '" + functionPropertyValue.getElementNameToFetch() + "')";
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
@@ -384,24 +333,13 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
         }
     }
 
-    public String formatRelationshipFunctionPropertyValue(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
-        return formatRelationshipFunctionPropertyValue("", relationship, functionPropertyValue);
-    }
-
     /**
      * Format operation parameter of a node
      *
-     * @param relationship
-     *            the relationship which contains the function property value
-     * @param functionPropertyValue
-     *            the input which can be a function or a scalar
+     * @param functionPropertyValue the input which can be a function or a scalar
      * @return the formatted parameter understandable by Cloudify 3
      */
-    public String formatRelationshipFunctionPropertyValue(String context, PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
-        String concreteNode = resolveKeyWordInRelationshipFunction(relationship, functionPropertyValue);
-        String concreteNodeWithAttribute = getNodeNameHasPropertyOrAttribute(relationship.getId(), alienDeployment.getAllNodes().get(concreteNode),
-                functionPropertyValue.getElementNameToFetch(), functionPropertyValue.getFunction());
-        functionPropertyValue = resolvePropertyMappingInFunction(concreteNodeWithAttribute, functionPropertyValue);
+    public String formatRelationshipFunctionPropertyValue(String context, FunctionPropertyValue functionPropertyValue) {
         if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(functionPropertyValue.getFunction())) {
             return "get_attribute(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
                     + functionPropertyValue.getElementNameToFetch() + "')";
@@ -415,45 +353,6 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
                     + functionPropertyValue.getElementNameToFetch() + "')";
         } else {
             throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not supported");
-        }
-    }
-
-    private FunctionPropertyValue resolvePropertyMappingInFunction(String realNodeName, FunctionPropertyValue functionPropertyValue) {
-        FunctionPropertyValue resolved = new FunctionPropertyValue(functionPropertyValue.getFunction(),
-                Lists.newArrayList(functionPropertyValue.getParameters()));
-        // FIXME Fix get attribute management.
-        String nativeType = null;
-        for (int i = 1; i < resolved.getParameters().size(); i++) {
-            String attributeName = resolved.getParameters().get(i);
-            resolved.getParameters().set(i, mapPropAttName(functionPropertyValue.getFunction(), attributeName, nativeType));
-        }
-        return resolved;
-    }
-
-    private String mapPropAttName(String function, String propAttName, String nativeType) {
-        if (nativeType == null) {
-            // Non native type do not have property or attribute name mapping as it's not cloudify dependent
-            return propAttName;
-        } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function)) {
-            // Get attribute mapping from provider configuration
-            // Map<String, String> attributeMapping = providerMappingConfiguration.getAttributes().get(nativeType);
-            // if (attributeMapping != null) {
-            // String mappedAttributeName = attributeMapping.get(propAttName);
-            // if (mappedAttributeName != null) {
-            // return mappedAttributeName;
-            // } else {
-            // return propAttName;
-            // }
-            // } else {
-            // return propAttName;
-            // }
-            // TODO fix the mapping of attribute
-            throw new NotImplementedException("TODO");
-        } else if (ToscaFunctionConstants.GET_PROPERTY.equals(function)) {
-            // property for native type is prefixed
-            return mappingConfiguration.getNativePropertyParent() + "." + propAttName;
-        } else {
-            return propAttName;
         }
     }
 
@@ -608,4 +507,7 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
         return (operationWrapper.getOwner() instanceof PaaSNodeTemplate);
     }
 
+    public boolean isNonNative(PaaSNodeTemplate nodeTemplate) {
+        return alienDeployment.getNonNatives().contains(nodeTemplate);
+    }
 }

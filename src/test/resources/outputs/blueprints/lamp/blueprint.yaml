@@ -24,30 +24,8 @@ node_types:
             - ip
   alien.nodes.openstack.PrivateNetwork:
     derived_from: cloudify.openstack.nodes.Network
-    properties:
-      ip_version:
-        default: 4
-      cidr:
-        default: ""
-      gateway_ip:
-        default: ""
-      network_name:
-        default: ""
-      network_id:
-        default: ""
   alien.nodes.openstack.PublicNetwork:
     derived_from: cloudify.openstack.nodes.FloatingIP
-    properties:
-      ip_version:
-        default: 4
-      cidr:
-        default: ""
-      gateway_ip:
-        default: ""
-      network_name:
-        default: ""
-      network_id:
-        default: ""
 
   alien.nodes.Mysql:
     derived_from: cloudify.nodes.Database
@@ -84,25 +62,30 @@ node_templates:
   _a4c_floating_ip_Server_on_NetPub:
     type: alien.nodes.openstack.PublicNetwork
     properties: 
-      ip_version: 4
-      network_name: net-pub
+      floatingip: 
+        floating_network_name: net-pub
   DataBase:
     type: alien.nodes.openstack.Compute
     properties: 
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
       flavor: 2
+    relationships:
+      - target: InternalNetwork
+        type: cloudify.relationships.connected_to
+      - target: InternalNetwork_subnet
+        type: cloudify.relationships.depends_on
 
   InternalNetwork:
     type: alien.nodes.openstack.PrivateNetwork
-    properties: 
-      ip_version: 4
-      network_name: internal-network
-      cidr: 192.168.1.0/24
+    properties:
+      resource_id: InternalNetwork
+
   InternalNetwork_subnet:
     type: cloudify.openstack.nodes.Subnet
     properties:
       resource_id: InternalNetwork_subnet
-      subnet:
+
+      subnet: 
         ip_version: 4
         cidr: 192.168.1.0/24
     relationships:

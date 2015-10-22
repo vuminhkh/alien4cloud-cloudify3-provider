@@ -253,9 +253,13 @@ class OutputConsumer(object):
 
 
 env_map = {}
-env_map['NODE'] = ctx.node.id
-env_map['INSTANCE'] = ctx.instance.id
-env_map['INSTANCES'] = get_instance_list(ctx.node.id)
+env_map['TARGET_NODE'] = ctx.target.node.id
+env_map['TARGET_INSTANCE'] = ctx.target.instance.id
+env_map['TARGET_INSTANCES'] = get_instance_list(ctx.target.node.id)
+env_map['SOURCE_NODE'] = ctx.source.node.id
+env_map['SOURCE_INSTANCE'] = ctx.source.instance.id
+env_map['SOURCE_INSTANCES'] = get_instance_list(ctx.source.node.id)
+env_map['DEVICE'] = ''
 
 new_script_process = {'env': env_map}
 
@@ -266,10 +270,10 @@ if inputs.get('process', None) is not None and inputs['process'].get('env', None
     new_script_process['env'].update(inputs['process']['env'])
 
 operationOutputNames = None
-parsed_output = execute(ctx.download_resource('artifacts/apache-type/scripts/start_apache.sh'), new_script_process, operationOutputNames)
+parsed_output = execute(ctx.download_resource('artifacts/alien-extended-storage-types/scripts/fdisk.sh'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))
-    ctx.instance.runtime_properties['_a4c_OO:tosca.interfaces.node.lifecycle.Standard:start:{0}'.format(k)] = v
+    ctx.instance.runtime_properties['_a4c_OO:tosca.interfaces.relationship.Configure:pre_configure_source:{0}'.format(k)] = v
 
 
-ctx.instance.update()
+ctx.source.instance.update()

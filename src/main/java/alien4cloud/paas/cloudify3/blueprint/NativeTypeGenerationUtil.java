@@ -5,12 +5,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
+
 import alien4cloud.model.common.Tag;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IValue;
 import alien4cloud.model.components.IndexedNodeType;
-import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.components.PropertyValue;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
@@ -22,22 +23,19 @@ import alien4cloud.paas.cloudify3.util.mapping.PropertyValueUtil;
 import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.utils.TagUtil;
 
-import com.google.common.collect.Maps;
-
 public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     public static final String MAPPED_TO_KEY = "_a4c_c3_derived_from";
 
     public NativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
-            PropertyEvaluatorService propertyEvaluatorService) {
+                                    PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
     /**
      * Utility method used by velocity generator in order to find the cloudify type from a cloudify tosca type.
-     * 
-     * @param toscaNodeType
-     *            The tosca node type.
+     *
+     * @param toscaNodeType The tosca node type.
      * @return The matching cloudify's type.
      */
     public String mapToCloudifyType(IndexedNodeType toscaNodeType) {
@@ -75,12 +73,9 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
     /**
      * Apply properties mapping and then format properties for cloudify blueprint.
      *
-     * @param indentLevel
-     *            The indentation level for the properties.
-     * @param properties
-     *            The properties values map.
-     * @param propMappings
-     *            The mapping configuration to map values.
+     * @param indentLevel  The indentation level for the properties.
+     * @param properties   The properties values map.
+     * @param propMappings The mapping configuration to map values.
      * @return The formatted properties string to insert in the blueprint.
      */
     public String formatProperties(int indentLevel, Map<String, AbstractPropertyValue> properties, Map<String, PropertyMapping> propMappings) {
@@ -147,12 +142,12 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     /**
      * Get the value of the _a4c_persistent_resource_id tag.
-     * 
-     * @param tags
-     *            The list of tags in which to search.
+     *
+     * @param tags The list of tags in which to search.
      * @return The value of the _a4c_persistent_resource_id tag or null if the tag is not present in the list.
      */
     public String getPersistentResourceId(List<Tag> tags) {
         return TagUtil.getTagValue(tags, "_a4c_persistent_resource_id");
     }
+
 }
