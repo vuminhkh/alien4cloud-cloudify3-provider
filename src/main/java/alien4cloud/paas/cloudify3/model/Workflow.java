@@ -16,9 +16,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @SuppressWarnings("PMD.UnusedPrivateField")
 public class Workflow extends AbstractCloudifyModel {
 
-    public static final String INSTALL = "install";
+    public static final String INSTALL = "a4c_install";
 
-    public static final String UNINSTALL = "uninstall";
+    public static final String UNINSTALL = "a4c_uninstall";
 
     public static final String EXECUTE_OPERATION = "execute_operation";
 
