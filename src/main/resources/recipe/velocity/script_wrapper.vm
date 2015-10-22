@@ -102,7 +102,11 @@ operationOutputNames = '${util.nonNative.getOperationOutputNames(${operation})}'
 parsed_output = execute(ctx.download_resource('${util.nonNative.getArtifactRelativePath(${operation.implementationArtifact})}'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))
+#if($util.nonNative.isOperationOwnedByRelationship(${operation}))
+    ctx.source.instance.runtime_properties['_a4c_OO:${operation.interfaceName}:${operation.operationName}:{0}'.format(k)] = v
+#else
     ctx.instance.runtime_properties['_a4c_OO:${operation.interfaceName}:${operation.operationName}:{0}'.format(k)] = v
+#end
 
 #macro(setAttributes $owner $entity $attributes $context)
 #if($attributes)

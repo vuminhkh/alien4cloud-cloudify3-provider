@@ -186,8 +186,9 @@ def execute(script_path, process, outputNames):
 
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
-
-    command = '{0} {1}'.format(wrapper_path, script_path)
+        command = '{0} {1}'.format(wrapper_path, script_path)
+    else:
+        command = script_path
 
     ctx.logger.info('Executing: {0} in env {1}'.format(command, env))
 

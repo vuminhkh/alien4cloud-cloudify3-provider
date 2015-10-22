@@ -24,8 +24,24 @@ node_types:
             - ip
   alien.cloudify.openstack.nodes.DeletableVolume:
     derived_from: cloudify.openstack.nodes.Volume
+    properties:
+      _a4c_att_device:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - device_name
   alien.cloudify.openstack.nodes.Volume:
     derived_from: cloudify.openstack.nodes.Volume
+    properties:
+      _a4c_att_device:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - device_name
+      _a4c_persistent_resource_id:
+        default: "volume_id"
 
   alien.nodes.LinuxFileSystem:
     derived_from: cloudify.nodes.SoftwareComponent

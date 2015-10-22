@@ -187,8 +187,9 @@ def execute(script_path, process, outputNames):
 
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
-
-    command = '{0} {1}'.format(wrapper_path, script_path)
+        command = '{0} {1}'.format(wrapper_path, script_path)
+    else:
+        command = script_path
 
     ctx.logger.info('Executing: {0} in env {1}'.format(command, env))
 
@@ -256,6 +257,7 @@ env_map = {}
 env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
+env_map['FS_MOUNT_PATH'] = r'/usr/data'
 
 new_script_process = {'env': env_map}
 

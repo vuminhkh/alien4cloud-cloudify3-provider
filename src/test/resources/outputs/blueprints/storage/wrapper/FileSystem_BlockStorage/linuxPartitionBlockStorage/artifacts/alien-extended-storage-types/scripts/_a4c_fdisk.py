@@ -187,8 +187,9 @@ def execute(script_path, process, outputNames):
 
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
-
-    command = '{0} {1}'.format(wrapper_path, script_path)
+        command = '{0} {1}'.format(wrapper_path, script_path)
+    else:
+        command = script_path
 
     ctx.logger.info('Executing: {0} in env {1}'.format(command, env))
 
@@ -259,7 +260,12 @@ env_map['TARGET_INSTANCES'] = get_instance_list(ctx.target.node.id)
 env_map['SOURCE_NODE'] = ctx.source.node.id
 env_map['SOURCE_INSTANCE'] = ctx.source.instance.id
 env_map['SOURCE_INSTANCES'] = get_instance_list(ctx.source.node.id)
-env_map['DEVICE'] = ''
+env_map['DEVICE'] = get_attribute(ctx.target, 'device')
+env_map['PARTITION_TYPE'] = r'83'
+other_instances_map = _all_instances_get_attribute(ctx.target, 'device')
+if other_instances_map is not None:
+    for other_instances_key in other_instances_map:
+        env_map[other_instances_key + 'DEVICE'] = other_instances_map[other_instances_key]
 
 new_script_process = {'env': env_map}
 
@@ -270,10 +276,11 @@ if inputs.get('process', None) is not None and inputs['process'].get('env', None
     new_script_process['env'].update(inputs['process']['env'])
 
 operationOutputNames = None
+operationOutputNames = 'PARTITION_NAME'
 parsed_output = execute(ctx.download_resource('artifacts/alien-extended-storage-types/scripts/fdisk.sh'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))
-    ctx.instance.runtime_properties['_a4c_OO:tosca.interfaces.relationship.Configure:pre_configure_source:{0}'.format(k)] = v
+    ctx.source.instance.runtime_properties[k] = v
 
 
 ctx.source.instance.update()
