@@ -36,7 +36,15 @@ class Node(object):
         self.instances = []
         self.type_hierarchy = types
         self.properties = {}
+        self._relationships = {}
 
+    def add_relationship(self, relationship):
+        self._relationships[relationship.target_id] = relationship
+
+    @property
+    def relationships(self):
+        """The node relationships"""
+        return self._relationships.itervalues()
 
 class Instance(object):
 
@@ -67,7 +75,7 @@ class Instance(object):
         return task
 
 
-class Relationship(object):
+class RelationshipIntance(object):
 
     def __init__(self, instance, target):
         self.instance = instance
@@ -82,6 +90,14 @@ class Relationship(object):
     def execute_target_operation(self, operation):
         task = Task("rel_tgt_{0}_to_{1}_{2}".format(self.instance.id, self.target_id, str(operation).replace(".", "_")))
         return task
+
+
+class Relationship(object):
+
+    def __init__(self, target):
+        # the target node
+        self.target = target
+        self.target_id = target.id
 
 
 class Task(object):

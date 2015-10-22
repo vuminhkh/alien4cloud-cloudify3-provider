@@ -8,6 +8,7 @@ import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.wf.AbstractStep;
+import alien4cloud.paas.wf.DelegateWorkflowActivity;
 import alien4cloud.paas.wf.NodeActivityStep;
 import alien4cloud.paas.wf.OperationCallActivity;
 import alien4cloud.paas.wf.SetStateActivity;
@@ -31,6 +32,10 @@ public class WorkflowGenerationUtil extends AbstractGenerationUtil {
 
     public AbstractStep getWorkflowStep(Workflow wf, String stepName) {
         return wf.getSteps().get(stepName);
+    }
+
+    public boolean isDelegateActivityStep(AbstractStep step) {
+        return step instanceof NodeActivityStep && ((NodeActivityStep) step).getActivity() instanceof DelegateWorkflowActivity;
     }
 
 }
