@@ -46,11 +46,17 @@ node_templates:
     properties: 
       volume: 
         size: 1.0
+    relationships:
+      - target: Compute
+        type: cloudify.openstack.volume_attached_to_server
   DeletableBlockStorage:
     type: alien.cloudify.openstack.nodes.DeletableVolume
     properties: 
       volume: 
         size: 1.0
+    relationships:
+      - target: Compute
+        type: cloudify.openstack.volume_attached_to_server
 
 
 plugins:
