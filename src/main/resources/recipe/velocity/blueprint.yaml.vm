@@ -55,7 +55,7 @@ node_templates:
 #end
 #end
 #set( $relationshipTemplates = $util.nonNative.getSourceRelationships($nonNativeNode) )
-#if($util.collectionHasElement($relationshipTemplates) || $attachedVolume)
+#if($util.collectionHasElement($relationshipTemplates))
     relationships:
 #foreach($relationship in $relationshipTemplates)
       - target: $relationship.relationshipTemplate.target

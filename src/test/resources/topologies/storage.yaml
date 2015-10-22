@@ -7,7 +7,7 @@ template_author: admin
 imports:
   - tosca-normative-types:1.0.0.wd06-SNAPSHOT
   - openstack-types:1.0.0-SNAPSHOT
-  - alien-extended-storage-types:1.0-SNAPSHOT
+  - alien-extended-storage-types:1.1.0-SNAPSHOT
 # - mysql-type:2.0.0-SNAPSHOT
 
 topology_template:
@@ -37,6 +37,20 @@ topology_template:
             node: Compute
             capability: tosca.capabilities.Attachment
             relationship: tosca.relationships.AttachTo
+    FileSystem:
+      type: alien.nodes.LinuxFileSystem
+      properties:
+        partition_type: 83
+        fs_type: ext4
+        location: /usr/data
+      requirements:
+        - host:
+            node: Compute
+            capability: tosca.capabilities.Container
+            relationship: alien.relationships.LinuxMount
+        - partition:
+            node: BlockStorage
+            relationship: alien.relationships.LinuxPartition
 
 #    Mysql:
 #      type: alien.nodes.Mysql

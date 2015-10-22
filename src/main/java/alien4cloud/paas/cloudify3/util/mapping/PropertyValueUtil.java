@@ -24,10 +24,8 @@ public final class PropertyValueUtil {
     /**
      * Map properties from tosca to cloudify properties.
      *
-     * @param propMappings
-     *            The property mappings
-     * @param properties
-     *            The properties to map.
+     * @param propMappings The property mappings
+     * @param properties The properties to map.
      */
     public static Map<String, AbstractPropertyValue> mapProperties(Map<String, PropertyMapping> propMappings, Map<String, AbstractPropertyValue> properties) {
         if (propMappings == null || propMappings.isEmpty()) {
@@ -96,8 +94,7 @@ public final class PropertyValueUtil {
     /**
      * Return a property value based on the type of an object.
      * 
-     * @param object
-     *            The object to wrap into a PropertyValue.
+     * @param object The object to wrap into a PropertyValue.
      * @return A property value that wraps the given object.
      */
     private static PropertyValue propertyValueFromObject(Object object) {
@@ -114,10 +111,8 @@ public final class PropertyValueUtil {
      * Merge a source property value into a target property. If target is not null, the source is merged directly in the target object and the target object is
      * returned.
      * 
-     * @param source
-     *            The source property value.
-     * @param target
-     *            The target property value.
+     * @param source The source property value.
+     * @param target The target property value.
      * @return The merged object.
      */
     public static PropertyValue merge(PropertyValue source, PropertyValue target) {
@@ -169,8 +164,7 @@ public final class PropertyValueUtil {
     /**
      * Simple utility that deep clones an object made of Map, List and String.
      * 
-     * @param propertyValue
-     *            The property value to clone.
+     * @param propertyValue The property value to clone.
      */
     public static PropertyValue deepClone(PropertyValue propertyValue) {
         if (propertyValue instanceof ListPropertyValue) {
@@ -185,8 +179,7 @@ public final class PropertyValueUtil {
     /**
      * Deep clone an object that compose a property value (every element is a String, a Map or a List).
      * 
-     * @param propertyValueObject
-     *            The object to clone.
+     * @param propertyValueObject The object to clone.
      * @return A clone of the property value object.
      */
     private static <T> T deepClone(T propertyValueObject) {
