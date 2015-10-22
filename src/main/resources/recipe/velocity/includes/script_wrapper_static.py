@@ -40,7 +40,7 @@ def process_attribute_mapping(entity, attribute_name, data_retriever_function):
             for relationship in entity.instance.relationships:
                 if mapping_configuration['parameters'][1] in relationship.type_hierarchy:
                     return data_retriever_function(relationship.target, mapping_configuration['parameters'][2])
-    return None
+    return ""
 
 
 def get_attribute(entity, attribute_name):
@@ -61,7 +61,7 @@ def get_attribute(entity, attribute_name):
     # Property retrieval fails, fall back to host instance
     host = get_host(entity)
     if host is not None:
-        ctx.logger.info('Attribute/Property not found {0} go up to the parent node {1}'.format(attribute_name, host.node.id))
+        ctx.logger.info('Attribute not found {0} go up to the parent node {1}'.format(attribute_name, host.node.id))
         return get_attribute(host, attribute_name)
     # Nothing is found
     return ""

@@ -2,16 +2,14 @@ package alien4cloud.paas.cloudify3.configuration;
 
 import javax.validation.constraints.NotNull;
 
-import lombok.Getter;
-import lombok.Setter;
-import alien4cloud.ui.form.annotation.FormCustomType;
 import alien4cloud.ui.form.annotation.FormProperties;
 import alien4cloud.ui.form.annotation.FormPropertyConstraint;
-import alien4cloud.ui.form.annotation.FormValidValues;
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
-@FormProperties({ "provider", "url" })
+@FormProperties({"url"})
 public class CloudConfiguration {
 
     @FormPropertyConstraint(pattern = "http\\:.+(?:\\d+)")
