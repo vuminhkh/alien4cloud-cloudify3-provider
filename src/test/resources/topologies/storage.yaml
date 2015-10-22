@@ -47,9 +47,10 @@ topology_template:
         - host:
             node: Compute
             capability: tosca.capabilities.Container
-            relationship: alien.relationships.LinuxMount
+            relationship: tosca.relationships.HostedOn
         - partition:
             node: BlockStorage
+            capability: tosca.capabilities.Node
             relationship: alien.relationships.LinuxPartition
 
 #    Mysql:
