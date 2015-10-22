@@ -30,38 +30,9 @@ import com.google.common.collect.Maps;
 @Slf4j
 public class CloudifyDeploymentBuilderService {
 
-    private List<IndexedNodeType> getTypesOrderedByDerivedFromHierarchy(List<PaaSNodeTemplate> nodes) {
-        Map<String, IndexedNodeType> nodeTypeMap = Maps.newHashMap();
-        for (PaaSNodeTemplate node : nodes) {
-            nodeTypeMap.put(node.getIndexedToscaElement().getElementId(), node.getIndexedToscaElement());
-        }
-        return IndexedModelUtils.orderByDerivedFromHierarchy(nodeTypeMap);
-    }
-
-    private Map<String, IndexedNodeType> getDerivedFromTypesMap(List<PaaSNodeTemplate> nodes) {
-        Map<String, IndexedNodeType> derivedFromTypesMap = Maps.newHashMap();
-        for (PaaSNodeTemplate node : nodes) {
-            List<IndexedNodeType> derivedFroms = node.getDerivedFroms();
-            for (IndexedNodeType derivedFrom : derivedFroms) {
-                derivedFromTypesMap.put(derivedFrom.getElementId(), derivedFrom);
-            }
-        }
-        return derivedFromTypesMap;
-    }
-
-    /**
-     * Get the location of the deployment from the context.
-     */
-    private String getLocationType(PaaSTopologyDeploymentContext deploymentContext) {
-        if (MapUtils.isEmpty(deploymentContext.getLocations()) || deploymentContext.getLocations().size() != 1) {
-            throw new SingleLocationRequiredException();
-        }
-        return deploymentContext.getLocations().values().iterator().next().getInfrastructureType();
-    }
-
     /**
      * Build the Cloudify deployment from the deployment context. Cloudify deployment has data pre-parsed so that blueprint generation is easier.
-     * 
+     *
      * @param deploymentContext
      *            the deployment context
      * @return the cloudify deployment
@@ -97,6 +68,35 @@ public class CloudifyDeploymentBuilderService {
         cloudifyDeployment.setPropertyMappings(PropertiesMappingUtil.loadPropertyMappings(cloudifyDeployment.getNativeTypes()));
 
         return cloudifyDeployment;
+    }
+
+    private List<IndexedNodeType> getTypesOrderedByDerivedFromHierarchy(List<PaaSNodeTemplate> nodes) {
+        Map<String, IndexedNodeType> nodeTypeMap = Maps.newHashMap();
+        for (PaaSNodeTemplate node : nodes) {
+            nodeTypeMap.put(node.getIndexedToscaElement().getElementId(), node.getIndexedToscaElement());
+        }
+        return IndexedModelUtils.orderByDerivedFromHierarchy(nodeTypeMap);
+    }
+
+    private Map<String, IndexedNodeType> getDerivedFromTypesMap(List<PaaSNodeTemplate> nodes) {
+        Map<String, IndexedNodeType> derivedFromTypesMap = Maps.newHashMap();
+        for (PaaSNodeTemplate node : nodes) {
+            List<IndexedNodeType> derivedFroms = node.getDerivedFroms();
+            for (IndexedNodeType derivedFrom : derivedFroms) {
+                derivedFromTypesMap.put(derivedFrom.getElementId(), derivedFrom);
+            }
+        }
+        return derivedFromTypesMap;
+    }
+
+    /**
+     * Get the location of the deployment from the context.
+     */
+    private String getLocationType(PaaSTopologyDeploymentContext deploymentContext) {
+        if (MapUtils.isEmpty(deploymentContext.getLocations()) || deploymentContext.getLocations().size() != 1) {
+            throw new SingleLocationRequiredException();
+        }
+        return deploymentContext.getLocations().values().iterator().next().getInfrastructureType();
     }
 
     /**
