@@ -5,7 +5,6 @@ import java.util.Collection;
 import com.google.common.collect.Lists;
 
 public class EventType {
-
     private EventType() {
     }
 
@@ -25,6 +24,8 @@ public class EventType {
     // TASK_SUCCEEDED and TASK_FAILED are used for instance state information
     public static final String TASK_SUCCEEDED = "task_succeeded";
     public static final String TASK_FAILED = "task_failed";
+
+    public static final String A4C_PERSISTENT_EVENT = "a4c_persistent_event";
 
     public static final Collection<String> ALL = Lists.newArrayList(WORKFLOW_STARTED, WORKFLOW_SUCCEEDED, WORKFLOW_FAILED, TASK_SUCCEEDED);
 }

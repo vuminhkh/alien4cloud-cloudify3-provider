@@ -50,6 +50,7 @@ public class DeploymentEventClient extends AbstractEventClient {
                 .mustNot(QueryBuilders.matchQuery("workflow_id", Workflow.UNINSTALL))
                 .must(QueryBuilders.boolQuery()
                         .should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_SUCCEEDED))
+                        .should(QueryBuilders.matchQuery("event_type", EventType.A4C_PERSISTENT_EVENT))
                         .should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_FAILED))
                         .should(QueryBuilders.boolQuery()
                                 .must(QueryBuilders.matchQuery("event_type", EventType.TASK_SUCCEEDED))

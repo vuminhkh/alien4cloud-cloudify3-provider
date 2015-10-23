@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -7,20 +8,16 @@ import java.util.Map;
 import javax.annotation.Resource;
 import javax.xml.bind.DatatypeConverter;
 
+import alien4cloud.paas.cloudify3.model.*;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
+import alien4cloud.paas.model.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
-import alien4cloud.paas.cloudify3.model.Event;
-import alien4cloud.paas.cloudify3.model.EventType;
-import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
-import alien4cloud.paas.model.AbstractMonitorEvent;
-import alien4cloud.paas.model.DeploymentStatus;
-import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
-import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
-import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -38,9 +35,11 @@ public class EventService {
 
     @Resource
     private DeploymentEventClient eventClient;
-
+    @Resource
+    private NodeInstanceClient nodeInstanceClient;
     @Resource
     private StatusService statusService;
+
 
     // TODO : May manage in a better manner this kind of state
     private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newConcurrentMap();
@@ -209,6 +208,22 @@ public class EventService {
                 instanceTaskStartedEvent.setInstanceState(newInstanceState);
                 instanceTaskStartedEvent.setInstanceStatus(statusService.getInstanceStatusFromState(newInstanceState));
                 alienEvent = instanceTaskStartedEvent;
+            }
+            break;
+        case EventType.A4C_PERSISTENT_EVENT:
+            String persistentCloudifyEvent = cloudifyEvent.getMessage().getText();
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+            try {
+                EventAlienPersistent eventAlienPersistent = objectMapper.readValue(persistentCloudifyEvent, EventAlienPersistent.class);
+                // query API
+                // TODO make that Async
+                NodeInstance instance = nodeInstanceClient.read(cloudifyEvent.getContext().getNodeId());
+                String attributeValue = (String) instance.getRuntimeProperties().get(eventAlienPersistent.getPersistentResourceId());
+                alienEvent = new PaaSInstancePersistentResourceMonitorEvent(cloudifyEvent.getContext().getNodeName(), cloudifyEvent.getContext().getNodeId(),
+                        eventAlienPersistent.getPersistentAlienAttribute(), attributeValue);
+            } catch (IOException e) {
+                return null;
             }
             break;
         default:

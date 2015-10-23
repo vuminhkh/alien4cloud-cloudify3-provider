@@ -11,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @Setter
 @EqualsAndHashCode
 @JsonIgnoreProperties(ignoreUnknown = true)
-@SuppressWarnings("PMD.UnusedPrivateField")
 public class Event extends AbstractCloudifyModel {
 
     private String eventType;
@@ -20,4 +19,6 @@ public class Event extends AbstractCloudifyModel {
     private String timestamp;
 
     private EventContext context;
+
+    private EventMessage message;
 }
