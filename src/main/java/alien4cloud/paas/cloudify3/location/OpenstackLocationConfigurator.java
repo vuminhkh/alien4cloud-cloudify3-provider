@@ -78,7 +78,7 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
         List<String> resourcesTypes = Lists.newArrayList();
         for (PluginArchive pluginArchive : this.archives) {
             for (String nodeType : pluginArchive.getArchive().getNodeTypes().keySet()) {
-                if (FILTERS.contains(nodeType)) {
+                if (!FILTERS.contains(nodeType)) {
                     resourcesTypes.add(nodeType);
                 }
             }
