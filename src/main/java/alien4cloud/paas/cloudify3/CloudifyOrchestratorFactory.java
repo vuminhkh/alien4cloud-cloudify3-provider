@@ -5,10 +5,10 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+import com.google.common.collect.Maps;
 
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.orchestrators.ArtifactSupport;
@@ -17,8 +17,7 @@ import alien4cloud.orchestrators.plugin.IOrchestratorPluginFactory;
 import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.tosca.normative.ToscaType;
-
-import com.google.common.collect.Maps;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<CloudifyOrchestrator, CloudConfiguration> {
@@ -40,7 +39,7 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
     }
 
     private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections.synchronizedMap(Maps
-            .<IPaaSProvider, AnnotationConfigApplicationContext> newIdentityHashMap());
+            .<IPaaSProvider, AnnotationConfigApplicationContext>newIdentityHashMap());
 
     @Override
     public Class<CloudConfiguration> getConfigurationType() {
@@ -87,7 +86,7 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
 
     @Override
     public LocationSupport getLocationSupport() {
-        return new LocationSupport(false, new String[] { "Openstack", "Byon" });
+        return new LocationSupport(false, new String[]{"openstack"});
     }
 
     @Override

@@ -1,5 +1,19 @@
 package alien4cloud.paas.cloudify3.location;
 
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+
+import org.springframework.stereotype.Component;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import alien4cloud.deployment.matching.services.nodes.MatchingConfigurations;
 import alien4cloud.deployment.matching.services.nodes.MatchingConfigurationsParser;
 import alien4cloud.model.deployment.matching.MatchingConfiguration;
@@ -12,18 +26,7 @@ import alien4cloud.tosca.ArchiveParser;
 import alien4cloud.tosca.model.ArchiveRoot;
 import alien4cloud.tosca.parser.ParsingException;
 import alien4cloud.tosca.parser.ParsingResult;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Slf4j
 @Component
@@ -42,6 +45,13 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
     public static final String COMPUTE_TYPE = "alien.nodes.openstack.Compute";
     public static final String IMAGE_TYPE = "alien.nodes.openstack.Image";
     public static final String FLAVOR_TYPE = "alien.nodes.openstack.Flavor";
+
+    public static final Set<String> FILTERS = Sets.newHashSet();
+
+    static {
+        FILTERS.add("alien.nodes.PublicNetwork");
+        FILTERS.add("alien.nodes.PrivateNetwork");
+    }
 
     @PostConstruct
     public void postConstruct() {
@@ -67,7 +77,11 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
     public List<String> getResourcesTypes() {
         List<String> resourcesTypes = Lists.newArrayList();
         for (PluginArchive pluginArchive : this.archives) {
-            resourcesTypes.addAll(pluginArchive.getArchive().getNodeTypes().keySet());
+            for (String nodeType : pluginArchive.getArchive().getNodeTypes().keySet()) {
+                if (FILTERS.contains(nodeType)) {
+                    resourcesTypes.add(nodeType);
+                }
+            }
         }
         return resourcesTypes;
     }
@@ -79,7 +93,7 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
 
     @Override
     public Set<String> getManagedLocationTypes() {
-        return Sets.newHashSet("Openstack");
+        return Sets.newHashSet("openstack");
     }
 
     @Override
