@@ -31,21 +31,16 @@ import alien4cloud.paas.cloudify3.model.ExecutionStatus;
 import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.NodeInstanceStatus;
-import alien4cloud.paas.cloudify3.model.Relationship;
-import alien4cloud.paas.cloudify3.model.RelationshipInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
 import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
 import alien4cloud.paas.cloudify3.restclient.NodeClient;
 import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.cloudify3.util.DateUtil;
-import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.paas.model.DeploymentStatus;
 import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.InstanceStatus;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
-import alien4cloud.tosca.normative.NormativeRelationshipConstants;
-import alien4cloud.tosca.normative.ToscaFunctionConstants;
 import alien4cloud.utils.MapUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -75,6 +70,9 @@ public class StatusService {
 
     @Resource
     private MappingConfigurationHolder mappingConfigurationHolder;
+
+    @Resource
+    private RuntimePropertiesService runtimePropertiesService;
 
     @PostConstruct
     public void postConstruct() {
@@ -225,7 +223,7 @@ public class StatusService {
                     instanceInformation.setRuntimeProperties(runtimeProperties);
                     Node node = nodeMap.get(instance.getNodeId());
                     if (node != null && runtimeProperties != null) {
-                        instanceInformation.setAttributes(getAttributes(node, instance, nodeMap, nodeInstanceMap));
+                        instanceInformation.setAttributes(runtimePropertiesService.getAttributes(node, instance, nodeMap, nodeInstanceMap));
                     }
                     nodeInformation.put(instanceId, instanceInformation);
                 }
@@ -253,123 +251,6 @@ public class StatusService {
                 callback.onSuccess(Maps.<String, Map<String, InstanceInformation>>newHashMap());
             }
         });
-    }
-
-    private Map<String, Map<String, Object>> getAttributesMappingConfiguration(Map<String, Object> properties) {
-        Map<String, Map<String, Object>> mappingConfigurations = Maps.newHashMap();
-        for (Map.Entry<String, Object> propertyEntry : properties.entrySet()) {
-            if (propertyEntry.getKey().startsWith("_a4c_att_")) {
-                mappingConfigurations.put(propertyEntry.getKey().substring("_a4c_att_".length()), (Map<String, Object>) propertyEntry.getValue());
-            }
-        }
-        return mappingConfigurations;
-    }
-
-    private RelationshipInstance getRelationshipInstance(NodeInstance instance, Relationship relationship) {
-        for (RelationshipInstance relationshipInstance : instance.getRelationships()) {
-            if (relationshipInstance.getTargetName().equals(relationship.getTargetId())) {
-                return relationshipInstance;
-            }
-        }
-        return null;
-    }
-
-    private Map<String, String> getAttributes(Node node, NodeInstance instance, Map<String, Node> nodeMap, Map<String, NodeInstance> nodeInstanceMap) {
-        Map<String, Object> properties = node.getProperties();
-        Map<String, Object> attributes = Maps.newHashMap();
-        Map<String, Map<String, Object>> mappingConfigurations = getAttributesMappingConfiguration(properties);
-        if (MapUtils.isNotEmpty(mappingConfigurations)) {
-            // If mapping configurations found, only take those configured
-            // It's native types component
-            for (Map.Entry<String, Map<String, Object>> mappingConfiguration : mappingConfigurations.entrySet()) {
-                attributes.put(mappingConfiguration.getKey(), getMappedAttributeValue(mappingConfiguration.getKey(), mappingConfigurations, node, instance, nodeMap, nodeInstanceMap));
-            }
-        } else {
-            // If no mapping found --> take everything as if
-            attributes = instance.getRuntimeProperties();
-        }
-        try {
-            return MapUtil.toString(attributes);
-        } catch (JsonProcessingException e) {
-            log.error("Unable to stringify attributes", e);
-            return null;
-        }
-    }
-
-    private Relationship getRelationshipOfType(Node node, String type) {
-        for (Relationship relationship : node.getRelationships()) {
-            if (relationship.getTypeHierarchy().contains(type)) {
-                return relationship;
-            }
-        }
-        return null;
-    }
-
-    private Object getAttributeValue(String attributeName, Map<String, Map<String, Object>> mappingConfigurations, Node node, NodeInstance instance, Map<String, Node> nodeMap, Map<String, NodeInstance> nodeInstanceMap) {
-        if (mappingConfigurations.containsKey(attributeName)) {
-            return getMappedAttributeValue(attributeName, mappingConfigurations, node, instance, nodeMap, nodeInstanceMap);
-        } else {
-            Object attributeValue = instance.getRuntimeProperties().get(attributeName);
-            if (attributeValue == null) {
-                Relationship relationship =
-                        getRelationshipOfType(node,
-                                mappingConfigurationHolder.getMappingConfiguration().getNormativeTypes().get(NormativeRelationshipConstants.HOSTED_ON)
-                        );
-                // Redirect to the parent
-                if (relationship != null) {
-                    Node targetNode = nodeMap.get(relationship.getTargetId());
-                    RelationshipInstance relationshipInstance = getRelationshipInstance(instance, relationship);
-                    NodeInstance targetInstance = nodeInstanceMap.get(relationshipInstance.getTargetId());
-                    return getAttributeValue(attributeName, mappingConfigurations, targetNode, targetInstance, nodeMap, nodeInstanceMap);
-                }
-            } else {
-                return attributeValue;
-            }
-        }
-        return null;
-    }
-
-    private Object getMappedAttributeValue(String attributeName, Map<String, Map<String, Object>> mappingConfigurations, Node node, NodeInstance instance, Map<String, Node> nodeMap, Map<String, NodeInstance> nodeInstanceMap) {
-        Map<String, Object> mappingConfiguration = mappingConfigurations.get(attributeName);
-        if (mappingConfiguration == null) {
-            throw new NotSupportedException(attributeName + " is not a mapped attribute");
-        }
-        Object parametersObject = mappingConfiguration.get("parameters");
-        if (!(parametersObject instanceof List)) {
-            throw new NotSupportedException("Mapping configuration invalid " + mappingConfiguration);
-        }
-        List<String> parameters = (List<String>) mappingConfiguration.get("parameters");
-        if (parameters.isEmpty()) {
-            throw new NotSupportedException("Mapping configuration invalid " + mappingConfiguration + ", parameters are empty");
-        }
-        String function = (String) mappingConfiguration.get("function");
-        if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function)) {
-            String entity = parameters.get(0);
-            if (ToscaFunctionConstants.SELF.equals(entity)) {
-                if (parameters.size() != 2) {
-                    throw new NotSupportedException("Mapping configuration invalid " + mappingConfiguration + ", parameters must be SELF + name of the attribute");
-                }
-                String fromAttribute = parameters.get(1);
-                return getAttributeValue(fromAttribute, mappingConfigurations, node, instance, nodeMap, nodeInstanceMap);
-            } else if (ToscaFunctionConstants.TARGET.equals(entity)) {
-                if (parameters.size() != 3) {
-                    throw new NotSupportedException("Mapping configuration invalid " + mappingConfiguration + ", parameters must be TARGET + relationship type + name of the attribute");
-                }
-                String relationshipType = parameters.get(1);
-                Relationship relationship = getRelationshipOfType(node, relationshipType);
-                if (relationship != null) {
-                    Node targetNode = nodeMap.get(relationship.getTargetId());
-                    RelationshipInstance relationshipInstance = getRelationshipInstance(instance, relationship);
-                    NodeInstance targetInstance = nodeInstanceMap.get(relationshipInstance.getTargetId());
-                    return getAttributeValue(parameters.get(2), mappingConfigurations, targetNode, targetInstance, nodeMap, nodeInstanceMap);
-                }
-            } else {
-                throw new NotSupportedException("TARGET or SELF are the only entities supported for the moment for attribute mapping");
-            }
-        } else {
-            throw new NotSupportedException("get_attribute is the only one supported for the moment for attribute mapping");
-        }
-        return null;
     }
 
     public void registerDeploymentEvent(String deploymentPaaSId, DeploymentStatus deploymentStatus) {
