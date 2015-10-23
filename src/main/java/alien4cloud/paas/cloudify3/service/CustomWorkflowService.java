@@ -179,4 +179,9 @@ public class CustomWorkflowService extends RuntimeService {
         scaleParameters.put("scale_compute", true);
         return waitForExecutionFinish(executionDAO.asyncStart(deploymentPaaSId, Workflow.SCALE, scaleParameters, true, false));
     }
+
+    public ListenableFuture launchWorkflow(String deploymentPaaSId, String workflowName, Map<String, Object> workflowParameters) {
+        return waitForExecutionFinish(executionDAO.asyncStart(deploymentPaaSId, Workflow.A4C_PREFIX + workflowName, workflowParameters, true, false));
+    }
+
 }

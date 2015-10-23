@@ -165,6 +165,12 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     }
 
     @Override
+    public void launchWorkflow(PaaSDeploymentContext deploymentContext, String workflowName, Map<String, Object> workflowParameters, IPaaSCallback<?> callback) {
+        FutureUtil.associateFutureToPaaSCallback(
+                customWorkflowService.launchWorkflow(deploymentContext.getDeploymentPaaSId(), workflowName, workflowParameters), callback);
+    }
+
+    @Override
     public void executeOperation(PaaSTopologyDeploymentContext deploymentContext, NodeOperationExecRequest nodeOperationExecRequest,
             IPaaSCallback<Map<String, String>> callback) throws OperationExecutionException {
         CloudifyDeployment deployment = cloudifyDeploymentBuilderService.buildCloudifyDeployment(deploymentContext);
