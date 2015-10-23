@@ -129,6 +129,7 @@ node_types:
         entry_schema:
           type: string
         required: false
+        description: "Openstack compute creation arguments, see http://developer.openstack.org/api-ref-compute-v2.html for more details"
       use_external_resource:
         type: boolean
         required: false
