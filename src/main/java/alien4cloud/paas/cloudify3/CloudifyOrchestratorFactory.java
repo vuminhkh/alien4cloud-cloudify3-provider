@@ -24,9 +24,9 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
 
     @Resource
     private ApplicationContext factoryContext;
-    
-    private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections.synchronizedMap(Maps
-            .<IPaaSProvider, AnnotationConfigApplicationContext>newIdentityHashMap());
+
+    private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections
+            .synchronizedMap(Maps.<IPaaSProvider, AnnotationConfigApplicationContext> newIdentityHashMap());
 
     @Override
     public Class<CloudConfiguration> getConfigurationType() {
@@ -73,11 +73,11 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
 
     @Override
     public LocationSupport getLocationSupport() {
-        return new LocationSupport(false, new String[]{"openstack"});
+        return new LocationSupport(false, new String[] { "openstack" });
     }
 
     @Override
     public ArtifactSupport getArtifactSupport() {
-        return null;
+        return new ArtifactSupport(new String[] { "tosca.artifacts.Implementation.Bash", "tosca.artifacts.Implementation.Python" });
     }
 }
