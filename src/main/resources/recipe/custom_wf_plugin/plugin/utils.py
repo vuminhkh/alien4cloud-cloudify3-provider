@@ -8,6 +8,7 @@ from workflow import build_pre_event
 
 from cloudify import logs
 from cloudify.logs import _send_event
+from cloudify.workflows.workflow_context import task_config
 
 def _get_nodes_instances(ctx, node_id):
     instances = []
@@ -145,9 +146,15 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
             persistent_cloudify_attribute = splitted_persistent_property[0]
             persistent_alien_attribute = splitted_persistent_property[1]
 
-            msg = build_pre_event(PersistentResourceEvent(persistent_cloudify_attribute, persistent_alien_attribute))
-            _send_event(instance, 'workflow_node', 'a4c_persistent_event', msg, None, None, None)
-            # sequence.add(instance.send_event(msg))
+            persist_msg = build_pre_event(PersistentResourceEvent(persistent_cloudify_attribute, persistent_alien_attribute))
+
+            @task_config(send_task_events=False)
+            def send_event_task():
+                _send_event(instance, 'workflow_node', 'a4c_persistent_event', persist_msg, None, None, None)
+            sequence.add(instance.ctx.local_task(
+                local_task=send_event_task,
+                node=instance,
+                info=persist_msg))
     elif operation_fqname == 'cloudify.interfaces.lifecycle.stop':
         if _is_host_node(instance):
             sequence.add(*host_pre_stop(instance))

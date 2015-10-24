@@ -44,9 +44,9 @@ def build_wf_event(wf_event):
 
 class PersistentResourceEvent(object):
 
-    def __init__(self, persistent_alien_attribute, persistent_resource_id):
-        self.persistent_alien_attribute = persistent_alien_attribute
+    def __init__(self, persistent_resource_id, persistent_alien_attribute):
         self.persistent_resource_id = persistent_resource_id
+        self.persistent_alien_attribute = persistent_alien_attribute
 
 def build_pre_event(event):
     return json.dumps(event.__dict__)
