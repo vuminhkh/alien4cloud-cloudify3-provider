@@ -24,20 +24,7 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
 
     @Resource
     private ApplicationContext factoryContext;
-
-    public static final String DELETABLE_BLOCKSTORAGE = "deletable_blockstorage";
-
-    private static final Map<String, PropertyDefinition> deploymentPropertyMap = Maps.newHashMap();
-
-    static {
-        PropertyDefinition deletableBlockStorage = new PropertyDefinition();
-        deletableBlockStorage.setType(ToscaType.BOOLEAN);
-        deletableBlockStorage.setRequired(false);
-        deletableBlockStorage.setDescription("Indicates that all deployment related blockstorage are deletable.");
-        deletableBlockStorage.setDefault("false");
-        deploymentPropertyMap.put(DELETABLE_BLOCKSTORAGE, deletableBlockStorage);
-    }
-
+    
     private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections.synchronizedMap(Maps
             .<IPaaSProvider, AnnotationConfigApplicationContext>newIdentityHashMap());
 
@@ -70,7 +57,7 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
     }
 
     public Map<String, PropertyDefinition> getDeploymentPropertyDefinitions() {
-        return deploymentPropertyMap;
+        return null;
     }
 
     @Override
