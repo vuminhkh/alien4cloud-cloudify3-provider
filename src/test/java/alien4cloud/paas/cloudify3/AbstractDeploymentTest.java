@@ -15,13 +15,16 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import alien4cloud.common.AlienConstants;
 import alien4cloud.component.repository.ArtifactLocalRepository;
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.model.components.DeploymentArtifact;
+import alien4cloud.model.deployment.DeploymentTopology;
+import alien4cloud.model.orchestrators.locations.Location;
 import alien4cloud.model.topology.Topology;
 import alien4cloud.paas.IPaaSCallback;
-import alien4cloud.paas.cloudify3.dao.DeploymentDAO;
 import alien4cloud.paas.cloudify3.model.Deployment;
+import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
@@ -31,7 +34,9 @@ import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
 import alien4cloud.paas.wf.WorkflowsBuilderService;
 import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
+import alien4cloud.utils.ReflectionUtil;
 
+import com.google.common.collect.Maps;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.SettableFuture;
 
@@ -41,7 +46,7 @@ public class AbstractDeploymentTest extends AbstractTest {
     private EventService eventService;
 
     @Resource
-    private DeploymentDAO deploymentDAO;
+    private DeploymentClient deploymentDAO;
 
     @Resource(name = "cloudify-deployment-service")
     private DeploymentService deploymentService;
@@ -53,7 +58,7 @@ public class AbstractDeploymentTest extends AbstractTest {
     private TopologyTreeBuilderService topologyTreeBuilderService;
 
     @Resource
-    private CloudifyPaaSProvider cloudifyPaaSProvider;
+    private CloudifyOrchestrator cloudifyPaaSProvider;
 
     @Resource
     private ArtifactLocalRepository artifactRepository;
@@ -70,7 +75,7 @@ public class AbstractDeploymentTest extends AbstractTest {
                 PaaSDeploymentContext context = new PaaSDeploymentContext();
                 context.setDeployment(new alien4cloud.model.deployment.Deployment());
                 context.getDeployment().setId(deployment.getId());
-                context.getDeployment().setPaasId(deployment.getId());
+                context.getDeployment().setOrchestratorDeploymentId(deployment.getId());
                 deploymentService.undeploy(context).get();
             }
             Thread.sleep(1000L);
@@ -88,24 +93,28 @@ public class AbstractDeploymentTest extends AbstractTest {
 
     @After
     public void after() throws Exception {
-        cleanDeployments();
+//        cleanDeployments();
     }
 
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName) {
-        final Topology topology = applicationUtil.createAlienApplication(appName, topologyName);
-
+        Topology topology = applicationUtil.createAlienApplication(appName, topologyName);
         // init the workflows
         TopologyContext topologyContext = workflowBuilderService.buildTopologyContext(topology);
-        workflowBuilderService.initWorkflows(topologyContext);        
-        
+        workflowBuilderService.initWorkflows(topologyContext);
+        DeploymentTopology deploymentTopology = generateDeploymentSetup(topology);
+        ReflectionUtil.mergeObject(topology, deploymentTopology, "id");
         PaaSTopologyDeploymentContext deploymentContext = new PaaSTopologyDeploymentContext();
         deploymentContext.setPaaSTopology(topologyTreeBuilderService.buildPaaSTopology(topology));
-        deploymentContext.setTopology(topology);
+        deploymentContext.setDeploymentTopology(deploymentTopology);
         alien4cloud.model.deployment.Deployment deployment = new alien4cloud.model.deployment.Deployment();
         deployment.setId(appName);
-        deployment.setPaasId(appName);
-        deployment.setDeploymentSetup(generateDeploymentSetup(topology));
+        deployment.setOrchestratorDeploymentId(appName);
         deploymentContext.setDeployment(deployment);
+        Map<String, Location> locationMap = Maps.newHashMap();
+        Location location = new Location();
+        location.setInfrastructureType("openstack");
+        locationMap.put(AlienConstants.GROUP_ALL, location);
+        deploymentContext.setLocations(locationMap);
         return deploymentContext;
     }
 
@@ -143,8 +152,8 @@ public class AbstractDeploymentTest extends AbstractTest {
         }
     }
 
-    protected void executeCustomCommand(PaaSTopologyDeploymentContext context, NodeOperationExecRequest nodeOperationExecRequest) throws ExecutionException,
-            InterruptedException {
+    protected void executeCustomCommand(PaaSTopologyDeploymentContext context, NodeOperationExecRequest nodeOperationExecRequest)
+            throws ExecutionException, InterruptedException {
         final SettableFuture<Map<String, String>> future = SettableFuture.create();
         cloudifyPaaSProvider.executeOperation(context, nodeOperationExecRequest, new IPaaSCallback<Map<String, String>>() {
             @Override

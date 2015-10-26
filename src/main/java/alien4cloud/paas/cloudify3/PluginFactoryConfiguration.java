@@ -6,8 +6,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class PluginFactoryConfiguration {
 
-    @Bean(name = "cloudify-paas-provider")
-    public CloudifyPaaSProviderFactory cloudifyPaaSProviderFactory() {
-        return new CloudifyPaaSProviderFactory();
+    @Bean(name = "cloudify-orchestrator")
+    public CloudifyOrchestratorFactory cloudifyOrchestratorFactory() {
+        return new CloudifyOrchestratorFactory();
     }
 }

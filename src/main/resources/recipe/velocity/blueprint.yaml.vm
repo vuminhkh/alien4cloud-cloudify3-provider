@@ -10,43 +10,11 @@ tosca_definitions_version: $mapping.dslVersion
 
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
-#foreach($import in $providerMapping.imports)
-  - $import
-#end
+#parse("provider/${deployment.locationType}/imports.yaml.vm")
 
 node_types:
 
 #parse("types.yaml.vm")
-
-#if($util.volume.hasConfiguredVolume($deployment.volumes))
-  ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem:
-    derived_from: cloudify.nodes.Root
-    properties:
-      use_external_resource:
-        description: >
-          Enables the use of already formatted volumes.
-        type: boolean
-        default: false
-      partition_type:
-        description: >
-          The partition type. 83 is a Linux Native Partition.
-        type: integer
-        default: 83
-      fs_type:
-        description: >
-          The type of the File System.
-          Supported types are [ext2, ext3, ext4, fat, ntfs, swap]
-        type: string
-        default: ext4
-      fs_mount_path:
-        description: >
-          The path of the mount point.
-        type: string
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        configure:
-          implementation: ${mapping.nativeArtifactDirectoryName}/volume/mkfs.sh
-#end
 
 #if($util.collectionHasElement($deployment.nonNativesTypes))
 #foreach($nonNativeType in ${deployment.nonNativesTypes})
@@ -55,24 +23,8 @@ node_types:
 #end
 #end
 
-#if($util.volume.hasConfiguredVolume($deployment.volumes) || $util.collectionHasElement($deployment.nonNativesRelationshipTypes))
+#if($util.collectionHasElement($deployment.nonNativesRelationshipTypes))
 relationships:
-#if($util.volume.hasConfiguredVolume($deployment.volumes))
-  ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_depends_on_volume:
-    derived_from: cloudify.relationships.depends_on
-    source_interfaces:
-      cloudify.interfaces.relationship_lifecycle:
-        preconfigure:
-          implementation: ${mapping.nativeArtifactDirectoryName}/volume/fdisk.sh
-  ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_contained_in_compute:
-    derived_from: cloudify.relationships.contained_in
-    source_interfaces:
-      cloudify.interfaces.relationship_lifecycle:
-        establish:
-          implementation: ${mapping.nativeArtifactDirectoryName}/volume/mount.sh
-        unlink:
-          implementation: ${mapping.nativeArtifactDirectoryName}/volume/unmount.sh
-#end
 #if($util.collectionHasElement($deployment.nonNativesRelationshipTypes))
 #foreach($nonNativeRelationshipType in ${deployment.nonNativesRelationshipTypes})
   ${nonNativeRelationshipType.elementId}:
@@ -83,9 +35,9 @@ relationships:
 
 node_templates:
 
-#parse("compute_node.yaml.vm")
-#parse("network_node.yaml.vm")
-#parse("volume_node.yaml.vm")
+#parse("provider/${deployment.locationType}/compute_node.yaml.vm")
+#parse("provider/${deployment.locationType}/network_node.yaml.vm")
+#parse("provider/${deployment.locationType}/volume_node.yaml.vm")
 
 #foreach($nonNativeNode in $deployment.nonNatives)
   $nonNativeNode.id:
@@ -103,15 +55,8 @@ node_templates:
 #end
 #end
 #set( $relationshipTemplates = $util.nonNative.getSourceRelationships($nonNativeNode) )
-#set( $attachedVolumes = $util.volume.getConfiguredAttachedVolumes($nonNativeNode) )
-#if($util.collectionHasElement($relationshipTemplates) || $attachedVolume)
+#if($util.collectionHasElement($relationshipTemplates))
     relationships:
-#if($attachedVolumes)
-#foreach($attachedVolume in $attachedVolumes)
-      - target: ${mapping.generatedNodePrefix}_file_system_${attachedVolume.id}
-        type: cloudify.relationships.depends_on
-#end
-#end
 #foreach($relationship in $relationshipTemplates)
       - target: $relationship.relationshipTemplate.target
         type: $util.tryToMapToCloudifyType($relationship.indexedToscaElement.elementId)

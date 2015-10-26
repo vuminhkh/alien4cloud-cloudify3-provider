@@ -1,18 +1,16 @@
-## Network nodes
-#foreach($matchedNetwork in ${deployment.internalNetworks})
-#set( $network = ${matchedNetwork.paaSResourceTemplate} )
-  ${matchedNetwork.paaSNodeTemplate.id}:
-    type: ${util.network.tryToMapNetworkType($matchedNetwork.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.Network")}
+#parse("provider/common/generic_resource.yaml.vm")
+#foreach($network in ${deployment.internalNetworks})
+  ${network.id}:
+    type: ${network.nodeTemplate.type}
     properties:
       resource_id: ${network.id}
-  ${matchedNetwork.paaSNodeTemplate.id}_subnet:
-    type: ${providerMapping.nativeTypes.subnetType}
+${util.natives.formatProperties(3, ${network.nodeTemplate.properties}, ${util.natives.loadPropertyMapping(${network.indexedToscaElement}, "_a4c_c3_network_prop_map")})}
+  ${network.id}_subnet:
+    type: cloudify.openstack.nodes.Subnet
     properties:
       resource_id: ${network.id}_subnet
-      subnet:
-        ip_version: ${network.ipVersion}
-        cidr: ${network.cidr}
+${util.natives.formatProperties(3, ${network.nodeTemplate.properties}, ${util.natives.loadPropertyMapping(${network.indexedToscaElement}, "_a4c_c3_subnet_prop_map")})}
     relationships:
-      - target: ${matchedNetwork.paaSNodeTemplate.id}
+      - target: ${network.id}
         type: cloudify.relationships.contained_in
 #end

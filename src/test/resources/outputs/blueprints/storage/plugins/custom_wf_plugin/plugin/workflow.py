@@ -42,5 +42,15 @@ def build_wf_event(wf_event):
     return "wfe:" + json.dumps(wf_event.__dict__)
 
 
+class PersistentResourceEvent(object):
+
+    def __init__(self, persistent_resource_id, persistent_alien_attribute):
+        self.persistent_resource_id = persistent_resource_id
+        self.persistent_alien_attribute = persistent_alien_attribute
+
+def build_pre_event(event):
+    return json.dumps(event.__dict__)
+
+
 # def _build_wf_event(wf_event):
     # return "wfe:" + json.dumps(wf_event.__dict__).replace("\\", "").replace("\"{", "{").replace("}\"", "}")

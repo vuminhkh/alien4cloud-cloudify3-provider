@@ -21,62 +21,6 @@
 
 #include("includes/script_wrapper_static.py")
 
-
-def get_attribute(entity, attribute_name):
-#if(${providerMapping.attributes.compute.public_ip_address})
-    if attribute_name == '${providerMapping.attributes.compute.public_ip_address}':
-        return get_public_ip(entity)
-    else:
-        attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
-        if attribute_value is None:
-            attribute_value = get_instance_data(entity, attribute_name, get_property_data)
-        return attribute_value
-#else
-    attribute_value = get_instance_data(entity, attribute_name, get_attribute_data)
-    if attribute_value is None:
-        attribute_value = get_instance_data(entity, attribute_name, get_property_data)
-    return attribute_value
-#end
-
-def _all_instances_get_attribute(entity, attribute_name):
-#if(${providerMapping.attributes.compute.public_ip_address})
-    if attribute_name == '${providerMapping.attributes.compute.public_ip_address}':
-        #FIXME: since floating ip is not scalable, no more public ip_address can be found
-        return None
-    else:
-        attribute_value = get_other_instances_data(entity, attribute_name, get_attribute_data)
-        if attribute_value is None:
-            attribute_value = get_other_instances_data(entity, attribute_name, get_property_data)
-        return attribute_value
-#else
-    attribute_value = get_other_instances_data(entity, attribute_name, get_attribute_data)
-    if attribute_value is None:
-        attribute_value = get_other_instances_data(entity, attribute_name, get_property_data)
-    return attribute_value
-#end
-
-def get_property(entity, property_name):
-    return get_instance_data(entity, property_name, get_property_data)
-
-
-#if(${providerMapping.attributes.compute.public_ip_address})
-def get_public_ip(entity):
-    host = get_host(entity)
-    public_ip = host.instance.runtime_properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
-    if public_ip is not None:
-        return public_ip
-    public_ip = host.node.properties.get('${providerMapping.attributes.compute.public_ip_address}', None)
-    if public_ip is not None:
-        return public_ip
-    if host.instance.relationships:
-        for relationship in host.instance.relationships:
-            if 'cloudify.relationships.connected_to' in relationship.type_hierarchy:
-                if relationship.target.node.id == '${mapping.generatedTypePrefix}_floating_ip_' + host.node.id:
-                    return relationship.target.instance.runtime_properties['${providerMapping.attributes.compute.public_ip_address}']
-    return ""
-#end
-
-
 #if($util.nonNative.operationHasDeploymentArtifacts($operation))
 #include("includes/download_artifacts.py")
 #end
@@ -158,7 +102,11 @@ operationOutputNames = '${util.nonNative.getOperationOutputNames(${operation})}'
 parsed_output = execute(ctx.download_resource('${util.nonNative.getArtifactRelativePath(${operation.implementationArtifact})}'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))
+#if($util.nonNative.isOperationOwnedByRelationship(${operation}))
+    ctx.source.instance.runtime_properties['_a4c_OO:${operation.interfaceName}:${operation.operationName}:{0}'.format(k)] = v
+#else
     ctx.instance.runtime_properties['_a4c_OO:${operation.interfaceName}:${operation.operationName}:{0}'.format(k)] = v
+#end
 
 #macro(setAttributes $owner $entity $attributes $context)
 #if($attributes)

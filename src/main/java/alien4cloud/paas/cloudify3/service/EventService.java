@@ -1,71 +1,49 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.io.IOException;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.Resource;
 import javax.xml.bind.DatatypeConverter;
 
+import alien4cloud.paas.cloudify3.model.*;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
+import alien4cloud.paas.model.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.common.AlienConstants;
-import alien4cloud.paas.cloudify3.dao.DeploymentEventDAO;
-import alien4cloud.paas.cloudify3.dao.NodeDAO;
-import alien4cloud.paas.cloudify3.dao.NodeInstanceDAO;
-import alien4cloud.paas.cloudify3.model.AbstractCloudifyModel;
-import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
-import alien4cloud.paas.cloudify3.model.Event;
-import alien4cloud.paas.cloudify3.model.EventType;
-import alien4cloud.paas.cloudify3.model.Node;
-import alien4cloud.paas.cloudify3.model.NodeInstance;
-import alien4cloud.paas.cloudify3.model.Workflow;
-import alien4cloud.paas.cloudify3.service.model.NativeType;
-import alien4cloud.paas.model.AbstractMonitorEvent;
-import alien4cloud.paas.model.DeploymentStatus;
-import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
-import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
-import alien4cloud.paas.model.PaaSInstanceStorageMonitorEvent;
-import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
-import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
-import alien4cloud.utils.MapUtil;
+import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Handle cloudify 3 events request
- *
- * @author Minh Khang VU
  */
 @Component("cloudify-event-service")
 @Slf4j
 public class EventService {
 
     @Resource
-    private DeploymentEventDAO eventDAO;
-
+    private DeploymentEventClient eventClient;
     @Resource
-    private NodeInstanceDAO nodeInstanceDAO;
-
-    @Resource
-    private NodeDAO nodeDAO;
-
+    private NodeInstanceClient nodeInstanceClient;
     @Resource
     private StatusService statusService;
 
+
     // TODO : May manage in a better manner this kind of state
     private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newConcurrentMap();
+
     private Map<String, String> alienDeploymentIdToPaaSDeploymentIdMapping = Maps.newConcurrentMap();
 
     public void init(Map<String, PaaSTopologyDeploymentContext> activeDeploymentContexts) {
@@ -89,18 +67,18 @@ public class EventService {
             return internalEvents;
         }
         // Try to get events from cloudify
-        ListenableFuture<Event[]> eventsFuture = eventDAO.asyncGetBatch(null, lastTimestamp, 0, batchSize);
-        AsyncFunction<Event[], AbstractMonitorEvent[]> cloudify3ToAlienEventsAdapter = new AsyncFunction<Event[], AbstractMonitorEvent[]>() {
+        ListenableFuture<Event[]> eventsFuture = eventClient.asyncGetBatch(null, lastTimestamp, 0, batchSize);
+        Function<Event[], AbstractMonitorEvent[]> cloudify3ToAlienEventsAdapter = new Function<Event[], AbstractMonitorEvent[]>() {
             @Override
-            public ListenableFuture<AbstractMonitorEvent[]> apply(Event[] cloudifyEvents) {
+            public AbstractMonitorEvent[] apply(Event[] cloudifyEvents) {
                 // Convert cloudify events to alien events
                 List<AbstractMonitorEvent> alienEvents = toAlienEvents(cloudifyEvents);
-                // At this point alienEvents do not have runtime properties, we must enrich them from node instance information
-                return enrichAlienEvents(alienEvents);
+                return alienEvents.toArray(new AbstractMonitorEvent[alienEvents.size()]);
             }
         };
         ListenableFuture<AbstractMonitorEvent[]> alienEventsFuture = Futures.transform(eventsFuture, cloudify3ToAlienEventsAdapter);
 
+        // Add a callback to deliver deployment status events
         Futures.addCallback(alienEventsFuture, new FutureCallback<AbstractMonitorEvent[]>() {
             @Override
             public void onSuccess(AbstractMonitorEvent[] result) {
@@ -144,82 +122,6 @@ public class EventService {
         internalProviderEventsQueue.add(deploymentStatusMonitorEvent);
     }
 
-    private ListenableFuture<AbstractMonitorEvent[]> enrichAlienEvents(final List<AbstractMonitorEvent> alienEvents) {
-
-        // From the list of alien events, get a map of deployment id --> instance state events
-        final Map<String, List<PaaSInstanceStateMonitorEvent>> instanceEventByDeployments = extractInstanceStateEventsMap(alienEvents);
-
-        // If there are no instance state events, return immediately
-        if (instanceEventByDeployments.isEmpty()) {
-            return Futures.immediateFuture(alienEvents.toArray(new AbstractMonitorEvent[alienEvents.size()]));
-        }
-
-        // From the map of deployment id --> instance state event, get the map of deployment id --> cloudify node instance
-        ListenableFuture<Map<String, Map<String, NodeInstance>>> nodeInstancesMapFuture = getNodeInstancesByDeploymentMap(instanceEventByDeployments.keySet());
-
-        ListenableFuture<Map<String, Map<String, Node>>> nodesMapFuture = getNodesByDeploymentMap(instanceEventByDeployments.keySet());
-
-        ListenableFuture<List<Map<String, ? extends Map<String, ? extends AbstractCloudifyModel>>>> combinedFutures = Futures.allAsList(nodeInstancesMapFuture,
-                nodesMapFuture);
-        Function<List<Map<String, ? extends Map<String, ? extends AbstractCloudifyModel>>>, AbstractMonitorEvent[]> nodeInstancesMapToEventsAdapter = new Function<List<Map<String, ? extends Map<String, ? extends AbstractCloudifyModel>>>, AbstractMonitorEvent[]>() {
-
-            @Override
-            public AbstractMonitorEvent[] apply(List<Map<String, ? extends Map<String, ? extends AbstractCloudifyModel>>> nodesInfo) {
-                Map<String, Map<String, NodeInstance>> nodeInstancesMap = (Map<String, Map<String, NodeInstance>>) nodesInfo.get(0);
-                Map<String, Map<String, Node>> nodeMap = (Map<String, Map<String, Node>>) nodesInfo.get(1);
-                for (Map.Entry<String, List<PaaSInstanceStateMonitorEvent>> instanceStateEventEntry : instanceEventByDeployments.entrySet()) {
-                    Map<String, NodeInstance> allDeployedInstances = nodeInstancesMap.get(instanceStateEventEntry.getKey());
-                    Map<String, Node> allDeployedNodes = nodeMap.get(instanceStateEventEntry.getKey());
-                    if (allDeployedInstances != null && allDeployedNodes != null) {
-                        Iterator<PaaSInstanceStateMonitorEvent> instanceStateMonitorEventIterator = instanceStateEventEntry.getValue().iterator();
-                        while (instanceStateMonitorEventIterator.hasNext()) {
-                            PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = instanceStateMonitorEventIterator.next();
-                            Node node = allDeployedNodes.get(instanceStateMonitorEvent.getNodeTemplateId());
-                            NodeInstance nodeInstance = allDeployedInstances.get(instanceStateMonitorEvent.getInstanceId());
-                            if (nodeInstance != null && nodeInstance.getRuntimeProperties() != null) {
-                                Map<String, String> runtimeProperties = null;
-                                try {
-                                    runtimeProperties = MapUtil.toString(nodeInstance.getRuntimeProperties());
-                                } catch (JsonProcessingException e) {
-                                    log.error("Unable to stringify runtime properties", e);
-                                }
-                                instanceStateMonitorEvent.setRuntimeProperties(runtimeProperties);
-                                if (node != null && node.getProperties() != null) {
-                                    String nativeType = statusService.getNativeType(node);
-                                    if (nativeType != null) {
-                                        Map<String, String> attributes = statusService.getAttributesFromRuntimeProperties(nativeType, runtimeProperties);
-                                        instanceStateMonitorEvent.setAttributes(attributes);
-                                        if (nativeType.equals(NativeType.VOLUME)) {
-                                            String volumeId = attributes.get(NormativeBlockStorageConstants.VOLUME_ID);
-                                            if (volumeId != null) {
-                                                Object rawVolumeProperties = node.getProperties().get("volume");
-                                                if (rawVolumeProperties != null && rawVolumeProperties instanceof Map) {
-                                                    Object rawAvailabilityZone = ((Map<String, Object>) rawVolumeProperties).get("availability_zone");
-                                                    if (rawAvailabilityZone != null && rawAvailabilityZone instanceof String) {
-                                                        volumeId = rawAvailabilityZone + AlienConstants.STORAGE_AZ_VOLUMEID_SEPARATOR + volumeId;
-                                                    }
-                                                }
-                                                instanceStateMonitorEventIterator.remove();
-                                                PaaSInstanceStorageMonitorEvent storageEvent = new PaaSInstanceStorageMonitorEvent(instanceStateMonitorEvent,
-                                                        volumeId, false);
-                                                int eventIndex = alienEvents.indexOf(instanceStateMonitorEvent);
-                                                // Replace the old event with the storage event
-                                                // It's ugly and temporary, as we'll try not to create a new type of event for each native type
-                                                alienEvents.set(eventIndex, storageEvent);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                return alienEvents.toArray(new AbstractMonitorEvent[alienEvents.size()]);
-            }
-        };
-        return Futures.transform(combinedFutures, nodeInstancesMapToEventsAdapter);
-    }
-
     private ListenableFuture<AbstractMonitorEvent[]> processInternalQueue(int batchSize) {
         if (internalProviderEventsQueue.isEmpty()) {
             return null;
@@ -250,80 +152,6 @@ public class EventService {
                 internalProviderEventsQueue = newQueue;
             }
         }
-    }
-
-    private ListenableFuture<Map<String, Map<String, Node>>> getNodesByDeploymentMap(Set<String> deploymentsThatNeedNodeInfo) {
-
-        List<ListenableFuture<Node[]>> nodeFutures = Lists.newArrayList();
-        // Retrieve node instances for deployments that has PaaSInstanceStateMonitorEvent
-        for (String deploymentThatNeedNodeInstanceInfo : deploymentsThatNeedNodeInfo) {
-            nodeFutures.add(nodeDAO.asyncList(deploymentThatNeedNodeInstanceInfo, null));
-        }
-        ListenableFuture<List<Node[]>> nodeInstancesFuture = Futures.allAsList(nodeFutures);
-        // Try to convert the list of array of node to a map of deployment --> node instance id --> node instance
-        Function<List<Node[]>, Map<String, Map<String, Node>>> nodeInstancesListToMapAdapter = new Function<List<Node[]>, Map<String, Map<String, Node>>>() {
-            @Override
-            public Map<String, Map<String, Node>> apply(List<Node[]> nodeArrayList) {
-                Map<String, Map<String, Node>> nodeMapByDeployment = Maps.newHashMap();
-                for (Node[] nodeArray : nodeArrayList) {
-                    if (nodeArray != null && nodeArray.length > 0) {
-                        Map<String, Node> nodeMap = Maps.newHashMap();
-                        nodeMapByDeployment.put(nodeArray[0].getDeploymentId(), nodeMap);
-                        for (Node node : nodeArray) {
-                            nodeMap.put(node.getId(), node);
-                        }
-                    }
-                }
-                return nodeMapByDeployment;
-            }
-        };
-        return Futures.transform(nodeInstancesFuture, nodeInstancesListToMapAdapter);
-    }
-
-    private ListenableFuture<Map<String, Map<String, NodeInstance>>> getNodeInstancesByDeploymentMap(Set<String> deploymentsThatNeedNodeInstanceInfo) {
-
-        List<ListenableFuture<NodeInstance[]>> nodeInstanceFutures = Lists.newArrayList();
-        // Retrieve node instances for deployments that has PaaSInstanceStateMonitorEvent
-        for (String deploymentThatNeedNodeInstanceInfo : deploymentsThatNeedNodeInstanceInfo) {
-            nodeInstanceFutures.add(nodeInstanceDAO.asyncList(deploymentThatNeedNodeInstanceInfo));
-        }
-        ListenableFuture<List<NodeInstance[]>> nodeInstancesFuture = Futures.allAsList(nodeInstanceFutures);
-        // Try to convert the list of array of node instances to a map of deployment --> node instance id --> node instance
-        Function<List<NodeInstance[]>, Map<String, Map<String, NodeInstance>>> nodeInstancesListToMapAdapter = new Function<List<NodeInstance[]>, Map<String, Map<String, NodeInstance>>>() {
-            @Override
-            public Map<String, Map<String, NodeInstance>> apply(List<NodeInstance[]> nodeInstancesList) {
-                Map<String, Map<String, NodeInstance>> nodeInstancesMapByDeployment = Maps.newHashMap();
-                for (NodeInstance[] nodeInstances : nodeInstancesList) {
-                    if (nodeInstances != null && nodeInstances.length > 0) {
-                        Map<String, NodeInstance> nodeInstanceMap = Maps.newHashMap();
-                        nodeInstancesMapByDeployment.put(nodeInstances[0].getDeploymentId(), nodeInstanceMap);
-                        for (NodeInstance nodeInstance : nodeInstances) {
-                            nodeInstanceMap.put(nodeInstance.getId(), nodeInstance);
-                        }
-                    }
-                }
-                return nodeInstancesMapByDeployment;
-            }
-        };
-        return Futures.transform(nodeInstancesFuture, nodeInstancesListToMapAdapter);
-    }
-
-    private Map<String, List<PaaSInstanceStateMonitorEvent>> extractInstanceStateEventsMap(List<AbstractMonitorEvent> alienEvents) {
-        final Map<String, List<PaaSInstanceStateMonitorEvent>> instanceEventByDeployments = Maps.newHashMap();
-        for (AbstractMonitorEvent alienEvent : alienEvents) {
-            if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
-                PaaSInstanceStateMonitorEvent instanceStateMonitorEvent = (PaaSInstanceStateMonitorEvent) alienEvent;
-                String alienDeploymentId = instanceStateMonitorEvent.getDeploymentId();
-                String paaSDeploymentId = alienDeploymentIdToPaaSDeploymentIdMapping.get(alienDeploymentId);
-                List<PaaSInstanceStateMonitorEvent> instanceEvensForDeployment = instanceEventByDeployments.get(paaSDeploymentId);
-                if (instanceEvensForDeployment == null) {
-                    instanceEvensForDeployment = Lists.newArrayList();
-                    instanceEventByDeployments.put(paaSDeploymentId, instanceEvensForDeployment);
-                }
-                instanceEvensForDeployment.add(instanceStateMonitorEvent);
-            }
-        }
-        return instanceEventByDeployments;
     }
 
     private List<AbstractMonitorEvent> toAlienEvents(Event[] cloudifyEvents) {
@@ -380,6 +208,22 @@ public class EventService {
                 instanceTaskStartedEvent.setInstanceState(newInstanceState);
                 instanceTaskStartedEvent.setInstanceStatus(statusService.getInstanceStatusFromState(newInstanceState));
                 alienEvent = instanceTaskStartedEvent;
+            }
+            break;
+        case EventType.A4C_PERSISTENT_EVENT:
+            String persistentCloudifyEvent = cloudifyEvent.getMessage().getText();
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+            try {
+                EventAlienPersistent eventAlienPersistent = objectMapper.readValue(persistentCloudifyEvent, EventAlienPersistent.class);
+                // query API
+                // TODO make that Async
+                NodeInstance instance = nodeInstanceClient.read(cloudifyEvent.getContext().getNodeId());
+                String attributeValue = (String) instance.getRuntimeProperties().get(eventAlienPersistent.getPersistentResourceId());
+                alienEvent = new PaaSInstancePersistentResourceMonitorEvent(cloudifyEvent.getContext().getNodeName(), cloudifyEvent.getContext().getNodeId(),
+                        eventAlienPersistent.getPersistentAlienAttribute(), attributeValue);
+            } catch (IOException e) {
+                return null;
             }
             break;
         default:

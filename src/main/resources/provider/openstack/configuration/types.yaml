@@ -1,0 +1,237 @@
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+
+template_name: openstack-types
+template_author: Alien4cloud
+template_version: 1.0.0-SNAPSHOT
+
+imports:
+  - tosca-normative-types:1.0.0.wd06-SNAPSHOT
+
+data_types:
+  alien.data.OpenstackConfig:
+    derived_from: tosca.datatypes.Root
+    properties:
+      username:
+        type: string
+        default: ''
+      password:
+        type: string
+        default: ''
+      tenant_name:
+        type: string
+        default: ''
+      auth_url:
+        type: string
+        default: ''
+      region:
+        type: string
+        default: ''
+      nova_url:
+        type: string
+        default: ''
+      neutron_url:
+        type: string
+        default: ''
+      custom_configuration:
+        type: map
+        entry_schema:
+          type: map
+          entry_schema:
+            type: string
+
+  alien.data.FloatingIpConfig:
+    derived_from: tosca.datatypes.Root
+    properties:
+      floating_ip_address:
+        type: string
+        required: false
+      floating_network_name:
+        type: string
+
+  alien.data.SubnetConfig:
+    derived_from: tosca.datatypes.Root
+    properties:
+      ip_version:
+        type: integer
+        default: 4
+        constraints:
+          - valid_values: [ 4, 6 ]
+      cidr:
+        type: string
+
+  alien.data.openstack.cinder.v1.VolumeCreateArgs:
+    properties:
+      tenant_id:
+        type: string
+        required: false
+        description: The unique identifier of the tenant or account.
+      volume:
+        type: string
+        required: false
+        description: A partial representation of a volume used in the creation process.
+      availability_zone:
+        type: string
+        required: false
+        description: The availability zone.
+      source_volid:
+        type: string
+        required: false
+        description: To create a volume from an existing volume, specify the ID of the existing volume. The volume is created with the same size as the source volume.
+      description:
+        type: string
+        required: false
+        description: The volume description.
+      name:
+        type: string
+        required: false
+        description: The volume name.
+      imageRef:
+        type: string
+        required: false
+        description: The ID of the image from which you want to create the volume. Required to create a bootable volume.
+      volume_type:
+        type: string
+        required: false
+        description: The associated volume type.
+      metadata:
+        type: string
+        required: false
+        description: One or more metadata key and value pairs to associate with the volume.
+
+node_types:
+  alien.nodes.openstack.Image:
+    abstract: true
+    derived_from: tosca.nodes.Root
+    properties:
+      id:
+        type: string
+    capabilities:
+      os:
+        type: tosca.capabilities.OperatingSystem
+
+  alien.nodes.openstack.Flavor:
+    abstract: true
+    derived_from: tosca.nodes.Root
+    properties:
+      id:
+        type: string
+    capabilities:
+      host:
+        type: tosca.capabilities.Container
+
+  alien.nodes.openstack.Compute:
+    derived_from: tosca.nodes.Compute
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.Server
+    properties:
+      server:
+        type: map
+        entry_schema:
+          type: string
+        required: false
+        description: "Openstack compute creation arguments, see http://developer.openstack.org/api-ref-compute-v2.html for more details"
+      use_external_resource:
+        type: boolean
+        required: false
+      resource_id:
+        type: string
+        default: ''
+        required: false
+      image:
+        type: string
+        default: ''
+      flavor:
+        type: string
+        default: ''
+      management_network_name:
+        type: string
+        default: ''
+        required: false
+      use_password:
+        type: boolean
+        required: false
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: false
+    attributes:
+      ip_address: { get_attribute: [SELF, ip] }
+      public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
+
+# TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
+  alien.nodes.PublicNetwork:
+    abstract: true
+    derived_from: tosca.nodes.Network
+
+  alien.nodes.PrivateNetwork:
+    abstract: true
+    derived_from: tosca.nodes.Network
+
+  alien.nodes.openstack.PublicNetwork:
+    derived_from: alien.nodes.PublicNetwork
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.FloatingIP
+      _a4c_c3_floating_ip_prop_map: >
+        {"cidr": null, "ip_version": null, "network_id": null, "gateway_ip": null, "network_name": "floatingip.floating_network_name"}
+    properties:
+      floatingip:
+        type: alien.data.FloatingIpConfig
+        required: true
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: false
+
+  alien.nodes.openstack.PrivateNetwork:
+    derived_from: alien.nodes.PrivateNetwork
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.Network
+      _a4c_c3_network_prop_map: >
+        {"cidr": null, "ip_version": null, "network_id": "resource_id", "subnet_id": null, "gateway_ip": null, "network_name": null}
+      _a4c_c3_subnet_prop_map: >
+        {"cidr": "subnet.cidr", "ip_version": "subnet.ip_version", "subnet_id": "resource_id", "network_id": null, "gateway_ip": null, "network_name": null}
+    properties:
+      use_external_resource:
+        type: boolean
+        required: false
+      resource_id:
+        type: string
+        default: ''
+        required: false
+      subnet_id:
+        type: string
+        default: ''
+        required: false
+      subnet:
+        type: alien.data.SubnetConfig
+        required: false
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: false
+
+  alien.cloudify.openstack.nodes.DeletableVolume:
+    derived_from: tosca.nodes.BlockStorage
+    description: >
+      This represents a Block Storage (Volume) instance on OpenStack. Cloudify 3 can create this block and will delete it when the application is undeployed,
+      even if the volume id is provided.
+    properties:
+      volume:
+        type: alien.data.openstack.cinder.v1.VolumeCreateArgs
+        required: false
+        description: Key-value volume configuration as described in http://developer.openstack.org/api-ref-blockstorage-v1.html#volumes-v1
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: false
+    attributes:
+      device: { get_attribute: [SELF, device_name] }
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.Volume
+      # Properties from parent type size, volume_id, snapshot_id will be mapped to valid cloudify properties
+      _a4c_c3_prop_map: >
+        {"size": {"path": "volume.size", "unit": "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id"}
+
+  alien.cloudify.openstack.nodes.Volume:
+    derived_from: alien.cloudify.openstack.nodes.DeletableVolume
+    description: >
+      This represents a Block Storage (Volume) instance on OpenStack. Cloudify 3 can create this block but will not delete it when the application is undeployed.
+      In case the volume is created, it's id will be injected back into alien's deployment topology so next deployment reuse it.
+    tags:
+      _a4c_persistent_resource_id: "external_id=volume_id"

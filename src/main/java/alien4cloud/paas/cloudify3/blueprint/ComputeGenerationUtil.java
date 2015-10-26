@@ -1,29 +1,25 @@
 package alien4cloud.paas.cloudify3.blueprint;
 
 import java.nio.file.Path;
+import java.util.Map;
 
-import alien4cloud.model.components.IndexedNodeType;
+import org.apache.commons.lang3.StringUtils;
+
+import alien4cloud.model.components.FunctionPropertyValue;
+import alien4cloud.model.components.IValue;
+import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
-import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.tosca.normative.NormativeComputeConstants;
+import alien4cloud.tosca.normative.ToscaType;
+
+import com.google.common.collect.Maps;
 
 public class ComputeGenerationUtil extends NativeTypeGenerationUtil {
 
-    public ComputeGenerationUtil(MappingConfiguration mappingConfiguration, ProviderMappingConfiguration providerMappingConfiguration,
-            CloudifyDeployment alienDeployment, Path recipePath, PropertyEvaluatorService propertyEvaluatorService) {
-        super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
-    }
-
-    public String tryToMapComputeType(IndexedNodeType type, String defaultType) {
-        return getMappedNativeType(type, NormativeComputeConstants.COMPUTE_TYPE, providerMappingConfiguration.getNativeTypes().getComputeType(),
-                alienDeployment.getComputeTypes(), defaultType);
-    }
-
-    public String tryToMapComputeTypeDerivedFrom(IndexedNodeType type) {
-        return getMappedNativeDerivedFromType(type, NormativeComputeConstants.COMPUTE_TYPE, providerMappingConfiguration.getNativeTypes().getComputeType(),
-                alienDeployment.getComputeTypes());
+    public ComputeGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
+            PropertyEvaluatorService propertyEvaluatorService) {
+        super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
     public String formatTextWithIndentation(int spaceNumber, String text) {
@@ -38,6 +34,14 @@ public class ComputeGenerationUtil extends NativeTypeGenerationUtil {
             formattedTextBuffer.append(indentation).append(line).append("\n");
         }
         return formattedTextBuffer.toString();
+    }
+
+    public String getDefault(PropertyDefinition propertyDefinition) {
+        if (ToscaType.isSimple(propertyDefinition.getType())) {
+            return StringUtils.isNotBlank(propertyDefinition.getDefault()) ? propertyDefinition.getDefault() : "\"\"";
+        } else {
+            return "{}";
+        }
     }
 
 }

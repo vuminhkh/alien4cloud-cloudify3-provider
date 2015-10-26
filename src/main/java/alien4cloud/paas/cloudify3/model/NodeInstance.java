@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.model;
 
+import java.util.List;
 import java.util.Map;
 
 import lombok.EqualsAndHashCode;
@@ -26,4 +27,6 @@ public class NodeInstance extends AbstractCloudifyModel {
     private Map<String, Object> runtimeProperties;
 
     private String state;
+
+    private List<RelationshipInstance> relationships;
 }

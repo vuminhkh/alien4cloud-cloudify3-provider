@@ -5,6 +5,7 @@ from utils import set_state_task
 from utils import operation_task
 from utils import link_tasks
 from utils import CustomContext
+from utils import generate_native_node_workflows
 
 
 #foreach($wfEntry in ${deployment.workflows.entrySet()})
@@ -25,12 +26,17 @@ def _a4c_${wfEntry.key}(ctx, graph, custom_context):
     #[[#]]#  following code can be pasted in src/test/python/workflows/tasks.py for simulation
 #foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
 #if($util.workflow.isSetStateTask(${wfStepEntry.value}))
+    custom_context.add_customized_wf_node('${wfStepEntry.value.activity.nodeId}')
     set_state_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '${wfStepEntry.value.activity.stateName}', '${wfStepEntry.value.name}', custom_context)
 #end
 #if($util.workflow.isOperationExecutionTask(${wfStepEntry.value}))
     operation_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '$util.nonNative.tryToMapToCloudifyInterface(${wfStepEntry.value.activity.interfaceName}).${wfStepEntry.value.activity.operationName}', '${wfStepEntry.value.name}', custom_context)
 #end
+#if($util.workflow.isDelegateActivityStep(${wfStepEntry.value}))
+    custom_context.register_native_delegate_wf_step('${wfStepEntry.value.activity.nodeId}', '${wfStepEntry.value.name}')
 #end
+#end
+    generate_native_node_workflows(ctx, graph, custom_context, '${wfEntry.key}')
 #foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
 #foreach($preceding_step in ${wfStepEntry.value.precedingSteps})
     link_tasks(graph, '${wfStepEntry.value.name}', '${preceding_step}', custom_context)

@@ -7,11 +7,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import alien4cloud.model.cloud.NetworkTemplate;
-import alien4cloud.model.cloud.StorageTemplate;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
+import alien4cloud.paas.cloudify3.util.mapping.PropertyMapping;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.wf.Workflow;
 
@@ -32,21 +31,18 @@ public class CloudifyDeployment {
      */
     private String deploymentId;
 
-    private List<MatchedPaaSComputeTemplate> computes;
+    /**
+     * The type of the location retrieved from alien's deployment topology
+     */
+    private String locationType;
 
-    private List<MatchedPaaSTemplate<NetworkTemplate>> internalNetworks;
+    private List<PaaSNodeTemplate> computes;
 
-    private List<MatchedPaaSTemplate<NetworkTemplate>> externalNetworks;
+    private List<PaaSNodeTemplate> volumes;
 
-    private List<MatchedPaaSTemplate<StorageTemplate>> volumes;
+    private List<PaaSNodeTemplate> externalNetworks;
 
-    private Map<String, MatchedPaaSComputeTemplate> computesMap;
-
-    private Map<String, MatchedPaaSTemplate<NetworkTemplate>> internalNetworksMap;
-
-    private Map<String, MatchedPaaSTemplate<NetworkTemplate>> externalNetworksMap;
-
-    private Map<String, MatchedPaaSTemplate<StorageTemplate>> volumesMap;
+    private List<PaaSNodeTemplate> internalNetworks;
 
     private List<PaaSNodeTemplate> nonNatives;
 
@@ -54,11 +50,12 @@ public class CloudifyDeployment {
 
     private List<IndexedRelationshipType> nonNativesRelationshipTypes;
 
-    private List<IndexedNodeType> computeTypes;
+    private List<IndexedNodeType> nativeTypes;
 
-    private List<IndexedNodeType> networkTypes;
-
-    private List<IndexedNodeType> volumeTypes;
+    /**
+     * Derived from types for native types
+     */
+    private Map<String, IndexedNodeType> nativeTypesHierarchy;
 
     private Map<String, PaaSNodeTemplate> allNodes;
 
@@ -75,4 +72,6 @@ public class CloudifyDeployment {
     private Map<String, String> providerDeploymentProperties;
 
     private Map<String, Workflow> workflows;
+
+    private Map<String, Map<String, PropertyMapping>> propertyMappings;
 }

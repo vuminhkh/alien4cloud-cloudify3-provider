@@ -1,49 +1,23 @@
-## volume nodes
-#foreach($matchedVolume in ${deployment.volumes})
-#set($externalVolumeId = $util.volume.getExternalVolumeId($matchedVolume))
-#if(${util.volume.isConfiguredVolume(${matchedVolume.paaSNodeTemplate})})
-  ${mapping.generatedNodePrefix}_file_system_${matchedVolume.paaSNodeTemplate.id}:
-    type: ${mapping.generatedTypePrefix}.cloudify.nodes.FileSystem
-    properties:
-#if($externalVolumeId)
-      use_external_resource: true
-#end
-#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system.value})
-      fs_type: "${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.file_system.value}"
-#end
-#if(${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location.value})
-      fs_mount_path: "${matchedVolume.paaSNodeTemplate.nodeTemplate.properties.location.value}"
-#end
-    relationships:
-      - type: ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_depends_on_volume
-        target: ${matchedVolume.paaSNodeTemplate.id}
-      - type: ${mapping.generatedTypePrefix}.cloudify.relationships.file_system_contained_in_compute
-        target: ${matchedVolume.paaSNodeTemplate.parent.id}
-#end
-  ${matchedVolume.paaSNodeTemplate.id}:
-    type: ${util.volume.tryToMapVolumeType($matchedVolume.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.Volume")}
-    properties:
-#if($externalVolumeId)
-      resource_id: $externalVolumeId
-      use_external_resource: true
-#end
-#if(${matchedVolume.paaSResourceTemplate.device})
-      device_name: ${matchedVolume.paaSResourceTemplate.device}
-#end
-#if(${matchedVolume.paaSResourceTemplate.size})
-      volume:
-        size: ${util.volume.formatVolumeSize(${matchedVolume.paaSResourceTemplate.size})}
-#set($volumeAvailabilityZone = $util.volume.getVolumeAvailabilityZone($matchedVolume))
-#if($volumeAvailabilityZone)
-        availability_zone: $volumeAvailabilityZone
-#end
-#end
-#if(!(${util.volume.isDeletableVolumeType(${matchedVolume.paaSNodeTemplate.indexedToscaElement})} || ${util.volume.hasDeletableBlockstorageOptionEnabled($deployment)}))
+#foreach($volumeTemplate in ${deployment.volumes})
+  ${volumeTemplate.id}:
+    type: ${volumeTemplate.nodeTemplate.type}
+#if(${volumeTemplate.nodeTemplate.type}=="alien.cloudify.openstack.nodes.Volume")
     interfaces:
       cloudify.interfaces.lifecycle:
         delete: {}
-#end
+#end## if
+    properties: ${util.natives.formatProperties(3, $volumeTemplate.nodeTemplate.properties, $deployment.propertyMappings.get($volumeTemplate.nodeTemplate.type))}
+#if(${util.natives.hasPropertyValue($volumeTemplate.nodeTemplate.properties, "volume_id")})
+      use_external_resource: true
+#end## if
+#set( $relationshipTemplates = $util.nonNative.getSourceRelationships($volumeTemplate) )
+#if($util.collectionHasElement($relationshipTemplates))
     relationships:
-      - target: ${matchedVolume.paaSNodeTemplate.parent.id}
-        type: ${providerMapping.nativeTypes.volumeAttachRelationshipType}
-#end
+#foreach($relationship in $relationshipTemplates)
+#if(${relationship.indexedToscaElement.elementId}=="tosca.relationships.AttachTo")
+      - target: $relationship.relationshipTemplate.target
+        type: cloudify.openstack.volume_attached_to_server
+#end## if
+#end## foreach($relationship in $relationshipTemplates)
+#end## if $util.collectionHasElement($relationshipTemplates)
+#end## foreach deployment.volumes

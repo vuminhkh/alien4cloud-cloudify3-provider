@@ -4,113 +4,98 @@ tosca_definitions_version: cloudify_dsl_1_0
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
   - http://www.getcloudify.org/spec/openstack-plugin/1.2/plugin.yaml
-
 node_types:
 
-  _a4c.Compute:
+  alien.nodes.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
-      _a4c_native_type:
-        default: compute
-
-
-  _a4c.Volume:
+      _a4c_att_public_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - TARGET
+            - cloudify.openstack.server_connected_to_floating_ip
+            - floating_ip_address
+      _a4c_att_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - ip
+  alien.cloudify.openstack.nodes.DeletableVolume:
     derived_from: cloudify.openstack.nodes.Volume
     properties:
-      _a4c_native_type:
-        default: volume
-
-
-  _a4c.cloudify.nodes.FileSystem:
-    derived_from: cloudify.nodes.Root
+      _a4c_att_device:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - device_name
+  alien.cloudify.openstack.nodes.Volume:
+    derived_from: cloudify.openstack.nodes.Volume
     properties:
-      use_external_resource:
-        description: >
-          Enables the use of already formatted volumes.
-        type: boolean
-        default: false
-      partition_type:
-        description: >
-          The partition type. 83 is a Linux Native Partition.
-        type: integer
-        default: 83
-      fs_type:
-        description: >
-          The type of the File System.
-          Supported types are [ext2, ext3, ext4, fat, ntfs, swap]
-        type: string
-        default: ext4
-      fs_mount_path:
-        description: >
-          The path of the mount point.
-        type: string
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        configure:
-          implementation: _a4c_native_artifact/volume/mkfs.sh
+      _a4c_att_device:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - device_name
+      _a4c_persistent_resource_id:
+        default: "external_id=volume_id"
 
-  alien.nodes.Mysql:
-    derived_from: cloudify.nodes.Database
+  alien.nodes.LinuxFileSystem:
+    derived_from: cloudify.nodes.SoftwareComponent
 
 relationships:
-  _a4c.cloudify.relationships.file_system_depends_on_volume:
+  alien.relationships.LinuxPartition:
     derived_from: cloudify.relationships.depends_on
-    source_interfaces:
-      cloudify.interfaces.relationship_lifecycle:
-        preconfigure:
-          implementation: _a4c_native_artifact/volume/fdisk.sh
-  _a4c.cloudify.relationships.file_system_contained_in_compute:
-    derived_from: cloudify.relationships.contained_in
-    source_interfaces:
-      cloudify.interfaces.relationship_lifecycle:
-        establish:
-          implementation: _a4c_native_artifact/volume/mount.sh
-        unlink:
-          implementation: _a4c_native_artifact/volume/unmount.sh
 
 node_templates:
 
+
   Compute:
-    type: _a4c.Compute
-    properties:
+    type: alien.nodes.openstack.Compute
+    properties: 
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
       flavor: 2
-    instances:
-      deploy: 1
-  _a4c_file_system_BlockStorage:
-    type: _a4c.cloudify.nodes.FileSystem
-    properties:
-      fs_type: "ext4"
-      fs_mount_path: "/var/mysql"
-    relationships:
-      - type: _a4c.cloudify.relationships.file_system_depends_on_volume
-        target: BlockStorage
-      - type: _a4c.cloudify.relationships.file_system_contained_in_compute
-        target: Compute
+
   BlockStorage:
-    type: _a4c.Volume
-    properties:
-      device_name: /dev/vdb
-      volume:
-        size: 1
+    type: alien.cloudify.openstack.nodes.Volume
     interfaces:
       cloudify.interfaces.lifecycle:
         delete: {}
+    properties: 
+      volume: 
+        size: 1
+      resource_id: yeah
+      use_external_resource: true
+    relationships:
+      - target: Compute
+        type: cloudify.openstack.volume_attached_to_server
+  DeletableBlockStorage:
+    type: alien.cloudify.openstack.nodes.DeletableVolume
+    properties: 
+      volume: 
+        size: 1
     relationships:
       - target: Compute
         type: cloudify.openstack.volume_attached_to_server
 
-  Mysql:
-    type: alien.nodes.Mysql
+  FileSystem:
+    type: alien.nodes.LinuxFileSystem
     instances:
       deploy: 1
     interfaces:
       cloudify.interfaces.lifecycle:
-        start: wrapper/Mysql/tosca.interfaces.node.lifecycle.Standard/start/artifacts/mysql-type/scripts/_a4c_start_mysql.py
-        create: wrapper/Mysql/tosca.interfaces.node.lifecycle.Standard/create/artifacts/mysql-type/scripts/_a4c_install_mysql.py
+        stop: wrapper/FileSystem/tosca.interfaces.node.lifecycle.Standard/stop/artifacts/alien-extended-storage-types/scripts/_a4c_unmount.py
+        start: wrapper/FileSystem/tosca.interfaces.node.lifecycle.Standard/start/artifacts/alien-extended-storage-types/scripts/_a4c_mount.py
+        configure: wrapper/FileSystem/tosca.interfaces.node.lifecycle.Standard/configure/artifacts/alien-extended-storage-types/scripts/_a4c_mkfs.py
     relationships:
-      - target: _a4c_file_system_BlockStorage
-        type: cloudify.relationships.depends_on
+      - target: BlockStorage
+        type: alien.relationships.LinuxPartition
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            preconfigure: wrapper/FileSystem_BlockStorage/linuxPartitionBlockStorage/artifacts/alien-extended-storage-types/scripts/_a4c_fdisk.py
       - target: Compute
         type: cloudify.relationships.contained_in
 
@@ -120,5 +105,5 @@ plugins:
     source: custom_wf_plugin
 
 workflows:
-  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
   a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
+  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install

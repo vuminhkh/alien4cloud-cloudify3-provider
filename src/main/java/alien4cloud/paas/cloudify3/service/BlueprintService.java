@@ -1,8 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -20,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.component.repository.ArtifactLocalRepository;
@@ -46,6 +43,7 @@ import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.cloudify3.util.VelocityUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
+import alien4cloud.plugin.model.ManagedPlugin;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Maps;
@@ -75,19 +73,30 @@ public class BlueprintService {
     private PropertyEvaluatorService propertyEvaluatorService;
 
     @Resource
-    private ApplicationContext applicationContext;
+    private ManagedPlugin pluginContext;
 
     private Path recipeDirectoryPath;
 
     private Path pluginRecipeResourcesPath;
 
     @PostConstruct
-    public void postConstruct() throws IOException, URISyntaxException {
-        URL recipeResourcesURL = applicationContext.getClassLoader().getResource("recipe/");
-        Path recipeResourcesPath = Paths.get(recipeResourcesURL.toURI());
-        FileUtil.copy(recipeResourcesPath, pluginRecipeResourcesPath, StandardCopyOption.REPLACE_EXISTING);
+    public void postConstruct() throws IOException {
+        FileUtil.copy(pluginContext.getPluginPath().resolve("recipe"), pluginRecipeResourcesPath, StandardCopyOption.REPLACE_EXISTING);
+        List<Path> providerTemplates = FileUtil.listFiles(pluginContext.getPluginPath().resolve("provider"), ".+\\.yaml\\.vm");
+        for (Path providerTemplate : providerTemplates) {
+            String relativizedPath = FileUtil.relativizePath(pluginContext.getPluginPath(), providerTemplate);
+            Path providerTemplateTargetPath = this.pluginRecipeResourcesPath.resolve("velocity").resolve(relativizedPath);
+            Files.createDirectories(providerTemplateTargetPath.getParent());
+            Files.copy(providerTemplate, providerTemplateTargetPath, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
+    /**
+     * Delete a blueprint on the file system.
+     * 
+     * @param deploymentPaaSId
+     *            Alien's paas deployment id used to identify the blueprint.
+     */
     public void deleteBlueprint(String deploymentPaaSId) {
         try {
             FileUtil.delete(resolveBlueprintPath(deploymentPaaSId));
@@ -99,7 +108,8 @@ public class BlueprintService {
     /**
      * Generate blueprint from an alien deployment request
      *
-     * @param alienDeployment the alien deployment's configuration
+     * @param alienDeployment
+     *            the alien deployment's configuration
      * @return the generated blueprint
      */
     public Path generateBlueprint(CloudifyDeployment alienDeployment) throws IOException, CSARVersionNotFoundException {
@@ -108,49 +118,37 @@ public class BlueprintService {
         if (Files.exists(generatedBlueprintDirectoryPath)) {
             deleteBlueprint(alienDeployment.getDeploymentPaaSId());
         }
+
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
-        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(),
-                mappingConfigurationHolder.getProviderMappingConfiguration(), alienDeployment, generatedBlueprintDirectoryPath, propertyEvaluatorService);
+        BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(), alienDeployment,
+                generatedBlueprintDirectoryPath, propertyEvaluatorService);
+
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
         context.put("cloud", cloudConfigurationHolder.getConfiguration());
         context.put("mapping", mappingConfigurationHolder.getMappingConfiguration());
-        context.put("providerMapping", mappingConfigurationHolder.getProviderMappingConfiguration());
         context.put("util", util);
         context.put("deployment", alienDeployment);
         context.put("newline", "\n");
+
         // Copy artifacts
-        List<PaaSNodeTemplate> nonNatives = alienDeployment.getNonNatives();
-        if (nonNatives != null) {
-            for (PaaSNodeTemplate nonNative : nonNatives) {
-                IndexedNodeType nonNativeType = nonNative.getIndexedToscaElement();
-                // Don't process a node more than once
-                copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNative.getNodeTemplate(), nonNativeType);
-                copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNativeType);
-                List<PaaSRelationshipTemplate> relationships = nonNative.getRelationshipTemplates();
-                for (PaaSRelationshipTemplate relationship : relationships) {
-                    if (relationship.getSource().equals(nonNative.getId())) {
-                        IndexedRelationshipType relationshipType = relationship.getIndexedToscaElement();
-                        copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationship.getRelationshipTemplate(), relationshipType);
-                        copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationshipType);
-                    }
+        for (PaaSNodeTemplate nonNative : alienDeployment.getNonNatives()) {
+            IndexedNodeType nonNativeType = nonNative.getIndexedToscaElement();
+            // Don't process a node more than once
+            copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNative.getNodeTemplate(), nonNativeType);
+            copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), nonNativeType);
+            List<PaaSRelationshipTemplate> relationships = nonNative.getRelationshipTemplates();
+            for (PaaSRelationshipTemplate relationship : relationships) {
+                if (relationship.getSource().equals(nonNative.getId())) {
+                    IndexedRelationshipType relationshipType = relationship.getIndexedToscaElement();
+                    copyDeploymentArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationship.getRelationshipTemplate(), relationshipType);
+                    copyImplementationArtifacts(generatedBlueprintDirectoryPath, nonNative.getId(), relationshipType);
                 }
             }
         }
-        Path nativeArtifactDirectory = generatedBlueprintDirectoryPath.resolve(mappingConfigurationHolder.getMappingConfiguration()
-                .getNativeArtifactDirectoryName());
-        if (Files.exists(nativeArtifactDirectory)) {
-            throw new IOException(nativeArtifactDirectory.getFileName() + " is a reserved name, please choose another name for your archive");
-        }
-        if (util.getVolume().hasConfiguredVolume(alienDeployment.getVolumes())) {
-            Path volumeScriptPath = nativeArtifactDirectory.resolve("volume");
-            Files.createDirectories(volumeScriptPath);
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/fdisk.sh"), volumeScriptPath.resolve("fdisk.sh"));
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mkfs.sh"), volumeScriptPath.resolve("mkfs.sh"));
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/mount.sh"), volumeScriptPath.resolve("mount.sh"));
-            Files.copy(pluginRecipeResourcesPath.resolve("artifacts/volume/unmount.sh"), volumeScriptPath.resolve("unmount.sh"));
-        }
+
+        // Wrap all implementation script into a wrapper so it can be called from cloudify 3 with respect of TOSCA.
         for (PaaSNodeTemplate node : alienDeployment.getNonNatives()) {
             Map<String, Interface> interfaces = util.getNonNative().getNodeInterfaces(node);
             if (MapUtils.isNotEmpty(interfaces)) {
@@ -174,8 +172,8 @@ public class BlueprintService {
                     for (Map.Entry<String, Interface> inter : relationshipInterfaces.entrySet()) {
                         Map<String, Operation> operations = inter.getValue().getOperations();
                         for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
-                            Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(), relationship
-                                    .getRelationshipTemplate().getTarget());
+                            Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(),
+                                    relationship.getRelationshipTemplate().getTarget());
                             Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts = Maps.newHashMap();
                             if (MapUtils.isNotEmpty(relationship.getIndexedToscaElement().getArtifacts())) {
                                 relationshipArtifacts.put(keyRelationship, relationship.getIndexedToscaElement().getArtifacts());
@@ -198,13 +196,16 @@ public class BlueprintService {
                 }
             }
         }
+
         if (!alienDeployment.getNonNatives().isEmpty()) {
             Files.copy(pluginRecipeResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
         }
+
         // custom workflows section
         Path wfPluginDir = generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin");
         Files.createDirectories(wfPluginDir);
-        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/setup.py"), generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/setup.py"));
+        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/setup.py"),
+                generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/setup.py"));
         Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/__init__.py"),
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/__init__.py"));
         Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/handlers.py"),
@@ -223,7 +224,6 @@ public class BlueprintService {
         return generatedBlueprintFilePath;
     }
 
-
     private OperationWrapper generateOperationScriptWrapper(String interfaceName, String operationName, Operation operation, IPaaSTemplate<?> owner,
             BlueprintGenerationUtil util, Map<String, Object> context, Path generatedBlueprintDirectoryPath,
             Map<String, Map<String, DeploymentArtifact>> artifacts, Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts,
@@ -232,10 +232,10 @@ public class BlueprintService {
                 propertyEvaluatorService, allNodes);
         Map<String, Object> operationContext = Maps.newHashMap(context);
         operationContext.put("operation", operationWrapper);
-        VelocityUtil.generate(
-                pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"),
-                generatedBlueprintDirectoryPath.resolve(util.getNonNative().getArtifactWrapperPath(owner, interfaceName, operationName,
-                        operation.getImplementationArtifact())), operationContext);
+        VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"),
+                generatedBlueprintDirectoryPath
+                        .resolve(util.getNonNative().getArtifactWrapperPath(owner, interfaceName, operationName, operation.getImplementationArtifact())),
+                operationContext);
         return operationWrapper;
     }
 

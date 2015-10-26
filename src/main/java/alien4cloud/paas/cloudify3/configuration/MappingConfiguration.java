@@ -17,11 +17,7 @@ public class MappingConfiguration {
 
     private String generatedArtifactPrefix;
 
-    private String nativeTypePropertyName;
-
     private String nativePropertyParent;
-
-    private String nativeArtifactDirectoryName;
 
     private String topologyArtifactDirectoryName;
 

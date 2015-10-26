@@ -8,14 +8,15 @@ import javax.annotation.Resource;
 
 import lombok.SneakyThrows;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import alien4cloud.paas.cloudify3.dao.BlueprintDAO;
 import alien4cloud.paas.cloudify3.model.Blueprint;
+import alien4cloud.paas.cloudify3.restclient.BlueprintClient;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.util.FileTestUtil;
@@ -30,12 +31,12 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     private BlueprintService blueprintService;
 
     @Resource
-    private BlueprintDAO blueprintDAO;
+    private BlueprintClient blueprintDAO;
 
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
-    private boolean record = false;
+    private boolean record = true;
 
     @Override
     @Before
@@ -86,13 +87,13 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     @Test
-    public void testGenerateLamp() {
-        testGeneratedBlueprintFile(LAMP_TOPOLOGY);
+    public void testGenerateNetwork() {
+        testGeneratedBlueprintFile(NETWORK_TOPOLOGY);
     }
 
     @Test
-    public void testGenerateNetwork() {
-        testGeneratedBlueprintFile(NETWORK_TOPOLOGY);
+    public void testGenerateLamp() {
+        testGeneratedBlueprintFile(LAMP_TOPOLOGY);
     }
 
     @Test
@@ -102,27 +103,31 @@ public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Test
     public void testGenerateTomcat() {
-        testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
+        // testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
+        Assert.fail("Fix test");
     }
 
     @Test
     public void testGenerateArtifactsTest() {
-        testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
+        // testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
+        Assert.fail("Fix test");
     }
 
     @Test
     public void testGenerateOverriddenArtifactsTest() {
-        testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY, ARTIFACT_TEST_TOPOLOGY + "Overridden", "testGenerateOverridenArtifactsTest",
-                new DeploymentContextVisitor() {
-                    @Override
-                    public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
-                        overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
-                    }
-                });
+        // testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY, ARTIFACT_TEST_TOPOLOGY + "Overridden", "testGenerateOverridenArtifactsTest",
+        // new DeploymentContextVisitor() {
+        // @Override
+        // public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
+        // overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
+        // }
+        // });
+        Assert.fail("Fix test");
     }
 
     @Test
     public void testGenerateHAGroup() {
-        testGeneratedBlueprintFile(HA_GROUPS_TOPOLOGY);
+        // testGeneratedBlueprintFile(HA_GROUPS_TOPOLOGY);
+        Assert.fail("Fix test");
     }
 }

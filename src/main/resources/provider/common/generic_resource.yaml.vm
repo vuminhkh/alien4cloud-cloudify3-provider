@@ -1,0 +1,19 @@
+#macro(providerResourceNodes $typeName $templates)
+#foreach($template in $templates)
+#providerResourceNode($typeName, $template)
+#end
+#end
+
+#macro(providerResourceNode $typeName $template)
+  ${template.id}:
+    type: $typeName
+    properties: ${util.natives.formatProperties(3, $template.nodeTemplate.properties)}
+#if(${template.scalingPolicy})
+    instances:
+#if(${template.scalingPolicy.initialInstances})
+      deploy: ${template.scalingPolicy.initialInstances}
+#else
+      deploy: 1
+#end
+#end
+#end

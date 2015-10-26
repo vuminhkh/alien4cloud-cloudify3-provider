@@ -6,11 +6,7 @@ generated_node_prefix: _a4c
 
 generated_artifact_prefix: _a4c
 
-native_type_property_name: _a4c_native_type
-
 native_property_parent: _a4c_native_property
-
-native_artifact_directory_name: _a4c_native_artifact
 
 topology_artifact_directory_name: _a4c_topology_artifact
 

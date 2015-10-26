@@ -14,7 +14,8 @@
 		org.elasticsearch.mapping">
         <!-- alien4cloud.security.* to exclude ldap package is not working in component-scan -->
         <context:exclude-filter type="regex" expression="alien4cloud\.paas\.cloudify3\.PluginContextConfiguration"/>
-        <context:exclude-filter type="regex" expression="alien4cloud\.ldap.*|alien4cloud\.initialization.*|alien4cloud\.documentation.*|alien4cloud\.audit.*|alien4cloud\.security\.users\.rest.*|alien4cloud\.security\.groups\.rest.*"/>
+        <context:exclude-filter type="regex"
+                                expression="alien4cloud\.ldap.*|alien4cloud\.initialization.*|alien4cloud\.documentation.*|alien4cloud\.audit.*|alien4cloud\.security\.users\.rest.*|alien4cloud\.security\.groups\.rest.*"/>
         <context:exclude-filter type="regex" expression="alien4cloud\.security\.spring\.SecurityConfiguration"/>
     </context:component-scan>
 
@@ -61,4 +62,7 @@
         <constructor-arg ref="syncRestTemplate"/>
     </bean>
 
+    <bean id="alien-plugin-context" class="alien4cloud.plugin.model.ManagedPlugin">
+        <constructor-arg value="src/main/resources"/>
+    </bean>
 </beans>

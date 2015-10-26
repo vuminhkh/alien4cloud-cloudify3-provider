@@ -6,20 +6,20 @@ import java.nio.file.Paths;
 
 import javax.annotation.Resource;
 
-import alien4cloud.model.components.Csar;
-import alien4cloud.tosca.parser.ParsingError;
-import alien4cloud.tosca.parser.ParsingResult;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.collections.MapUtils;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import alien4cloud.git.RepositoryManager;
+import alien4cloud.model.components.Csar;
 import alien4cloud.security.model.Role;
 import alien4cloud.tosca.ArchiveUploadService;
+import alien4cloud.tosca.parser.ParsingError;
+import alien4cloud.tosca.parser.ParsingErrorLevel;
+import alien4cloud.tosca.parser.ParsingResult;
 import alien4cloud.utils.FileUtil;
 
 @Component
@@ -29,7 +29,6 @@ public class CSARUtil {
     public static final String TOSCA_NORMATIVE_TYPES_NAME = "tosca-normative-types";
 
     public static final String URL_FOR_SAMPLES = "https://github.com/alien4cloud/samples.git";
-    public static final String BRANCH_FOR_SAMPLES = "master";
     public static final String SAMPLES_TYPES_NAME = "samples";
     public static final String APACHE_TYPE_PATH = SAMPLES_TYPES_NAME + "/apache";
     public static final String MYSQL_TYPE_PATH = SAMPLES_TYPES_NAME + "/mysql";
@@ -57,11 +56,17 @@ public class CSARUtil {
         Authentication auth = new TestingAuthenticationToken(Role.ADMIN, "", Role.ADMIN.name());
         SecurityContextHolder.getContext().setAuthentication(auth);
         ParsingResult<Csar> result = archiveUploadService.upload(zipPath);
-        if(result.getContext().getParsingErrors() != null && !result.getContext().getParsingErrors().isEmpty()) {
-            for(ParsingError error: result.getContext().getParsingErrors()) {
+        if (result.getContext().getParsingErrors() != null && !result.getContext().getParsingErrors().isEmpty()) {
+            boolean hasError = false;
+            for (ParsingError error : result.getContext().getParsingErrors()) {
                 log.error("Parsing error: " + error);
+                if (error.getErrorLevel().equals(ParsingErrorLevel.ERROR)) {
+                    hasError = true;
+                }
             }
-            throw new RuntimeException("Parsing of csar failed");
+            if (hasError) {
+                throw new RuntimeException("Parsing of csar failed");
+            }
         }
     }
 
@@ -99,9 +104,9 @@ public class CSARUtil {
     }
 
     public void uploadAll() throws Exception {
-        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_SAMPLES, BRANCH_FOR_SAMPLES, SAMPLES_TYPES_NAME);
-        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_NORMATIVES, "master", TOSCA_NORMATIVE_TYPES_NAME);
-        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_STORAGE, "master", ALIEN4CLOUD_STORAGE_TYPES);
+        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_SAMPLES, "orchestrator-refactoring", SAMPLES_TYPES_NAME);
+        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_NORMATIVES, "1.0.0.wd06.alien", TOSCA_NORMATIVE_TYPES_NAME);
+        repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_STORAGE, "orchestrator-refactoring", ALIEN4CLOUD_STORAGE_TYPES);
         uploadNormativeTypes();
         uploadStorage();
         uploadTomcat();
@@ -109,6 +114,6 @@ public class CSARUtil {
         uploadMySqlTypes();
         uploadPHPTypes();
         uploadWordpress();
-        uploadArtifactTest();
+//        uploadArtifactTest();
     }
 }

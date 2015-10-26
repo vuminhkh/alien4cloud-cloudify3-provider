@@ -1,47 +1,22 @@
-## Compute nodes
-#foreach($matchedPaaSCompute in ${deployment.computes})
-  ${matchedPaaSCompute.paaSNodeTemplate.id}:
-    type: ${util.compute.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.Compute")}
-    properties:
-      image: ${matchedPaaSCompute.paaSComputeTemplate.image}
-      flavor: ${matchedPaaSCompute.paaSComputeTemplate.flavor}
-#if(${matchedPaaSCompute.paaSComputeTemplate.availabilityZone} || ${cloud.cloudInit})
-      server:
-#if(${matchedPaaSCompute.paaSComputeTemplate.availabilityZone})
-        availability_zone: ${matchedPaaSCompute.paaSComputeTemplate.availabilityZone}
-#end
-#if(${cloud.cloudInit})
-        userdata: |
-${util.compute.formatTextWithIndentation(10, ${cloud.cloudInit})}
-#end
-#end
-    instances:
-#if(${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances})
-      deploy: ${matchedPaaSCompute.paaSNodeTemplate.scalingPolicy.initialInstances}
-#else
-      deploy: 1
-#end
-#set( $hasFloatingIp = ${util.network.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})} )
-#set( $hasInternalNetwork = ${util.network.hasMatchedNetwork(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.internalNetworks})} )
-#if($hasFloatingIp || $hasInternalNetwork)
+#parse("provider/common/generic_resource.yaml.vm")
+#foreach($compute in ${deployment.computes})
+#providerResourceNode(${compute.nodeTemplate.type}, $compute)
+#set( $publicNetworks = ${util.network.getExternalNetworks($compute)} )
+#set( $privateNetworks = ${util.network.getInternalNetworks($compute)} )
+#if($util.collectionHasElement(${publicNetworks}) || $util.collectionHasElement(${privateNetworks}))
     relationships:
-#if($hasInternalNetwork)
-#foreach($internalNetworkNode in ${util.network.getInternalNetworks(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.internalNetworks})})
-#set( $network = ${internalNetworkNode.paaSResourceTemplate} )
-      - target: ${internalNetworkNode.id}
+#foreach($internalNetwork in $privateNetworks)
+      - target: ${internalNetwork.id}
         type: cloudify.relationships.connected_to
-      - target: ${internalNetworkNode.id}_subnet
+      - target: ${internalNetwork.id}_subnet
         type: cloudify.relationships.depends_on
 #end
-#end
-#if($hasFloatingIp)
-      - target: ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}
-        type: ${providerMapping.nativeTypes.floatingIpRelationshipType}
-  ${mapping.generatedNodePrefix}_floating_ip_${matchedPaaSCompute.paaSNodeTemplate.id}:
-    type: ${mapping.generatedTypePrefix}.FloatingIP
-    properties:
-      floatingip:
-        floating_network_name: ${util.network.getExternalNetworkName(${matchedPaaSCompute.paaSNodeTemplate.networkNodes}, ${deployment.externalNetworks})}
+#foreach($externalNetwork in $publicNetworks)
+      - target: ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}
+        type: cloudify.openstack.server_connected_to_floating_ip
+  ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}:
+    type: ${externalNetwork.nodeTemplate.type}
+    properties: ${util.natives.formatProperties(3, ${externalNetwork.nodeTemplate.properties}, ${util.natives.loadPropertyMapping(${externalNetwork.indexedToscaElement}, "_a4c_c3_floating_ip_prop_map")})}
 #end
 #end
 #end

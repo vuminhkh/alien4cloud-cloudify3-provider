@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
-import alien4cloud.paas.cloudify3.configuration.ProviderMappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 
@@ -20,22 +19,24 @@ public class BlueprintGenerationUtil extends AbstractGenerationUtil {
 
     private ComputeGenerationUtil compute;
 
-    private NetworkGenerationUtil network;
-
-    private VolumeGenerationUtil volume;
-
     private NonNativeTypeGenerationUtil nonNative;
+
+    private NativeTypeGenerationUtil natives;
 
     private WorkflowGenerationUtil workflow;
 
-    public BlueprintGenerationUtil(MappingConfiguration mappingConfiguration, ProviderMappingConfiguration providerMappingConfiguration,
-            CloudifyDeployment alienDeployment, Path recipePath, PropertyEvaluatorService propertyEvaluatorService) {
-        super(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
-        this.compute = new ComputeGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
-        this.network = new NetworkGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
-        this.volume = new VolumeGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
-        this.nonNative = new NonNativeTypeGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath,
-                propertyEvaluatorService);
-        this.workflow = new WorkflowGenerationUtil(mappingConfiguration, providerMappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+    private CommonGenerationUtil common;
+
+    private NetworkGenerationUtil network;
+
+    public BlueprintGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
+            PropertyEvaluatorService propertyEvaluatorService) {
+        super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+        this.compute = new ComputeGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+        this.nonNative = new NonNativeTypeGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+        this.workflow = new WorkflowGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+        this.common = new CommonGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+        this.network = new NetworkGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+        this.natives = new NativeTypeGenerationUtil(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 }
