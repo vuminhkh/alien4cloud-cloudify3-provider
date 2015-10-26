@@ -41,7 +41,7 @@ node_types:
             - SELF
             - device_name
       _a4c_persistent_resource_id:
-        default: "volume_id"
+        default: "external_id=volume_id"
 
   alien.nodes.LinuxFileSystem:
     derived_from: cloudify.nodes.SoftwareComponent
@@ -67,6 +67,8 @@ node_templates:
     properties: 
       volume: 
         size: 1
+      resource_id: yeah
+      use_external_resource: true
     relationships:
       - target: Compute
         type: cloudify.openstack.volume_attached_to_server

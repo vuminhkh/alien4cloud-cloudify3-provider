@@ -3,7 +3,12 @@ from handlers import host_pre_stop
 from handlers import _set_send_node_event_on_error_handler
 from workflow import WfEvent
 from workflow import build_wf_event
+from workflow import PersistentResourceEvent
+from workflow import build_pre_event
 
+from cloudify import logs
+from cloudify.logs import _send_event
+from cloudify.workflows.workflow_context import task_config
 
 def _get_nodes_instances(ctx, node_id):
     instances = []
@@ -89,7 +94,6 @@ def _operation_task(ctx, graph, node_id, operation_fqname, step_id, custom_conte
         sequence = forkjoin_sequence(graph, fork, first_instance, msg)
     return sequence
 
-
 def count_relationships(instance):
     relationship_count = 0
     for relationship in instance.relationships:
@@ -135,6 +139,22 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
                 postconfigure_tasks.add(task)
             msg = "postconf for {0}".format(instance.id)
             sequence.add(forkjoin_sequence(graph, postconfigure_tasks, instance, msg))
+        persistent_property = instance.node.properties.get('_a4c_persistent_resource_id', None)
+        if persistent_property != None:
+            # send event to send resource id to alien
+            splitted_persistent_property = persistent_property.split('=')
+            persistent_cloudify_attribute = splitted_persistent_property[0]
+            persistent_alien_attribute = splitted_persistent_property[1]
+
+            persist_msg = build_pre_event(PersistentResourceEvent(persistent_cloudify_attribute, persistent_alien_attribute))
+
+            @task_config(send_task_events=False)
+            def send_event_task():
+                _send_event(instance, 'workflow_node', 'a4c_persistent_event', persist_msg, None, None, None)
+            sequence.add(instance.ctx.local_task(
+                local_task=send_event_task,
+                node=instance,
+                info=persist_msg))
     elif operation_fqname == 'cloudify.interfaces.lifecycle.stop':
         if _is_host_node(instance):
             sequence.add(*host_pre_stop(instance))

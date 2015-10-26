@@ -5,14 +5,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import alien4cloud.model.components.*;
 import com.google.common.collect.Maps;
 
 import alien4cloud.model.common.Tag;
-import alien4cloud.model.components.AbstractPropertyValue;
-import alien4cloud.model.components.FunctionPropertyValue;
-import alien4cloud.model.components.IValue;
-import alien4cloud.model.components.IndexedNodeType;
-import alien4cloud.model.components.PropertyValue;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
@@ -28,8 +24,34 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
     public static final String MAPPED_TO_KEY = "_a4c_c3_derived_from";
 
     public NativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
-                                    PropertyEvaluatorService propertyEvaluatorService) {
+            PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+    }
+
+    /**
+     * Check if a property has been defined with a non null and not empty value.
+     *
+     * @param properties The map of properties in which to look.
+     * @param property The name of the property.
+     * @return True if a value has been defined, false if not.
+     */
+    public boolean hasPropertyValue(Map<String, AbstractPropertyValue> properties, String property) {
+        if (properties == null) {
+            return false;
+        }
+        AbstractPropertyValue propertyValue = properties.get(property);
+        if (propertyValue == null) {
+            return false;
+        }
+        if (propertyValue instanceof ScalarPropertyValue) {
+            String value = ((ScalarPropertyValue) propertyValue).getValue();
+            if (value == null || value.isEmpty()) {
+                return false;
+            }
+            // there is a non-null and not empty property value.
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -73,8 +95,8 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
     /**
      * Apply properties mapping and then format properties for cloudify blueprint.
      *
-     * @param indentLevel  The indentation level for the properties.
-     * @param properties   The properties values map.
+     * @param indentLevel The indentation level for the properties.
+     * @param properties The properties values map.
      * @param propMappings The mapping configuration to map values.
      * @return The formatted properties string to insert in the blueprint.
      */

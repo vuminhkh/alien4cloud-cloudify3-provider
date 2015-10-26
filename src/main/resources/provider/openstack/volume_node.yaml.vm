@@ -7,6 +7,9 @@
         delete: {}
 #end## if
     properties: ${util.natives.formatProperties(3, $volumeTemplate.nodeTemplate.properties, $deployment.propertyMappings.get($volumeTemplate.nodeTemplate.type))}
+#if(${util.natives.hasPropertyValue($volumeTemplate.nodeTemplate.properties, "volume_id")})
+      use_external_resource: true
+#end## if
 #set( $relationshipTemplates = $util.nonNative.getSourceRelationships($volumeTemplate) )
 #if($util.collectionHasElement($relationshipTemplates))
     relationships:

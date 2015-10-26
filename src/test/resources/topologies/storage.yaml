@@ -23,6 +23,7 @@ topology_template:
       type: alien.cloudify.openstack.nodes.Volume
       properties:
         size: 1 GiB
+        volume_id: yeah
       requirements:
         - attachment:
             node: Compute
