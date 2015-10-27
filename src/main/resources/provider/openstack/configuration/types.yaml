@@ -185,7 +185,7 @@ node_types:
     tags:
       _a4c_c3_derived_from: cloudify.openstack.nodes.Network
       _a4c_c3_network_prop_map: >
-        {"cidr": null, "ip_version": null, "network_id": "resource_id", "subnet_id": null, "gateway_ip": null, "network_name": null}
+        {"cidr": null, "ip_version": null, "network_id": "resource_id", "subnet_id": null, "gateway_ip": null, "network_name": null, "subnet": null}
       _a4c_c3_subnet_prop_map: >
         {"cidr": "subnet.cidr", "ip_version": "subnet.ip_version", "subnet_id": "resource_id", "network_id": null, "gateway_ip": null, "network_name": null}
     properties:
