@@ -109,6 +109,31 @@ data_types:
       deletable:
         type: boolean
         default: false;
+      # inherited from tosca.nodes.BlockStorage
+      size:
+        type: scalar-unit.size
+        description: >
+          The requested storage size (default unit is MB).
+          Note:
+          - Required when an existing volume (i.e., volume_id) is not available.
+          - If volume_id is provided, size is ignored.  Resize of existing volumes is not considered at this time.
+        constraints:
+          - greater_or_equal: 1 MB
+      volume_id:
+        type: string
+        description: ID of an existing volume (that is in the accessible scope of the requesting application).
+        required: false
+      snapshot_id:
+        type: string
+        description: Some identifier that represents an existing snapshot that should be used when creating the block storage (volume).
+        required: false
+      device:
+        type: string
+        description: >
+          The logical device name which for the attached device (which is represented by the target node in the model).
+          e.g., ‘/dev/hda1’
+          Note: this property will be moved in next releases to the AttachTo relationship as it is specified by TOSCA spec.
+        required: false
 
 node_types:
   alien.nodes.openstack.Image:
@@ -177,9 +202,7 @@ node_types:
       volumes:
         type: list
         entry_schema:
-          type: alien.data.openstack.EmbededVolumerProperties
-    attributes:
-      volumes: {}
+          type: alien.data.openstack.EmbededVolumeProperties
 
 # TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
   alien.nodes.PublicNetwork:
