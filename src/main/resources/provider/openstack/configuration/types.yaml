@@ -98,6 +98,18 @@ data_types:
         required: false
         description: One or more metadata key and value pairs to associate with the volume.
 
+  alien.data.openstack.EmbededVolumeProperties:
+    properties:
+      volume:
+        type: alien.data.openstack.cinder.v1.VolumeCreateArgs
+        required: true
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: true
+      deletable:
+        type: boolean
+        default: false;
+
 node_types:
   alien.nodes.openstack.Image:
     abstract: true
@@ -156,6 +168,18 @@ node_types:
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
+
+  alien.nodes.openstack.ScalableCompute:
+    # set to false to hide from on demand resources
+    abstract: false
+    derived_from: alien.nodes.openstack.Compute
+    properties:
+      volumes:
+        type: list
+        entry_schema:
+          type: alien.data.openstack.EmbededVolumerProperties
+    attributes:
+      volumes: {}
 
 # TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
   alien.nodes.PublicNetwork:
