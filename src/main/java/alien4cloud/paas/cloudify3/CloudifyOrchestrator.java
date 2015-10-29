@@ -24,6 +24,7 @@ import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.CustomWorkflowService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
+import alien4cloud.paas.cloudify3.service.ScalableComputeReplacementService;
 import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
@@ -73,6 +74,9 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     @Resource
     private MappingConfigurationHolder mappingConfigurationHolder;
 
+    @Resource
+    private ScalableComputeReplacementService scalableComputeReplacementService;
+
     /**
      * ********************************************************************************************************************
      * *****************************************************Deployment*****************************************************
@@ -81,6 +85,7 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
 
     @Override
     public void deploy(PaaSTopologyDeploymentContext deploymentContext, final IPaaSCallback callback) {
+        deploymentContext = scalableComputeReplacementService.transformTopology(deploymentContext);
         try {
             CloudifyDeployment deployment = cloudifyDeploymentBuilderService.buildCloudifyDeployment(deploymentContext);
             FutureUtil.associateFutureToPaaSCallback(deploymentService.deploy(deployment), callback);

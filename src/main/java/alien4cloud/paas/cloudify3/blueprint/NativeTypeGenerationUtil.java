@@ -5,10 +5,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import alien4cloud.model.components.*;
-import com.google.common.collect.Maps;
-
 import alien4cloud.model.common.Tag;
+import alien4cloud.model.components.AbstractPropertyValue;
+import alien4cloud.model.components.FunctionPropertyValue;
+import alien4cloud.model.components.IValue;
+import alien4cloud.model.components.IndexedNodeType;
+import alien4cloud.model.components.PropertyValue;
+import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
@@ -18,6 +21,8 @@ import alien4cloud.paas.cloudify3.util.mapping.PropertyMapping;
 import alien4cloud.paas.cloudify3.util.mapping.PropertyValueUtil;
 import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.utils.TagUtil;
+
+import com.google.common.collect.Maps;
 
 public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
 
@@ -122,6 +127,8 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
             return formatListValue(indentLevel, Arrays.asList((Object[]) value));
         } else if (value instanceof List) {
             return formatListValue(indentLevel, (List<Object>) value);
+        } else if (value instanceof PropertyValue) {
+            return formatPropertyValue(indentLevel, (PropertyValue) value);
         } else {
             throw new NotSupportedException("Do not support other types than string map and list");
         }
