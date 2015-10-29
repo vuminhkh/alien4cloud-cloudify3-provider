@@ -111,35 +111,49 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
     }
 
     private String formatPropertyValue(int indentLevel, AbstractPropertyValue propertyValue) {
+        return formatPropertyValue(true, indentLevel, propertyValue);
+    }
+
+    private String formatPropertyValue(boolean appendLf, int indentLevel, AbstractPropertyValue propertyValue) {
         if (propertyValue instanceof PropertyValue) {
-            return formatValue(indentLevel, ((PropertyValue) propertyValue).getValue());
+            return formatValue(appendLf, indentLevel, ((PropertyValue) propertyValue).getValue());
         } else {
             throw new NotSupportedException("Do not support other types than PropertyValue");
         }
     }
 
     private String formatValue(int indentLevel, Object value) {
+        return formatValue(true, indentLevel, value);
+    }
+
+    private String formatValue(boolean appendLf, int indentLevel, Object value) {
         if (value instanceof String) {
             return (String) value;
         } else if (value instanceof Map) {
-            return formatMapValue(indentLevel, (Map<String, Object>) value);
+            return formatMapValue(appendLf, indentLevel, (Map<String, Object>) value);
         } else if (value instanceof Object[]) {
             return formatListValue(indentLevel, Arrays.asList((Object[]) value));
         } else if (value instanceof List) {
             return formatListValue(indentLevel, (List<Object>) value);
         } else if (value instanceof PropertyValue) {
-            return formatPropertyValue(indentLevel, (PropertyValue) value);
+            return formatPropertyValue(appendLf, indentLevel, (PropertyValue) value);
         } else {
             throw new NotSupportedException("Do not support other types than string map and list");
         }
     }
 
-    private String formatMapValue(int indentLevel, Map<String, Object> value) {
+    private String formatMapValue(boolean appendFirstLf, int indentLevel, Map<String, Object> value) {
         StringBuilder buffer = new StringBuilder();
+        boolean isFirst = true;
         for (Map.Entry<String, Object> valueEntry : value.entrySet()) {
             if (valueEntry.getValue() != null) {
-                buffer.append("\n").append(indent(indentLevel)).append(valueEntry.getKey()).append(": ")
-                        .append(formatValue(indentLevel + 1, valueEntry.getValue()));
+                if (!isFirst || appendFirstLf) {
+                    buffer.append("\n").append(indent(indentLevel));
+                }
+                buffer.append(valueEntry.getKey()).append(": ").append(formatValue(indentLevel + 1, valueEntry.getValue()));
+                if (isFirst) {
+                    isFirst = false;
+                }
             }
         }
         return buffer.toString();
@@ -149,7 +163,7 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
         StringBuilder buffer = new StringBuilder();
         for (Object element : value) {
             if (element != null) {
-                buffer.append("\n").append(indent(indentLevel)).append("- ").append(formatValue(indentLevel + 1, element));
+                buffer.append("\n").append(indent(indentLevel)).append("- ").append(formatValue(false, indentLevel + 1, element));
             }
         }
         return buffer.toString();
