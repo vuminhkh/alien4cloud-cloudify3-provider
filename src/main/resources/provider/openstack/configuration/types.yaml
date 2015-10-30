@@ -135,6 +135,33 @@ data_types:
           Note: this property will be moved in next releases to the AttachTo relationship as it is specified by TOSCA spec.
         required: false
 
+  alien.data.openstack.EmbededFloatingIpProperties:
+    properties:
+      floating_ip_address:
+        type: string
+        required: false
+      floating_network_name:
+        type: string
+      # inherited from tosca.nodes.Network
+      ip_version:
+        type: integer
+        required: false
+        default: 4
+        constraints:
+          - valid_values: [ 4, 6 ]
+      cidr:
+        type: string
+        required: false
+      gateway_ip:
+        type: string
+        required: false
+      network_name:
+        type: string
+        required: false
+      network_id:
+        type: string
+        required: false    
+    
 node_types:
   alien.nodes.openstack.Image:
     abstract: true
@@ -203,6 +230,10 @@ node_types:
         type: list
         entry_schema:
           type: alien.data.openstack.EmbededVolumeProperties
+      floatingips:
+        type: list
+        entry_schema:
+          type: alien.data.openstack.EmbededFloatingIpProperties
 
 # TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
   alien.nodes.PublicNetwork:
