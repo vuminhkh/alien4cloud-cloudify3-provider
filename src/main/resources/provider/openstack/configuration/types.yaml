@@ -157,6 +157,47 @@ node_types:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
 
+  alien.nodes.openstack.WindowsServer:
+    derived_from: tosca.nodes.Compute
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.WindowsServer
+    properties:
+      has_winrm:
+        type: boolean
+        required: false
+      server:
+        type: map
+        entry_schema:
+          type: string
+        required: false
+        description: "Openstack compute creation arguments, see http://developer.openstack.org/api-ref-compute-v2.html for more details"
+      use_external_resource:
+        type: boolean
+        required: false
+      resource_id:
+        type: string
+        default: ''
+        required: false
+      image:
+        type: string
+        default: ''
+      flavor:
+        type: string
+        default: ''
+      management_network_name:
+        type: string
+        default: ''
+        required: false
+      use_password:
+        type: boolean
+        required: false
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: false
+    attributes:
+      ip_address: { get_attribute: [SELF, ip] }
+      public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
+
 # TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
   alien.nodes.PublicNetwork:
     abstract: true
