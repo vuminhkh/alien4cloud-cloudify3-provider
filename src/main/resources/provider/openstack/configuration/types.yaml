@@ -134,6 +134,9 @@ data_types:
           e.g., ‘/dev/hda1’
           Note: this property will be moved in next releases to the AttachTo relationship as it is specified by TOSCA spec.
         required: false
+    tags:
+      _a4c_c3_prop_map: >
+        {"size": {"path": "volume.size", "unit": "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id"}
 
   alien.data.openstack.EmbededFloatingIpProperties:
     properties:
@@ -160,8 +163,8 @@ data_types:
         required: false
       network_id:
         type: string
-        required: false    
-    
+        required: false
+
 node_types:
   alien.nodes.openstack.Image:
     abstract: true
@@ -287,6 +290,7 @@ node_types:
         type: alien.data.OpenstackConfig
         required: false
 
+
   alien.cloudify.openstack.nodes.DeletableVolume:
     derived_from: tosca.nodes.BlockStorage
     description: >
@@ -306,7 +310,9 @@ node_types:
       _a4c_c3_derived_from: cloudify.openstack.nodes.Volume
       # Properties from parent type size, volume_id, snapshot_id will be mapped to valid cloudify properties
       _a4c_c3_prop_map: >
-        {"size": {"path": "volume.size", "unit": "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id"}
+        {"size": {"path": "volume.size", "unit":
+         "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id"}
+
 
   alien.cloudify.openstack.nodes.Volume:
     derived_from: alien.cloudify.openstack.nodes.DeletableVolume
