@@ -198,6 +198,8 @@ node_types:
     # set to false to hide from on demand resources
     abstract: false
     derived_from: alien.nodes.openstack.Compute
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.ScalableServer    
     properties:
       volumes:
         type: list
