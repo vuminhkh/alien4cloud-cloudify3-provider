@@ -60,14 +60,13 @@ public final class PropertyValueUtil {
         return mapProperties(propertyMappings, propMappings, properties);
     }
 
-    private static void mapProperty(Map<String, Map<String, IPropertyMapping>> propertyMappings, Map<String, IPropertyMapping> propMappings, String propertyName,
-            PropertyValue sourcePropertyValue, Map<String, AbstractPropertyValue> mappedProperties) {
+    private static void mapProperty(Map<String, Map<String, IPropertyMapping>> propertyMappings, Map<String, IPropertyMapping> propMappings,
+            String propertyName, PropertyValue sourcePropertyValue, Map<String, AbstractPropertyValue> mappedProperties) {
 
         IPropertyMapping mapping = propMappings.get(propertyName);
         if (mapping == null) {
             // if the property is not mapped, just keep it as is.
-            PropertyValue mappedProperty = PropertyValueUtil.merge(sourcePropertyValue, (PropertyValue) mappedProperties.get(propertyName));
-            mappedProperties.put(propertyName, mappedProperty);
+            mergeAndAddMappedProperty(propertyName, sourcePropertyValue, mappedProperties);
         } else if (mapping instanceof PropertyMapping) {
             doMapping(propertyMappings, (PropertyMapping) mapping, propertyName, sourcePropertyValue, mappedProperties);
         } else if (mapping instanceof ComplexPropertyMapping) {
@@ -138,8 +137,7 @@ public final class PropertyValueUtil {
 
         if (mapping == null || mapping.getSubMappings().size() == 0) {
             // if the property is not mapped, just keep it as is.
-            PropertyValue mappedProperty = PropertyValueUtil.merge(sourcePropertyValue, (PropertyValue) mappedProperties.get(propertyName));
-            mappedProperties.put(propertyName, mappedProperty);
+            mergeAndAddMappedProperty(propertyName, sourcePropertyValue, mappedProperties);
         } else {
             // if the property is mapped then apply the mapping.
             for (PropertySubMapping subMapping : mapping.getSubMappings()) {
@@ -158,13 +156,14 @@ public final class PropertyValueUtil {
                             .getPropertyDefinition());
                 }
 
-                PropertyValue targetProperty = (PropertyValue) mappedProperties.get(targetMapping.getProperty());
                 if (targetMapping.getPath() == null) {
                     // set the property with the value
-                    PropertyValue mappedProperty = PropertyValueUtil.merge(propertyValueFromObject(sourceValue), targetProperty);
-                    mappedProperties.put(targetMapping.getProperty(), mappedProperty);
+                    mergeAndAddMappedProperty(targetMapping.getProperty(), propertyValueFromObject(sourceValue), mappedProperties);
+                    // PropertyValue mappedProperty = PropertyValueUtil.merge(propertyValueFromObject(sourceValue), targetProperty);
+                    // mappedProperties.put(targetMapping.getProperty(), mappedProperty);
                 } else {
                     // extract the value
+                    PropertyValue targetProperty = (PropertyValue) mappedProperties.get(targetMapping.getProperty());
                     Object targetValue = sourceValue;
                     if (targetProperty != null) {
                         targetValue = PropertyValueService.getValue(targetProperty.getValue(), targetMapping.getPath());
@@ -179,7 +178,17 @@ public final class PropertyValueUtil {
             }
         }
     }
-    
+
+    private static void mergeAndAddMappedProperty(String propertyName, PropertyValue sourcePropertyValue, Map<String, AbstractPropertyValue> mappedProperties) {
+        PropertyValue mappedProperty = (PropertyValue) mappedProperties.get(propertyName);
+        if (sourcePropertyValue.getValue() != null) {
+            mappedProperty = PropertyValueUtil.merge(sourcePropertyValue, mappedProperty);
+        }
+        if (mappedProperty != null) {
+            mappedProperties.put(propertyName, mappedProperty);
+        }
+    }
+
     /**
      * Map properties from tosca to cloudify properties.
      *
@@ -206,6 +215,7 @@ public final class PropertyValueUtil {
 
             if (mapping == null || mapping.getSubMappings().size() == 0) {
                 // if the property is not mapped, just keep it as is.
+                // mergeAndAddMappedProperty(propertyEntry.getKey(), sourcePropertyValue, mappedProperties);
                 PropertyValue mappedProperty = PropertyValueUtil.merge(sourcePropertyValue, (PropertyValue) mappedProperties.get(propertyEntry.getKey()));
                 mappedProperties.put(propertyEntry.getKey(), mappedProperty);
             } else {
@@ -222,8 +232,8 @@ public final class PropertyValueUtil {
                     // if there is a specified unit, convert the value to the expected unit.
                     if (targetMapping.getUnit() != null) {
                         // need the property type to IComparablePropertyType
-                        sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(),
-                                subMapping.getSourceMapping().getPropertyDefinition());
+                        sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(), subMapping.getSourceMapping()
+                                .getPropertyDefinition());
                     }
 
                     PropertyValue targetProperty = (PropertyValue) mappedProperties.get(targetMapping.getProperty());
@@ -253,7 +263,7 @@ public final class PropertyValueUtil {
 
     /**
      * Return a property value based on the type of an object.
-     * 
+     *
      * @param object The object to wrap into a PropertyValue.
      * @return A property value that wraps the given object.
      */
@@ -272,7 +282,7 @@ public final class PropertyValueUtil {
     /**
      * Merge a source property value into a target property. If target is not null, the source is merged directly in the target object and the target object is
      * returned.
-     * 
+     *
      * @param source The source property value.
      * @param target The target property value.
      * @return The merged object.
@@ -325,7 +335,7 @@ public final class PropertyValueUtil {
 
     /**
      * Simple utility that deep clones an object made of Map, List and String.
-     * 
+     *
      * @param propertyValue The property value to clone.
      */
     public static PropertyValue deepClone(PropertyValue propertyValue) {
@@ -340,7 +350,7 @@ public final class PropertyValueUtil {
 
     /**
      * Deep clone an object that compose a property value (every element is a String, a Map or a List).
-     * 
+     *
      * @param propertyValueObject The object to clone.
      * @return A clone of the property value object.
      */
@@ -363,8 +373,8 @@ public final class PropertyValueUtil {
         } else if (propertyValueObject instanceof String) {
             clone = propertyValueObject;
         } else {
-            log.warn("Property deep clone is just making a simple copy for type {} and value {}. Expecting a String for these situations.",
-                    propertyValueObject.getClass().getName(), propertyValueObject);
+            log.warn("Property deep clone is just making a simple copy for type {} and value {}. Expecting a String for these situations.", propertyValueObject
+                    .getClass().getName(), propertyValueObject);
             clone = propertyValueObject;
         }
 
