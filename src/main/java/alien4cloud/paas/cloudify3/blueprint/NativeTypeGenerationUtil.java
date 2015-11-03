@@ -18,7 +18,6 @@ import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.mapping.IPropertyMapping;
 import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
-import alien4cloud.paas.cloudify3.util.mapping.PropertyMapping;
 import alien4cloud.paas.cloudify3.util.mapping.PropertyValueUtil;
 import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.utils.TagUtil;
@@ -106,8 +105,14 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
      * @param propMappings The mapping configuration to map values.
      * @return The formatted properties string to insert in the blueprint.
      */
-    public String formatProperties(int indentLevel, Map<String, AbstractPropertyValue> properties, Map<String, PropertyMapping> propMappings) {
+    public String formatProperties(int indentLevel, Map<String, AbstractPropertyValue> properties, Map<String, IPropertyMapping> propMappings) {
         Map<String, AbstractPropertyValue> mappedProperties = PropertyValueUtil.mapProperties(propMappings, properties);
+        return formatProperties(indentLevel, mappedProperties);
+    }
+
+    public String formatProperties(int indentLevel, Map<String, AbstractPropertyValue> properties, Map<String, Map<String, IPropertyMapping>> propertyMappings,
+            String nodeType) {
+        Map<String, AbstractPropertyValue> mappedProperties = PropertyValueUtil.mapProperties(propertyMappings, nodeType, properties);
         return formatProperties(indentLevel, mappedProperties);
     }
 

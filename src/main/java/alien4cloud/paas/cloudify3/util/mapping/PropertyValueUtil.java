@@ -1,8 +1,10 @@
 package alien4cloud.paas.cloudify3.util.mapping;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import lombok.extern.slf4j.Slf4j;
 import alien4cloud.model.components.AbstractPropertyValue;
@@ -22,19 +24,170 @@ import com.google.common.collect.Maps;
 @Slf4j
 public final class PropertyValueUtil {
 
-    // public static Map<String, AbstractPropertyValue> mapProperties(Map<String, Map<String, IPropertyMapping>> propertyMappings, String nodeType, Map<String,
-    // AbstractPropertyValue> properties) {
-    // // first of all get the mapping for the node type
-    // propertyMappings.get(nodeType)
-    // }
+    public static Map<String, AbstractPropertyValue> mapProperties(Map<String, Map<String, IPropertyMapping>> propertyMappings, String nodeType,
+            Map<String, AbstractPropertyValue> properties) {
 
+        if (propertyMappings == null || propertyMappings.isEmpty()) {
+            // do not change prop map
+            return properties;
+        }
+
+        // first of all get the mapping for the node type
+        Map<String, IPropertyMapping> propMappings = propertyMappings.get(nodeType);
+        return mapProperties(propertyMappings, propMappings, properties);
+    }
+
+    private static Map<String, AbstractPropertyValue> mapProperties(Map<String, Map<String, IPropertyMapping>> propertyMappings,
+            Map<String, IPropertyMapping> propMappings, Map<String, AbstractPropertyValue> properties) {
+        if (propMappings == null || propMappings.isEmpty()) {
+            // do not change prop map
+            return properties;
+        }
+
+        Map<String, AbstractPropertyValue> mappedProperties = Maps.newHashMap();
+        for (Map.Entry<String, AbstractPropertyValue> propertyEntry : properties.entrySet()) {
+            PropertyValue sourcePropertyValue = (PropertyValue) propertyEntry.getValue();
+            if (sourcePropertyValue == null) {
+                continue;
+            }
+            mapProperty(propertyMappings, propMappings, propertyEntry.getKey(), sourcePropertyValue, mappedProperties);
+        }
+        return mappedProperties;
+    }
+
+    public static Map<String, AbstractPropertyValue> mapProperties(Map<String, IPropertyMapping> propMappings, Map<String, AbstractPropertyValue> properties) {
+        Map<String, Map<String, IPropertyMapping>> propertyMappings = Maps.newHashMap();
+        return mapProperties(propertyMappings, propMappings, properties);
+    }
+
+    private static void mapProperty(Map<String, Map<String, IPropertyMapping>> propertyMappings, Map<String, IPropertyMapping> propMappings, String propertyName,
+            PropertyValue sourcePropertyValue, Map<String, AbstractPropertyValue> mappedProperties) {
+
+        IPropertyMapping mapping = propMappings.get(propertyName);
+        if (mapping == null) {
+            // if the property is not mapped, just keep it as is.
+            PropertyValue mappedProperty = PropertyValueUtil.merge(sourcePropertyValue, (PropertyValue) mappedProperties.get(propertyName));
+            mappedProperties.put(propertyName, mappedProperty);
+        } else if (mapping instanceof PropertyMapping) {
+            doMapping(propertyMappings, (PropertyMapping) mapping, propertyName, sourcePropertyValue, mappedProperties);
+        } else if (mapping instanceof ComplexPropertyMapping) {
+            ComplexPropertyMapping complexPropertyMapping = (ComplexPropertyMapping) mapping;
+            String complexPropertyType = complexPropertyMapping.getType();
+            if (complexPropertyType == null) {
+                log.warn(String.format("The property '%s' is known as a complex property mapping but the type isn't defined, ignore the mapping !",
+                        propertyName));
+                return;
+            }
+            // get the mapping for this type
+            Map<String, IPropertyMapping> typeMapping = propertyMappings.get(complexPropertyType);
+            if (typeMapping == null) {
+                log.warn(String.format(
+                        "The property '%s' is known as a complex property mapping but the mapping for the type '%s' can not be found, ignore the mapping !",
+                        propertyName, complexPropertyType));
+                return;
+            }
+            if (complexPropertyMapping.isList()) {
+                // the mapping concerns a list
+                if (!(sourcePropertyValue instanceof ListPropertyValue)) {
+                    // the property value is not a list, ignore and log
+                    log.warn(String.format("The property '%s' should be a list but is not, ignore the mapping !", propertyName));
+                    return;
+                }
+                ListPropertyValue listPropertyValue = (ListPropertyValue) sourcePropertyValue;
+                ListPropertyValue targetListPropertyValue = new ListPropertyValue(new ArrayList<Object>());
+                for (Object listItem : listPropertyValue.getValue()) {
+                    if (!(listItem instanceof ComplexPropertyValue)) {
+                        // the item is not a complex property, ignore and log
+                        log.warn(String.format("The property '%s' list item should be a complex property but is not, ignore the mapping !", propertyName));
+                        continue;
+                    }
+                    ComplexPropertyValue complexPropertyValue = (ComplexPropertyValue) listItem;
+                    // for each item we build a map
+                    Map<String, AbstractPropertyValue> itemProperties = Maps.newHashMap();
+                    for (Entry<String, Object> complexPropertyEntry : complexPropertyValue.getValue().entrySet()) {
+                        PropertyValue complexPropertyEntryValue = propertyValueFromObject(complexPropertyEntry.getValue());
+                        String complexPropertyEntryName = complexPropertyEntry.getKey();
+                        mapProperty(propertyMappings, typeMapping, complexPropertyEntryName, complexPropertyEntryValue, itemProperties);
+                    }
+                    targetListPropertyValue.getValue().add(itemProperties);
+                }
+                // TODO: add the ability to change to taget property name ?
+                mappedProperties.put(propertyName, targetListPropertyValue);
+            } else {
+                // this a mapped complex type but not a list
+                if (!(sourcePropertyValue instanceof ComplexPropertyValue)) {
+                    // the item is not a complex property, ignore and log
+                    log.warn(String.format("The property '%s' should be a complex property but is not, ignore the mapping !", propertyName));
+                    return;
+                }
+                ComplexPropertyValue complexPropertyValue = (ComplexPropertyValue) sourcePropertyValue;
+                Map<String, AbstractPropertyValue> itemProperties = Maps.newHashMap();
+                for (Entry<String, Object> complexPropertyEntry : complexPropertyValue.getValue().entrySet()) {
+                    PropertyValue complexPropertyEntryValue = propertyValueFromObject(complexPropertyEntry.getValue());
+                    String complexPropertyEntryName = complexPropertyEntry.getKey();
+                    mapProperty(propertyMappings, typeMapping, complexPropertyEntryName, complexPropertyEntryValue, itemProperties);
+                }
+                mappedProperties.put(propertyName, propertyValueFromObject(itemProperties));
+            }
+        }
+
+    }
+
+    private static void doMapping(Map<String, Map<String, IPropertyMapping>> propertyMappings, PropertyMapping mapping, String propertyName,
+            PropertyValue sourcePropertyValue, Map<String, AbstractPropertyValue> mappedProperties) {
+
+        if (mapping == null || mapping.getSubMappings().size() == 0) {
+            // if the property is not mapped, just keep it as is.
+            PropertyValue mappedProperty = PropertyValueUtil.merge(sourcePropertyValue, (PropertyValue) mappedProperties.get(propertyName));
+            mappedProperties.put(propertyName, mappedProperty);
+        } else {
+            // if the property is mapped then apply the mapping.
+            for (PropertySubMapping subMapping : mapping.getSubMappings()) {
+                String sourcePath = subMapping.getSourceMapping().getPath();
+                TargetMapping targetMapping = subMapping.getTargetMapping();
+
+                if (targetMapping.getProperty() == null) {
+                    continue; // skip this property
+                }
+
+                Object sourceValue = PropertyValueService.getValue(sourcePropertyValue.getValue(), sourcePath);
+                // if there is a specified unit, convert the value to the expected unit.
+                if (targetMapping.getUnit() != null) {
+                    // need the property type to IComparablePropertyType
+                    sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(), subMapping.getSourceMapping()
+                            .getPropertyDefinition());
+                }
+
+                PropertyValue targetProperty = (PropertyValue) mappedProperties.get(targetMapping.getProperty());
+                if (targetMapping.getPath() == null) {
+                    // set the property with the value
+                    PropertyValue mappedProperty = PropertyValueUtil.merge(propertyValueFromObject(sourceValue), targetProperty);
+                    mappedProperties.put(targetMapping.getProperty(), mappedProperty);
+                } else {
+                    // extract the value
+                    Object targetValue = sourceValue;
+                    if (targetProperty != null) {
+                        targetValue = PropertyValueService.getValue(targetProperty.getValue(), targetMapping.getPath());
+                        targetValue = merge(sourceValue, targetValue);
+                    } else {
+                        targetProperty = propertyValueFromObject(new HashMap<>());
+                        mappedProperties.put(targetMapping.getProperty(), targetProperty);
+                    }
+                    // set the value
+                    setValue(targetProperty.getValue(), targetMapping.getPath(), targetValue);
+                }
+            }
+        }
+    }
+    
     /**
      * Map properties from tosca to cloudify properties.
      *
      * @param propMappings The property mappings
      * @param properties The properties to map.
      */
-    public static Map<String, AbstractPropertyValue> mapProperties(Map<String, PropertyMapping> propMappings, Map<String, AbstractPropertyValue> properties) {
+    @Deprecated
+    public static Map<String, AbstractPropertyValue> _mapProperties(Map<String, PropertyMapping> propMappings, Map<String, AbstractPropertyValue> properties) {
         if (propMappings == null || propMappings.isEmpty()) {
             // do not change prop map
             return properties;
@@ -105,13 +258,15 @@ public final class PropertyValueUtil {
      * @return A property value that wraps the given object.
      */
     private static PropertyValue propertyValueFromObject(Object object) {
-        if (object instanceof Map) {
+        if (object instanceof PropertyValue) {
+            return (PropertyValue) object;
+        } else if (object instanceof Map) {
             return new ComplexPropertyValue((Map<String, Object>) object);
-        }
-        if (object instanceof List) {
+        } else if (object instanceof List) {
             return new ListPropertyValue((List<Object>) object);
+        } else {
+            return new ScalarPropertyValue((String) object);
         }
-        return new ScalarPropertyValue((String) object);
     }
 
     /**
