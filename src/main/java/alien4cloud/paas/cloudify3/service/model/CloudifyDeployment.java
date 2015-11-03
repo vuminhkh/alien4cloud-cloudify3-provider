@@ -72,6 +72,8 @@ public class CloudifyDeployment {
     private Map<String, String> providerDeploymentProperties;
 
     private Map<String, Workflow> workflows;
-
+    /**
+     * {nodeType -> {propertyNamePath -> propertyMapping}}
+     */
     private Map<String, Map<String, PropertyMapping>> propertyMappings;
 }
