@@ -4,13 +4,19 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.stereotype.Component;
 
+import alien4cloud.model.components.IndexedInheritableToscaElement;
 import alien4cloud.model.components.IndexedNodeType;
+import alien4cloud.model.components.IndexedToscaElement;
+import alien4cloud.model.components.PropertyDefinition;
+import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
+import alien4cloud.tosca.normative.ToscaType;
 import alien4cloud.utils.TagUtil;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -28,52 +34,125 @@ public class PropertiesMappingUtil {
 
     /**
      * Load the property mappings defined in tags
-     * 
+     *
      * @param nodeTypes
      *            The list of node types for which to extract property mappings.
+     * @param topologyContext
      * @return A map <nodeType, <toscaPath, cloudifyPath>>>
      */
-    public static Map<String, Map<String, IPropertyMapping>> loadPropertyMappings(List<IndexedNodeType> nodeTypes) {
+    public static Map<String, Map<String, IPropertyMapping>> loadPropertyMappings(List<IndexedNodeType> nodeTypes, TopologyContext topologyContext) {
         TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
         };
 
         // <nodeType, <toscaPath, cloudifyPath>>>
-        Map<String, Map<String, PropertyMapping>> propertyMappingsByTypes = Maps.newHashMap();
+        Map<String, Map<String, IPropertyMapping>> propertyMappingsByTypes = Maps.newHashMap();
         for (IndexedNodeType nodeType : nodeTypes) {
-            Map<String, PropertyMapping> mappings = loadPropertyMapping(PROP_MAPPING_TAG_KEY, nodeType);
-            if (MapUtils.isNotEmpty(mappings)) {
-                propertyMappingsByTypes.put(nodeType.getElementId(), mappings);
-            }
+            deeplyLoadPropertyMapping(PROP_MAPPING_TAG_KEY, propertyMappingsByTypes, nodeType, topologyContext);
         }
         return propertyMappingsByTypes;
     }
 
-    public static Map<String, PropertyMapping> loadPropertyMapping(String fromTagName, IndexedNodeType nodeType) {
+    /**
+     * deeply load properties mappings for a type. This includes the mappings for the types, and eventually his properties dataTypes
+     *
+     * @param propertyMappingsByTypes
+     * @param inheritableToscaElement
+     * @param topologyContext
+     */
+    private static void deeplyLoadPropertyMapping(String fromTag, Map<String, Map<String, IPropertyMapping>> propertyMappingsByTypes,
+            IndexedInheritableToscaElement inheritableToscaElement, TopologyContext topologyContext) {
+        // do not proceed if mapping already exists
+        if (inheritableToscaElement == null || propertyMappingsByTypes.containsKey(inheritableToscaElement.getElementId())) {
+            return;
+        }
+
+        Map<String, IPropertyMapping> mappings = loadPropertyMapping(fromTag, inheritableToscaElement);
+        if (MapUtils.isNotEmpty(mappings)) {
+            propertyMappingsByTypes.put(inheritableToscaElement.getElementId(), mappings);
+        }
+
+        loadPropertiesDataTypesMapping(fromTag, propertyMappingsByTypes, inheritableToscaElement, topologyContext);
+    }
+
+    /**
+     * A property Data type can also have properties mapping definition. Load it, and add a marker on the related property
+     *
+     * @param fromTag
+     *
+     * @param propertyMappingsByTypes
+     * @param inheritableToscaElement
+     * @param topologyContext
+     */
+    private static void loadPropertiesDataTypesMapping(String fromTag, Map<String, Map<String, IPropertyMapping>> propertyMappingsByTypes,
+            IndexedInheritableToscaElement inheritableToscaElement, TopologyContext topologyContext) {
+        if (MapUtils.isEmpty(inheritableToscaElement.getProperties())) {
+            return;
+        }
+        for (Entry<String, PropertyDefinition> definitionEntry : inheritableToscaElement.getProperties().entrySet()) {
+            // build the marker for the property
+            ComplexPropertyMapping mapping = buildPropertyMapping(definitionEntry.getValue());
+
+            if (mapping != null) {
+                IndexedInheritableToscaElement dataType = (IndexedInheritableToscaElement) topologyContext.findElement(IndexedToscaElement.class,
+                        mapping.getType());
+                // if dataType found in repository, then try to load its mapping
+                if (dataType != null) {
+                    deeplyLoadPropertyMapping(fromTag, propertyMappingsByTypes, dataType, topologyContext);
+                    // only register the marker if there was mapping added for the data type
+                    if (propertyMappingsByTypes.containsKey(dataType.getElementId())) {
+                        Map<String, IPropertyMapping> typeMappings = propertyMappingsByTypes.get(inheritableToscaElement.getElementId());
+                        if (typeMappings == null) {
+                            typeMappings = Maps.newHashMap();
+                            propertyMappingsByTypes.put(inheritableToscaElement.getElementId(), typeMappings);
+                        }
+                        typeMappings.put(definitionEntry.getKey(), mapping);
+                    }
+                }
+            }
+        }
+    }
+
+    private static ComplexPropertyMapping buildPropertyMapping(PropertyDefinition definition) {
+
+        if (ToscaType.isSimple(definition.getType())) {
+            return null;
+        }
+
+        switch (definition.getType()) {
+        case ToscaType.LIST:
+        case ToscaType.MAP:
+            return new ComplexPropertyMapping(definition.getEntrySchema().getType(), ToscaType.LIST.equalsIgnoreCase(definition.getType()));
+        default:
+            return new ComplexPropertyMapping(definition.getType(), false);
+        }
+    }
+
+    public static Map<String, IPropertyMapping> loadPropertyMapping(String fromTagName, IndexedInheritableToscaElement toscaElement) {
         TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
         };
-        String mappingStr = TagUtil.getTagValue(nodeType.getTags(), fromTagName);
+        String mappingStr = TagUtil.getTagValue(toscaElement.getTags(), fromTagName);
         if (mappingStr == null) {
             return Maps.newHashMap();
         }
         try {
             Map<String, Object> mappingsDef = mapper.readValue(mappingStr, typeRef);
-            return fromFullPathMap(mappingsDef, nodeType);
+            return fromFullPathMap(mappingsDef, toscaElement);
         } catch (IOException e) {
-            log.error("Failed to load property mapping, will be ignored", e);
+            log.error("Failed to load property mapping for tosca element " + toscaElement.getElementId() + ", will be ignored", e);
             return Maps.newHashMap();
         }
     }
 
-    private static Map<String, PropertyMapping> fromFullPathMap(Map<String, Object> parsedMappings, IndexedNodeType nodeType) {
-        Map<String, PropertyMapping> propertyMappings = Maps.newHashMap();
+    private static Map<String, IPropertyMapping> fromFullPathMap(Map<String, Object> parsedMappings, IndexedInheritableToscaElement toscaElement) {
+        Map<String, IPropertyMapping> propertyMappings = Maps.newHashMap();
 
         for (Map.Entry<String, Object> parsedMapping : parsedMappings.entrySet()) {
             String[] key = asPropAndSubPath(parsedMapping.getKey());
-            PropertyMapping propertyMapping = propertyMappings.get(key[0]);
+            PropertyMapping propertyMapping = (PropertyMapping) propertyMappings.get(key[0]);
             if (propertyMapping == null) {
                 propertyMapping = new PropertyMapping();
             }
-            SourceMapping sourceMapping = new SourceMapping(key[1], nodeType.getProperties().get(key[0]));
+            SourceMapping sourceMapping = new SourceMapping(key[1], toscaElement.getProperties().get(key[0]));
             TargetMapping targetMapping = new TargetMapping();
             if (parsedMapping.getValue() != null) {
                 String mappingString;
@@ -86,7 +165,7 @@ public class PropertiesMappingUtil {
                 String[] splitMappingString = asPropAndSubPath(mappingString);
                 targetMapping.setProperty(splitMappingString[0]);
                 targetMapping.setPath(splitMappingString[1]);
-                targetMapping.setPropertyDefinition(nodeType.getProperties().get(targetMapping.getProperty()));
+                targetMapping.setPropertyDefinition(toscaElement.getProperties().get(targetMapping.getProperty()));
             }
             PropertySubMapping propertySubMapping = new PropertySubMapping(sourceMapping, targetMapping);
             propertyMapping.getSubMappings().add(propertySubMapping);

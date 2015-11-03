@@ -16,6 +16,7 @@ import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.cloudify3.util.mapping.IPropertyMapping;
 import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
 import alien4cloud.paas.cloudify3.util.mapping.PropertyMapping;
 import alien4cloud.paas.cloudify3.util.mapping.PropertyValueUtil;
@@ -169,7 +170,7 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
         return buffer.toString();
     }
 
-    public Map<String, PropertyMapping> loadPropertyMapping(IndexedNodeType type, String tagName) {
+    public Map<String, IPropertyMapping> loadPropertyMapping(IndexedNodeType type, String tagName) {
         return PropertiesMappingUtil.loadPropertyMapping(tagName, type);
     }
 

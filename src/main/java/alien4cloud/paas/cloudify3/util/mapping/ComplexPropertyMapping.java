@@ -1,13 +1,17 @@
 package alien4cloud.paas.cloudify3.util.mapping;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Defines a mapping from a source property to others.
+ * Defines a mapping fro a ComplexProperty type.
  */
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ComplexPropertyMapping implements IPropertyMapping {
 
     /** Type of the complex property. */

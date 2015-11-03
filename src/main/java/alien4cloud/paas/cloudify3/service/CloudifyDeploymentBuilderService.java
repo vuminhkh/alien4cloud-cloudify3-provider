@@ -3,6 +3,8 @@ package alien4cloud.paas.cloudify3.service;
 import java.util.List;
 import java.util.Map;
 
+import javax.inject.Inject;
+
 import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,6 +22,8 @@ import alien4cloud.paas.cloudify3.service.model.Relationship;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.paas.wf.WorkflowsBuilderService;
+import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
 import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 
@@ -29,6 +33,9 @@ import com.google.common.collect.Maps;
 @Component("cloudify-deployment-builder-service")
 @Slf4j
 public class CloudifyDeploymentBuilderService {
+
+    @Inject
+    private WorkflowsBuilderService workflowBuilderService;
 
     /**
      * Build the Cloudify deployment from the deployment context. Cloudify deployment has data pre-parsed so that blueprint generation is easier.
@@ -65,7 +72,8 @@ public class CloudifyDeploymentBuilderService {
         cloudifyDeployment.setWorkflows(deploymentContext.getDeploymentTopology().getWorkflows());
 
         // load the mappings for the native types.
-        cloudifyDeployment.setPropertyMappings(PropertiesMappingUtil.loadPropertyMappings(cloudifyDeployment.getNativeTypes()));
+        TopologyContext topologyContext = workflowBuilderService.buildTopologyContext(deploymentContext.getDeploymentTopology());
+        cloudifyDeployment.setPropertyMappings(PropertiesMappingUtil.loadPropertyMappings(cloudifyDeployment.getNativeTypes(), topologyContext));
 
         return cloudifyDeployment;
     }
