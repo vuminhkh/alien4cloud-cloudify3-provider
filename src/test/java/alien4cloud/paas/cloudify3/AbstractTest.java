@@ -1,6 +1,7 @@
 package alien4cloud.paas.cloudify3;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.List;
 
 import javax.annotation.Resource;
@@ -33,11 +34,16 @@ public class AbstractTest {
 
     public static final String LAMP_TOPOLOGY = "lamp";
 
+    public static final String SCALING_STORAGE_TOPOLOGY = "scaling_storage";
+
     @Value("${cloudify3.externalNetworkName}")
     private String externalNetworkName;
 
     @Value("${cloudify3.imageId}")
     private String imageId;
+
+    @Value("${directories.alien}/${directories.csar_repository}")
+    private String repositoryCsarDirectory;
 
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
@@ -65,6 +71,7 @@ public class AbstractTest {
         } else {
             return;
         }
+        FileUtil.delete(Paths.get(repositoryCsarDirectory));
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
         String cloudifyURL = System.getenv("CLOUDIFY_URL");
         if (cloudifyURL == null) {

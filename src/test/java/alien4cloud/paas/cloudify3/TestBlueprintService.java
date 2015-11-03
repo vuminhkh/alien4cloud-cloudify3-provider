@@ -19,6 +19,7 @@ import alien4cloud.paas.cloudify3.model.Blueprint;
 import alien4cloud.paas.cloudify3.restclient.BlueprintClient;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
+import alien4cloud.paas.cloudify3.service.ScalableComputeReplacementService;
 import alien4cloud.paas.cloudify3.util.FileTestUtil;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.utils.FileUtil;
@@ -36,7 +37,11 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
+    @Resource
+    private ScalableComputeReplacementService scalableComputeReplacementService;
+
     private boolean record = true;
+    private boolean validateOnCdfyManager = true;
 
     @Override
     @Before
@@ -61,6 +66,12 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     @SneakyThrows
+    private Path testGeneratedBlueprintFile(String topology, DeploymentContextVisitor visitor) {
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        return testGeneratedBlueprintFile(topology, topology, stackTraceElements[2].getMethodName(), visitor);
+    }
+
+    @SneakyThrows
     private Path testGeneratedBlueprintFile(String topology, String outputFile, String testName, DeploymentContextVisitor contextVisitor) {
         PaaSTopologyDeploymentContext context = buildPaaSDeploymentContext(testName, topology);
         if (contextVisitor != null) {
@@ -72,9 +83,11 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         if (record) {
             FileUtil.delete(Paths.get(recordedDirectory));
             FileUtil.copy(generatedDirectory, Paths.get(recordedDirectory), StandardCopyOption.REPLACE_EXISTING);
-            // Check if cloudify accept the blueprint
-            blueprintDAO.create(topology, generated.toString());
-            blueprintDAO.delete(topology);
+            if (validateOnCdfyManager) {
+                // Check if cloudify accept the blueprint
+                blueprintDAO.create(topology, generated.toString());
+                blueprintDAO.delete(topology);
+            }
         } else {
             FileTestUtil.assertFilesAreSame(Paths.get(recordedDirectory), generatedDirectory);
         }
@@ -129,5 +142,20 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     public void testGenerateHAGroup() {
         // testGeneratedBlueprintFile(HA_GROUPS_TOPOLOGY);
         Assert.fail("Fix test");
+    }
+
+    @Test
+    public void testGenerateScalingBlockStorage() {
+        validateOnCdfyManager = false;
+        testGeneratedBlueprintFile(SCALING_STORAGE_TOPOLOGY, new DeploymentContextVisitor() {
+            @Override
+            public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
+                PaaSTopologyDeploymentContext newContext = scalableComputeReplacementService.transformTopology(context);
+                context.setDeployment(newContext.getDeployment());
+                context.setDeploymentTopology(newContext.getDeploymentTopology());
+                context.setLocations(newContext.getLocations());
+                context.setPaaSTopology(newContext.getPaaSTopology());
+            }
+        });
     }
 }
