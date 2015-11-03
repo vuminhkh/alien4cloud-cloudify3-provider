@@ -145,9 +145,9 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     @Test
-    public void testGenerateScalingBlockStorage() {
+    public void testGenerateScalableBlockStorage() {
         validateOnCdfyManager = false;
-        testGeneratedBlueprintFile(SCALING_STORAGE_TOPOLOGY, new DeploymentContextVisitor() {
+        testGeneratedBlueprintFile(SCALABLE_STORAGE_TOPOLOGY, new DeploymentContextVisitor() {
             @Override
             public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
                 PaaSTopologyDeploymentContext newContext = scalableComputeReplacementService.transformTopology(context);
