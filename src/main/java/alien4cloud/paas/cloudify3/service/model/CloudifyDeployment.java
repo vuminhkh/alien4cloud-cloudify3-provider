@@ -10,7 +10,7 @@ import lombok.Setter;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
-import alien4cloud.paas.cloudify3.util.mapping.PropertyMapping;
+import alien4cloud.paas.cloudify3.util.mapping.IPropertyMapping;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.wf.Workflow;
 
@@ -72,8 +72,9 @@ public class CloudifyDeployment {
     private Map<String, String> providerDeploymentProperties;
 
     private Map<String, Workflow> workflows;
+
     /**
-     * {nodeType -> {propertyNamePath -> propertyMapping}}
+     * * {elementType -> {propertyNamePath -> IPropertyMapping}}
      */
-    private Map<String, Map<String, PropertyMapping>> propertyMappings;
+    private Map<String, Map<String, IPropertyMapping>> propertyMappings;
 }

@@ -12,7 +12,7 @@ import com.google.common.collect.Lists;
  */
 @Getter
 @Setter
-public class PropertyMapping {
+public class PropertyMapping implements IPropertyMapping {
     // Optional sub-paths to map
     List<PropertySubMapping> subMappings = Lists.newArrayList();
 }

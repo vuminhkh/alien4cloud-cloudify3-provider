@@ -33,7 +33,7 @@ public class PropertiesMappingUtil {
      *            The list of node types for which to extract property mappings.
      * @return A map <nodeType, <toscaPath, cloudifyPath>>>
      */
-    public static Map<String, Map<String, PropertyMapping>> loadPropertyMappings(List<IndexedNodeType> nodeTypes) {
+    public static Map<String, Map<String, IPropertyMapping>> loadPropertyMappings(List<IndexedNodeType> nodeTypes) {
         TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
         };
 

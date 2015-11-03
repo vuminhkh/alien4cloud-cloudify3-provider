@@ -261,10 +261,10 @@ public class ScalableComputeReplacementService {
                                                 typeAsChasnged = true;
                                             }
                                         }
-                                        }
                                     }
                                 }
                             }
+                        }
                         if (typeAsChasnged) {
                             // the type has been modified, we want to force it's reuse later
                             cache.put(relationshipType.getElementId(), relationshipType);

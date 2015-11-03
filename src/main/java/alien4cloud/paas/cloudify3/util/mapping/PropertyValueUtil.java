@@ -21,6 +21,13 @@ import com.google.common.collect.Maps;
  */
 @Slf4j
 public final class PropertyValueUtil {
+
+    // public static Map<String, AbstractPropertyValue> mapProperties(Map<String, Map<String, IPropertyMapping>> propertyMappings, String nodeType, Map<String,
+    // AbstractPropertyValue> properties) {
+    // // first of all get the mapping for the node type
+    // propertyMappings.get(nodeType)
+    // }
+
     /**
      * Map properties from tosca to cloudify properties.
      *
