@@ -147,7 +147,17 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Test
     public void testGenerateScalableBlockStorage() {
         validateOnCdfyManager = false;
-        testGeneratedBlueprintFile(SCALABLE_STORAGE_TOPOLOGY, new DeploymentContextVisitor() {
+        testGeneratedBlueprintFile(SCALABLE_STORAGE_TOPOLOGY, getScalableReplacementVisitor());
+    }
+
+    @Test
+    public void testGenerateScalableFloatingIp() {
+        validateOnCdfyManager = false;
+        testGeneratedBlueprintFile(SCALABLE_FLOAATING_IP_TOPOLOGY, getScalableReplacementVisitor());
+    }
+
+    private DeploymentContextVisitor getScalableReplacementVisitor() {
+        return new DeploymentContextVisitor() {
             @Override
             public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
                 PaaSTopologyDeploymentContext newContext = scalableComputeReplacementService.transformTopology(context);
@@ -156,6 +166,6 @@ public class TestBlueprintService extends AbstractDeploymentTest {
                 context.setLocations(newContext.getLocations());
                 context.setPaaSTopology(newContext.getPaaSTopology());
             }
-        });
+        };
     }
 }

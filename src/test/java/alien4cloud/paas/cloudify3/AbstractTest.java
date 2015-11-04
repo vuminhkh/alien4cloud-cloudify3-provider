@@ -35,6 +35,7 @@ public class AbstractTest {
     public static final String LAMP_TOPOLOGY = "lamp";
 
     public static final String SCALABLE_STORAGE_TOPOLOGY = "scalable_storage";
+    public static final String SCALABLE_FLOAATING_IP_TOPOLOGY = "scalable_network";
 
     @Value("${cloudify3.externalNetworkName}")
     private String externalNetworkName;
