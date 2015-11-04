@@ -140,11 +140,12 @@ data_types:
 
   alien.data.openstack.EmbededFloatingIpProperties:
     properties:
-      floating_ip_address:
-        type: string
+      floatingip:
+        type: alien.data.FloatingIpConfig
+        required: true
+      openstack_config:
+        type: alien.data.OpenstackConfig
         required: false
-      floating_network_name:
-        type: string
       # inherited from tosca.nodes.Network
       ip_version:
         type: integer
@@ -164,6 +165,9 @@ data_types:
       network_id:
         type: string
         required: false
+    tags:
+      _a4c_c3_prop_map: >
+        {"network_name": "floatingip.floating_network_name"}        
 
 node_types:
   alien.nodes.openstack.Image:
