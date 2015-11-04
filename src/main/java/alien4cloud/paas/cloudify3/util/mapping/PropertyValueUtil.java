@@ -105,8 +105,7 @@ public final class PropertyValueUtil {
         ComplexPropertyMapping complexPropertyMapping = (ComplexPropertyMapping) mapping;
         String complexPropertyType = complexPropertyMapping.getType();
         if (complexPropertyType == null) {
-            log.warn(String.format("The property '%s' is known as a complex property mapping but the type isn't defined, ignore the mapping !",
-                    propertyName));
+            log.warn(String.format("The property '%s' is known as a complex property mapping but the type isn't defined, ignore the mapping !", propertyName));
             return;
         }
         // get the mapping for this type
@@ -210,7 +209,7 @@ public final class PropertyValueUtil {
     private static void mergeAndAddMappedProperty(String propertyName, PropertyValue sourcePropertyValue, Map<String, AbstractPropertyValue> mappedProperties) {
         PropertyValue mappedProperty = (PropertyValue) mappedProperties.get(propertyName);
         if (sourcePropertyValue.getValue() != null) {
-            mappedProperty = PropertyValueUtil.merge(sourcePropertyValue, mappedProperty);
+            mappedProperty = merge(sourcePropertyValue, mappedProperty);
         }
         if (mappedProperty != null) {
             mappedProperties.put(propertyName, mappedProperty);
@@ -244,7 +243,7 @@ public final class PropertyValueUtil {
             if (mapping == null || mapping.getSubMappings().size() == 0) {
                 // if the property is not mapped, just keep it as is.
                 // mergeAndAddMappedProperty(propertyEntry.getKey(), sourcePropertyValue, mappedProperties);
-                PropertyValue mappedProperty = PropertyValueUtil.merge(sourcePropertyValue, (PropertyValue) mappedProperties.get(propertyEntry.getKey()));
+                PropertyValue mappedProperty = merge(sourcePropertyValue, (PropertyValue) mappedProperties.get(propertyEntry.getKey()));
                 mappedProperties.put(propertyEntry.getKey(), mappedProperty);
             } else {
                 // if the property is mapped then apply the mapping.
@@ -267,7 +266,7 @@ public final class PropertyValueUtil {
                     PropertyValue targetProperty = (PropertyValue) mappedProperties.get(targetMapping.getProperty());
                     if (targetMapping.getPath() == null) {
                         // set the property with the value
-                        PropertyValue mappedProperty = PropertyValueUtil.merge(propertyValueFromObject(sourceValue), targetProperty);
+                        PropertyValue mappedProperty = merge(propertyValueFromObject(sourceValue), targetProperty);
                         mappedProperties.put(targetMapping.getProperty(), mappedProperty);
                     } else {
                         // extract the value
@@ -332,8 +331,9 @@ public final class PropertyValueUtil {
     private static Object merge(Object sourcePropertyValueObject, Object targetPropertyValueObject) {
         if (targetPropertyValueObject == null) {
             return sourcePropertyValueObject;
-        }
-        if (sourcePropertyValueObject instanceof Map && targetPropertyValueObject instanceof Map) {
+        } else if (sourcePropertyValueObject == null) {
+            return targetPropertyValueObject;
+        } else if (sourcePropertyValueObject instanceof Map && targetPropertyValueObject instanceof Map) {
             Map result = Maps.newHashMap((Map) targetPropertyValueObject);
             result.putAll((Map) sourcePropertyValueObject);
             return result;
