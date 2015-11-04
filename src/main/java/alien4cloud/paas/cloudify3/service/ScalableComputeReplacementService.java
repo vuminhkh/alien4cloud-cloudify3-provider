@@ -9,6 +9,7 @@ import javax.inject.Inject;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.collect.Sets;
@@ -46,7 +47,7 @@ import alien4cloud.utils.TypeMap;
  * <li>change the target of any relationship that targets the BlockStorage to the ScalableCompute.
  * <li>TODO: change any get_attribute that that targets the BlockStorage (even in a concat ?).
  * </ul>
- * 
+ *
  * This code is deletable and should be removed as soon as CFY is able to manage 1-1 relationships.
  */
 @Deprecated
@@ -145,7 +146,7 @@ public class ScalableComputeReplacementService {
             computeNodeTemplate.setProperties(properties);
         }
         // manage volumes
-        if (storageNodes != null && !storageNodes.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(storageNodes)) {
             computeNodeTemplate.getProperties().put(SCALABLE_COMPUTE_VOLUMES_PROPERTY, new ListPropertyValue(Lists.newArrayList()));
             int volumeIdx = 0;
             for (PaaSNodeTemplate storageNode : storageNodes) {
@@ -165,7 +166,7 @@ public class ScalableComputeReplacementService {
 
     private Set<PaaSNodeTemplate> getPublicNetworkPaaSNodeTemplate(PaaSNodeTemplate compute) {
         Set<PaaSNodeTemplate> result = Sets.newHashSet();
-        if (compute.getNetworkNodes() != null && !compute.getNetworkNodes().isEmpty()) {
+        if (CollectionUtils.isNotEmpty(compute.getNetworkNodes())) {
             for (PaaSNodeTemplate networkPaaSNodeTemplate : compute.getNetworkNodes()) {
                 if (PUBLIC_NETWORK_TYPE.equals(networkPaaSNodeTemplate.getNodeTemplate().getType())) {
                     result.add(networkPaaSNodeTemplate);
@@ -195,28 +196,28 @@ public class ScalableComputeReplacementService {
             PaaSNodeTemplate networkNode, int indexInList, TypeMap cache) {
         // first of all we remove the volume from the topology
         NodeTemplate networkNodeTemplate = deploymentContext.getDeploymentTopology().getNodeTemplates().remove(networkNode.getId());
-        // transfert the properties of the storage node to the scalable compute node
+        // transfert the properties of the network node to the scalable compute node
         buildAndFeedComplexProperty(computeNodeTemplate, networkNodeTemplate, SCALABLE_COMPUTE_FIPS_PROPERTY);
-        // change all relationships that target the storage to make them target the compute
+        // change all relationships that target the network to make them target the compute
         transfertNodeTargetRelationships(deploymentContext, computeNode, networkNode, SCALABLE_COMPUTE_FIPS_PROPERTY, indexInList, cache);
     }
 
     private ComplexPropertyValue buildAndFeedComplexProperty(NodeTemplate computeNodeTemplate, NodeTemplate removedNodeTemplate, String mainPropertyListName) {
-        // bellow the list that lists volumes for the ScalableCompute
-        ListPropertyValue volumesProperty = (ListPropertyValue) computeNodeTemplate.getProperties().get(mainPropertyListName);
-        // build a 'alien.data.openstack.EmbededVolumeProperties' object
+        // bellow the list property for the ScalableCompute
+        ListPropertyValue listProperty = (ListPropertyValue) computeNodeTemplate.getProperties().get(mainPropertyListName);
+        // build a complex object. for exemple 'alien.data.openstack.EmbededVolumeProperties' object
         ComplexPropertyValue embededProperty = new ComplexPropertyValue();
         // and add it to the list
-        volumesProperty.getValue().add(embededProperty);
-        // feed it with all the entries of storageNodeTemplate properties
+        listProperty.getValue().add(embededProperty);
+        // feed it with all the entries of old node properties
         Map<String, AbstractPropertyValue> oldNodeProperties = removedNodeTemplate.getProperties();
-        Map<String, Object> embededVolumePropertyValue = Maps.newHashMap();
+        Map<String, Object> embededPropertyValue = Maps.newHashMap();
         if (oldNodeProperties != null) {
             for (Entry<String, AbstractPropertyValue> e : oldNodeProperties.entrySet()) {
-                embededVolumePropertyValue.put(e.getKey(), e.getValue());
+                embededPropertyValue.put(e.getKey(), e.getValue());
             }
         }
-        embededProperty.setValue(embededVolumePropertyValue);
+        embededProperty.setValue(embededPropertyValue);
         return embededProperty;
     }
 
@@ -276,4 +277,3 @@ public class ScalableComputeReplacementService {
     }
 
 }
-
