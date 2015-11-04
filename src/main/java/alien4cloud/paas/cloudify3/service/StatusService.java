@@ -3,20 +3,15 @@ package alien4cloud.paas.cloudify3.service;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.paas.IPaaSCallback;
@@ -42,7 +37,14 @@ import alien4cloud.paas.model.InstanceInformation;
 import alien4cloud.paas.model.InstanceStatus;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.utils.MapUtil;
-import lombok.extern.slf4j.Slf4j;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Handle all deployment status request
@@ -240,6 +242,28 @@ public class StatusService {
                         }
                     }
                 }
+                // Code for scaling workaround : here we are looking for the _a4c_substitute_for property of the node
+                // if it contains something, this means that this node is substituting others
+                // we generate 'fake' instances for these ghosts nodes
+                for (Entry<String, Node> nodeEntry : nodeMap.entrySet()) {
+                    List substitutePropertyAsList = ScalableComputeReplacementService.getSubstituteForPropertyAsList(nodeEntry.getValue());
+                    if (substitutePropertyAsList != null) {
+                        Map<String, InstanceInformation> instancesInfo = information.get(nodeEntry.getKey());
+                        for (Object substitutePropertyItem : substitutePropertyAsList) {
+                            String substitutedNodeId = substitutePropertyItem.toString();
+                            Map<String, InstanceInformation> nodeInformation = Maps.newHashMap();
+                            information.put(substitutedNodeId, nodeInformation);
+                            for (Entry<String, InstanceInformation> instanceEntry : instancesInfo.entrySet()) {
+                                InstanceInformation ii = new InstanceInformation();
+                                ii.setState(instanceEntry.getValue().getState());
+                                ii.setInstanceStatus(instanceEntry.getValue().getInstanceStatus());
+                                // TODO map runtime properties ?
+                                nodeInformation.put(instanceEntry.getKey(), ii);
+                            }
+                        }
+                    }
+                }
+
                 callback.onSuccess(information);
             }
 

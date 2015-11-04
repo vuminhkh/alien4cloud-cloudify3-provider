@@ -1,6 +1,5 @@
 package alien4cloud.paas.cloudify3.service;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -8,17 +7,29 @@ import java.util.Map;
 import javax.annotation.Resource;
 import javax.xml.bind.DatatypeConverter;
 
-import alien4cloud.paas.cloudify3.model.*;
-import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
-import alien4cloud.paas.model.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
+import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
+import alien4cloud.paas.cloudify3.model.Event;
+import alien4cloud.paas.cloudify3.model.EventAlienPersistent;
+import alien4cloud.paas.cloudify3.model.EventType;
+import alien4cloud.paas.cloudify3.model.Node;
+import alien4cloud.paas.cloudify3.model.NodeInstance;
+import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
+import alien4cloud.paas.cloudify3.restclient.NodeClient;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
+import alien4cloud.paas.model.AbstractMonitorEvent;
+import alien4cloud.paas.model.DeploymentStatus;
+import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
+import alien4cloud.paas.model.PaaSInstancePersistentResourceMonitorEvent;
+import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -37,6 +48,8 @@ public class EventService {
     private DeploymentEventClient eventClient;
     @Resource
     private NodeInstanceClient nodeInstanceClient;
+    @Resource
+    private NodeClient nodeClient;
     @Resource
     private StatusService statusService;
 
@@ -163,6 +176,34 @@ public class EventService {
                     log.debug("Received event {}", cloudifyEvent);
                 }
                 alienEvents.add(alienEvent);
+                // [[ Scaling issue workarround
+                // Code for scaling workaround : here we are looking for the _a4c_substitute_for property of the node
+                // if it contains something, this means that this node is substituting others
+                // we generate 'fake' events for these ghosts nodes
+                if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
+                    PaaSInstanceStateMonitorEvent paaSInstanceStateMonitorEvent = (PaaSInstanceStateMonitorEvent) alienEvent;
+                    Node[] nodes = nodeClient.list(cloudifyEvent.getContext().getDeploymentId(), paaSInstanceStateMonitorEvent.getNodeTemplateId());
+                    if (nodes.length > 0) {
+                        // since we provide the nodeId we are supposed to have only one node
+                        Node node = nodes[0];
+                        List substitutePropertyAsList = ScalableComputeReplacementService.getSubstituteForPropertyAsList(node);
+                        if (substitutePropertyAsList != null) {
+                            for (Object substitutePropertyItem : substitutePropertyAsList) {
+                                PaaSInstanceStateMonitorEvent substituted = new PaaSInstanceStateMonitorEvent();
+                                substituted.setDate(paaSInstanceStateMonitorEvent.getDate());
+                                substituted.setDeploymentId(paaSInstanceStateMonitorEvent.getDeploymentId());
+                                substituted.setInstanceState(paaSInstanceStateMonitorEvent.getInstanceState());
+                                substituted.setInstanceStatus(paaSInstanceStateMonitorEvent.getInstanceStatus());
+                                // we use the original instance ID
+                                substituted.setInstanceId(paaSInstanceStateMonitorEvent.getInstanceId());
+                                // but the name of the node that have been substituted
+                                substituted.setNodeTemplateId(substitutePropertyItem.toString());
+                                alienEvents.add(substituted);
+                            }
+                        }
+                    }
+                }
+                // Scaling issue workarround ]]
             } else {
                 if (log.isDebugEnabled()) {
                     log.debug("Filtered event {}", cloudifyEvent);
@@ -222,7 +263,7 @@ public class EventService {
                 String attributeValue = (String) instance.getRuntimeProperties().get(eventAlienPersistent.getPersistentResourceId());
                 alienEvent = new PaaSInstancePersistentResourceMonitorEvent(cloudifyEvent.getContext().getNodeName(), cloudifyEvent.getContext().getNodeId(),
                         eventAlienPersistent.getPersistentAlienAttribute(), attributeValue);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 return null;
             }
             break;

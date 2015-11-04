@@ -5,8 +5,10 @@
     derived_from: ${util.natives.mapToCloudifyType($nativeType)}
 #set($getPersistentResourceId = ${util.natives.getPersistentResourceId($nativeType.tags)})
 #set($attributeMappings = ${util.natives.getAttributesMapping($nativeType.attributes)})
-#if(${util.mapHasEntries($attributeMappings)} || $persistentResourceMapping)
+##if(${util.mapHasEntries($attributeMappings)} || $persistentResourceMapping)
     properties:
+      _a4c_substitute_for:
+        default: []
 #foreach($attributeMapping in ${attributeMappings.entrySet()})
       _a4c_att_$attributeMapping.key:
         default:
@@ -20,6 +22,6 @@
       _a4c_persistent_resource_id:
         default: "${getPersistentResourceId}"
 #end
-#end
+##end
 #end
 #end

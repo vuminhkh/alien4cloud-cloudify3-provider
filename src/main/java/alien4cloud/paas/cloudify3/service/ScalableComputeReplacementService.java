@@ -28,6 +28,7 @@ import alien4cloud.model.deployment.Deployment;
 import alien4cloud.model.deployment.DeploymentTopology;
 import alien4cloud.model.orchestrators.locations.Location;
 import alien4cloud.model.topology.NodeTemplate;
+import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopology;
@@ -66,6 +67,8 @@ public class ScalableComputeReplacementService {
     private static final String SCALABLE_COMPUTE_VOLUMES_PROPERTY = "volumes";
 
     private static final String SCALABLE_COMPUTE_FIPS_PROPERTY = "floatingips";
+
+    private static final String SUBSTITUE_FOR_PROPERTY = "_a4c_substitute_for";
 
     @Inject
     private TopologyTreeBuilderService topologyTreeBuilderService;
@@ -176,10 +179,23 @@ public class ScalableComputeReplacementService {
         return result;
     }
 
+    private void addSubsituteForPropertyValue(NodeTemplate computeNodeTemplate, String substitutedNodeId) {
+        AbstractPropertyValue value = computeNodeTemplate.getProperties().get(SUBSTITUE_FOR_PROPERTY);
+        ListPropertyValue valueAsList = null;
+        if (value == null) {
+            valueAsList = new ListPropertyValue(Lists.newArrayList());
+            computeNodeTemplate.getProperties().put(SUBSTITUE_FOR_PROPERTY, valueAsList);
+        } else {
+            valueAsList = (ListPropertyValue) value;
+        }
+        valueAsList.getValue().add(new ScalarPropertyValue(substitutedNodeId));
+    }
+
     private void manageStorageNode(PaaSTopologyDeploymentContext deploymentContext, NodeTemplate computeNodeTemplate, PaaSNodeTemplate computeNode,
             PaaSNodeTemplate storageNode, int indexInList, TypeMap cache) {
         // first of all we remove the volume from the topology
         NodeTemplate storageNodeTemplate = deploymentContext.getDeploymentTopology().getNodeTemplates().remove(storageNode.getId());
+        addSubsituteForPropertyValue(computeNodeTemplate, storageNode.getId());
         // transfert the properties of the storage node to the scalable compute node
         ComplexPropertyValue embededVolumeProperty = buildAndFeedComplexProperty(computeNodeTemplate, storageNodeTemplate, SCALABLE_COMPUTE_VOLUMES_PROPERTY);
         // add deletable property
@@ -196,7 +212,8 @@ public class ScalableComputeReplacementService {
             PaaSNodeTemplate networkNode, int indexInList, TypeMap cache) {
         // first of all we remove the volume from the topology
         NodeTemplate networkNodeTemplate = deploymentContext.getDeploymentTopology().getNodeTemplates().remove(networkNode.getId());
-        // transfert the properties of the network node to the scalable compute node
+        addSubsituteForPropertyValue(computeNodeTemplate, networkNode.getId());
+        // transfert the properties of the storage node to the scalable compute node
         buildAndFeedComplexProperty(computeNodeTemplate, networkNodeTemplate, SCALABLE_COMPUTE_FIPS_PROPERTY);
         // change all relationships that target the network to make them target the compute
         transfertNodeTargetRelationships(deploymentContext, computeNode, networkNode, SCALABLE_COMPUTE_FIPS_PROPERTY, indexInList, cache);
@@ -244,7 +261,7 @@ public class ScalableComputeReplacementService {
                         paaSRelationshipTemplate.getRelationshipTemplate().setTarget(newTargetNode.getId());
                         // TODO: here we also should explore the relationship's type interface in order to adapt get_attribute TARGET
                         IndexedRelationshipType relationshipType = paaSRelationshipTemplate.getIndexedToscaElement();
-                        boolean typeAsChasnged = false;
+                        boolean typeAsChanged = false;
                         Map<String, Interface> interfaces = relationshipType.getInterfaces();
                         for (Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
                             for (Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
@@ -259,14 +276,14 @@ public class ScalableComputeReplacementService {
                                                 String attributeName = functionPropertyValue.getElementNameToFetch();
                                                 // TODO: for the moment, we prefix the attribute this way : volumes_0_device
                                                 functionPropertyValue.setElementNameToFetch(mainPropertyListName + "_" + indexInList + "_" + attributeName);
-                                                typeAsChasnged = true;
+                                                typeAsChanged = true;
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                        if (typeAsChasnged) {
+                        if (typeAsChanged) {
                             // the type has been modified, we want to force it's reuse later
                             cache.put(relationshipType.getElementId(), relationshipType);
                         }
@@ -274,6 +291,17 @@ public class ScalableComputeReplacementService {
                 }
             }
         }
+    }
+    
+    public static List getSubstituteForPropertyAsList(Node node) {
+        List substitutePropertyAsList = null;
+        if (node.getProperties() != null) {
+            Object substituteProperty = node.getProperties().get(SUBSTITUE_FOR_PROPERTY);
+            if (substituteProperty != null && substituteProperty instanceof List) {
+                substitutePropertyAsList = (List) substituteProperty;
+            }
+        }
+        return substitutePropertyAsList;
     }
 
 }
