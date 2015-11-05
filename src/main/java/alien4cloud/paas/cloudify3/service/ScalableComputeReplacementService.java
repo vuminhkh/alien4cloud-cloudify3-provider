@@ -10,6 +10,7 @@ import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.collect.Sets;
@@ -29,11 +30,13 @@ import alien4cloud.model.deployment.DeploymentTopology;
 import alien4cloud.model.orchestrators.locations.Location;
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.paas.cloudify3.model.Node;
+import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopology;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
+import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
 import alien4cloud.utils.TypeMap;
 
@@ -69,6 +72,8 @@ public class ScalableComputeReplacementService {
     private static final String SCALABLE_COMPUTE_FIPS_PROPERTY = "floatingips";
 
     private static final String SUBSTITUE_FOR_PROPERTY = "_a4c_substitute_for";
+
+    private static final String USE_EXTERNAL_RESOURCE_PROPERTY = "use_external_resource";
 
     @Inject
     private TopologyTreeBuilderService topologyTreeBuilderService;
@@ -204,6 +209,13 @@ public class ScalableComputeReplacementService {
         } else {
             embededVolumeProperty.getValue().put(DELETABLE_PROPERTY, new ScalarPropertyValue(Boolean.FALSE.toString()));
         }
+
+        // add "use_external_resource" property
+        String volumeId = FunctionEvaluator
+                .getScalarValue((ScalarPropertyValue) embededVolumeProperty.getValue().get(NormativeBlockStorageConstants.VOLUME_ID));
+        if (StringUtils.isNotBlank(volumeId)) {
+            embededVolumeProperty.getValue().put(USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean.FALSE.toString()));
+        }
         // change all relationships that target the storage to make them target the compute
         transfertNodeTargetRelationships(deploymentContext, computeNode, storageNode, SCALABLE_COMPUTE_VOLUMES_PROPERTY, indexInList, cache);
     }
@@ -292,7 +304,7 @@ public class ScalableComputeReplacementService {
             }
         }
     }
-    
+
     public static List getSubstituteForPropertyAsList(Node node) {
         List substitutePropertyAsList = null;
         if (node.getProperties() != null) {
