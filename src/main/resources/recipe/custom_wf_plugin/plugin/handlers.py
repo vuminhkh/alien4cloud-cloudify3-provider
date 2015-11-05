@@ -1,5 +1,10 @@
 from cloudify.workflows import tasks as workflow_tasks
-
+from workflow import PersistentResourceEvent
+from workflow import WfEvent
+from workflow import build_pre_event
+from cloudify import logs
+from cloudify.logs import _send_event
+from cloudify.workflows.workflow_context import task_config
 
 def _wait_for_host_to_start(ctx, host_node_instance):
     task = host_node_instance.execute_operation(
@@ -93,3 +98,31 @@ def _set_send_node_evt_on_failed_unlink_handlers(instance, tasks_with_targets):
             "Error occurred while unlinking node from node {0} - "
             "ignoring...".format(target_id)
         )
+
+
+def build_persistent_event_task(instance):
+    persistent_property = instance.node.properties.get('_a4c_persistent_resource_id', None)
+    if persistent_property != None:
+        # send event to send resource id to alien
+        splitted_persistent_property = persistent_property.split('=')
+        persistent_cloudify_attribute = splitted_persistent_property[0]
+        persistent_alien_attribute = splitted_persistent_property[1]
+        persist_msg = build_pre_event(PersistentResourceEvent(persistent_cloudify_attribute, persistent_alien_attribute))
+
+        @task_config(send_task_events=False)
+        def send_event_task():
+            _send_event(instance, 'workflow_node', 'a4c_persistent_event', persist_msg, None, None, None)
+
+        return instance.ctx.local_task(local_task=send_event_task, node=instance, info=persist_msg)
+    else:
+        return None
+
+
+def build_wf_event_task(instance, step_id, stage):
+    event_msg = build_pre_event(WfEvent(stage, step_id))
+
+    @task_config(send_task_events=False)
+    def send_wf_event_task():
+        _send_event(instance, 'workflow_node', 'a4c_workflow_event', event_msg, None, None, None)
+
+    return instance.ctx.local_task(local_task=send_wf_event_task, node=instance, info=event_msg)
