@@ -9,7 +9,7 @@ This template is used to generate cloudify 3 recipe from alien model
 tosca_definitions_version: $mapping.dslVersion
 
 imports:
-  - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
+  - http://www.getcloudify.org/spec/cloudify/3.2.1/types.yaml
 #parse("provider/${deployment.locationType}/imports.yaml.vm")
 
 node_types:

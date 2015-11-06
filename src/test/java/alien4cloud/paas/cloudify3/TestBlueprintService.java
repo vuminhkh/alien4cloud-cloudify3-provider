@@ -6,6 +6,7 @@ import java.nio.file.StandardCopyOption;
 
 import javax.annotation.Resource;
 
+import alien4cloud.paas.cloudify3.util.LocationUtil;
 import lombok.SneakyThrows;
 
 import org.junit.Assert;
@@ -68,7 +69,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         }
         Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(context));
         Path generatedDirectory = generated.getParent();
-        String recordedDirectory = "src/test/resources/outputs/blueprints/" + outputFile;
+        String recordedDirectory = "src/test/resources/outputs/blueprints/" + LocationUtil.getType() + "/" + outputFile;
         if (record) {
             FileUtil.delete(Paths.get(recordedDirectory));
             FileUtil.copy(generatedDirectory, Paths.get(recordedDirectory), StandardCopyOption.REPLACE_EXISTING);

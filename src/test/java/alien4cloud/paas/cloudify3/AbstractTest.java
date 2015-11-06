@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
+import alien4cloud.paas.cloudify3.location.AmazonLocationConfigurator;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +50,8 @@ public class AbstractTest {
 
     @Resource
     private OpenstackLocationConfigurator openstackLocationConfigurator;
+    @Resource
+    private AmazonLocationConfigurator amazonLocationConfigurator;
 
     @Resource
     private ArchiveIndexer archiveIndexer;
@@ -75,8 +78,13 @@ public class AbstractTest {
         csarUtil.uploadAll();
         // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded
         openstackLocationConfigurator.postConstruct();
+        amazonLocationConfigurator.postConstruct();
         List<ParsingError> parsingErrors = Lists.newArrayList();
         for (PluginArchive pluginArchive : openstackLocationConfigurator.pluginArchives()) {
+            // index the archive in alien catalog
+            archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
+        }
+        for (PluginArchive pluginArchive : amazonLocationConfigurator.pluginArchives()) {
             // index the archive in alien catalog
             archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
         }
