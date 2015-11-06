@@ -1,10 +1,12 @@
 package alien4cloud.paas.cloudify3;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Resource;
 
+import com.google.common.collect.Lists;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
@@ -16,11 +18,14 @@ import alien4cloud.model.orchestrators.locations.LocationSupport;
 import alien4cloud.orchestrators.plugin.IOrchestratorPluginFactory;
 import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
-import alien4cloud.tosca.normative.ToscaType;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<CloudifyOrchestrator, CloudConfiguration> {
+
+    private static final String OPENSTACK = "openstack";
+    private static final String AWS = "aws";
+    private static final String CFY_SCRIPT_VERSION = "1.2.1";
 
     @Resource
     private ApplicationContext factoryContext;
@@ -35,7 +40,12 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
 
     @Override
     public CloudConfiguration getDefaultConfiguration() {
-        return new CloudConfiguration();
+        CloudConfiguration cloudConfiguration = new CloudConfiguration();
+        Map<String, List<String>> importsByLocation = Maps.newTreeMap();
+        importsByLocation.put(OPENSTACK, Lists.newArrayList("http://www.getcloudify.org/spec/openstack-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
+        importsByLocation.put(AWS, Lists.newArrayList("http://www.getcloudify.org/spec/aws-plugin/" + CFY_SCRIPT_VERSION + "/ plugin.yaml"));
+        cloudConfiguration.setImportsByLocation(importsByLocation);
+        return cloudConfiguration;
     }
 
     @Override
@@ -73,7 +83,7 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
 
     @Override
     public LocationSupport getLocationSupport() {
-        return new LocationSupport(false, new String[] { "openstack" });
+        return new LocationSupport(false, new String[] { OPENSTACK });
     }
 
     @Override
