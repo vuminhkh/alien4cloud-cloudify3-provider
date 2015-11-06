@@ -46,6 +46,8 @@ public class AmazonLocationConfigurator implements ITypeAwareLocationConfigurato
     public static final String COMPUTE_TYPE = "alien.cloudify.aws.nodes.Compute";
     public static final String IMAGE_TYPE = "alien.cloudify.aws.nodes.Image";
     public static final String FLAVOR_TYPE = "alien.cloudify.aws.nodes.InstanceType";
+    private static final String IMAGE_ID_PROP = "image_id";
+    private static final String FLAVOR_ID_PROP = "instance_type";
 
     public static final Set<String> FILTERS = Sets.newHashSet();
 
@@ -84,7 +86,7 @@ public class AmazonLocationConfigurator implements ITypeAwareLocationConfigurato
 
     @Override
     public List<LocationResourceTemplate> instances(ILocationResourceAccessor resourceAccessor) {
-        return resourceGenerator.generateComputes(COMPUTE_TYPE, IMAGE_TYPE, FLAVOR_TYPE, resourceAccessor);
+        return resourceGenerator.generateComputes(COMPUTE_TYPE, IMAGE_TYPE, FLAVOR_TYPE, IMAGE_ID_PROP, FLAVOR_ID_PROP, resourceAccessor);
     }
 
     @Override
