@@ -13,8 +13,7 @@ topology_template:
     NetPub:
       type: alien.nodes.openstack.PublicNetwork
       properties:
-        floating_ip:
-          floating_network_name: net-pub
+        network_name: net-pub
 
     InternalNetwork:
       type: alien.nodes.openstack.PrivateNetwork
