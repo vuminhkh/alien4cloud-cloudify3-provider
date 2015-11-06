@@ -37,7 +37,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
-    private boolean record = true;
+    private boolean record = false;
 
     @Override
     @Before
