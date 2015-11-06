@@ -2,20 +2,19 @@
 tosca_definitions_version: cloudify_dsl_1_0
 
 imports:
-  - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
-  - http://www.getcloudify.org/spec/openstack-plugin/1.2/plugin.yaml
+  - http://www.getcloudify.org/spec/cloudify/3.2.1/types.yaml
+  - http://www.getcloudify.org/spec/aws-plugin/1.2.1/plugin.yaml
 node_types:
 
-  alien.nodes.openstack.Compute:
-    derived_from: cloudify.openstack.nodes.Server
+  alien.cloudify.aws.nodes.Compute:
+    derived_from: cloudify.aws.nodes.Instance
     properties:
       _a4c_att_public_ip_address:
         default:
           function: get_attribute
           parameters:
-            - TARGET
-            - cloudify.openstack.server_connected_to_floating_ip
-            - floating_ip_address
+            - SELF
+            - public_ip_address
       _a4c_att_ip_address:
         default:
           function: get_attribute
@@ -28,6 +27,11 @@ node_types:
 node_templates:
 
 
+  compute:
+    type: alien.cloudify.aws.nodes.Compute
+    properties: 
+      image_id: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
+      instance_type: 2
 
 
 plugins:

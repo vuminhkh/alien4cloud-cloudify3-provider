@@ -9,6 +9,12 @@ node_types:
   alien.nodes.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
+      _a4c_att_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - ip
       _a4c_att_public_ip_address:
         default:
           function: get_attribute
@@ -16,12 +22,6 @@ node_types:
             - TARGET
             - cloudify.openstack.server_connected_to_floating_ip
             - floating_ip_address
-      _a4c_att_ip_address:
-        default:
-          function: get_attribute
-          parameters:
-            - SELF
-            - ip
   alien.cloudify.openstack.nodes.DeletableVolume:
     derived_from: cloudify.openstack.nodes.Volume
     properties:
@@ -65,9 +65,9 @@ node_templates:
       cloudify.interfaces.lifecycle:
         delete: {}
     properties: 
+      resource_id: yeah
       volume: 
         size: 1
-      resource_id: yeah
       use_external_resource: true
     relationships:
       - target: Compute
@@ -91,13 +91,13 @@ node_templates:
         start: wrapper/FileSystem/tosca.interfaces.node.lifecycle.Standard/start/artifacts/alien-extended-storage-types/scripts/_a4c_mount.py
         configure: wrapper/FileSystem/tosca.interfaces.node.lifecycle.Standard/configure/artifacts/alien-extended-storage-types/scripts/_a4c_mkfs.py
     relationships:
+      - target: Compute
+        type: cloudify.relationships.contained_in
       - target: BlockStorage
         type: alien.relationships.LinuxPartition
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
             preconfigure: wrapper/FileSystem_BlockStorage/linuxPartitionBlockStorage/artifacts/alien-extended-storage-types/scripts/_a4c_fdisk.py
-      - target: Compute
-        type: cloudify.relationships.contained_in
 
 plugins:
   custom_wf_plugin:
@@ -105,5 +105,5 @@ plugins:
     source: custom_wf_plugin
 
 workflows:
-  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
   a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall

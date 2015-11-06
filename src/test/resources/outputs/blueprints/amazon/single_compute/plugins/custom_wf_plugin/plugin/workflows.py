@@ -45,7 +45,7 @@ def _a4c_install(ctx, graph, custom_context):
 #following code can be pasted in src/test/python/workflows/context.py for simulation
 #def _build_nodes(ctx):
     #types = []
-    #types.append('alien.nodes.openstack.Compute')
+    #types.append('alien.cloudify.aws.nodes.Compute')
     #types.append('tosca.nodes.Compute')
     #types.append('tosca.nodes.Root')
     #node_compute = _build_node(ctx, 'compute', types, 1)

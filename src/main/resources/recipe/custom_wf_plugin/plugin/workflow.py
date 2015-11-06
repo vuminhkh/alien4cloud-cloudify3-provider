@@ -32,14 +32,9 @@ import json
 
 class WfEvent(object):
 
-    def __init__(self, instance_id, stage, step_id):
-        self.instance_id = instance_id
+    def __init__(self, stage, step_id):
         self.stage = stage
         self.step_id = step_id
-
-
-def build_wf_event(wf_event):
-    return "wfe:" + json.dumps(wf_event.__dict__)
 
 
 class PersistentResourceEvent(object):
