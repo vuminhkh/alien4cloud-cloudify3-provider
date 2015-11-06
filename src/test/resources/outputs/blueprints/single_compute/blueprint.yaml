@@ -1,32 +1,27 @@
 
-tosca_definitions_version: cloudify_dsl_1_0
+tosca_definitions_version: cloudify_dsl_1_1
 
 imports:
-  - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
-  - http://www.getcloudify.org/spec/openstack-plugin/1.2/plugin.yaml
+  - http://www.getcloudify.org/spec/cloudify/3.2.1/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/1.2.1/plugin.yaml
 node_types:
 
   alien.nodes.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
-      _a4c_mapped_to:
-        default: cloudify.openstack.nodes.Server
-      server:
-        default: {}
-      use_external_resource:
-        default: ""
-      resource_id:
-        default: ""
-      image:
-        default: ""
-      flavor:
-        default: ""
-      management_network_name:
-        default: ""
-      use_password:
-        default: ""
-      openstack_config:
-        default: {}
+      _a4c_att_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - ip
+      _a4c_att_public_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - TARGET
+            - cloudify.openstack.server_connected_to_floating_ip
+            - floating_ip_address
 
 
 
@@ -41,14 +36,15 @@ node_templates:
 
 
 
-
-
-
 plugins:
   custom_wf_plugin:
     executor: central_deployment_agent
     source: custom_wf_plugin
+  windows_host_plugin:
+    source: windows-host-plugin
+    executor: host_agent
+
 
 workflows:
-  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
   a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall

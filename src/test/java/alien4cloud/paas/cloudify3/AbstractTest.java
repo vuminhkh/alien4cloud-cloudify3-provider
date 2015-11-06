@@ -27,6 +27,8 @@ public class AbstractTest {
 
     public static final String SINGLE_COMPUTE_TOPOLOGY = "single_compute";
 
+    public static final String SINGLE_WINDOWS_COMPUTE_TOPOLOGY = "single_windows_compute";
+
     public static final String NETWORK_TOPOLOGY = "network";
 
     public static final String STORAGE_TOPOLOGY = "storage";
