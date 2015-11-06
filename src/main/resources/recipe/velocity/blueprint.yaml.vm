@@ -91,10 +91,6 @@ plugins:
   custom_wf_plugin:
     executor: central_deployment_agent
     source: custom_wf_plugin
-  windows_host_plugin:
-    source: windows-host-plugin
-    executor: host_agent
-
 
 workflows:
 #foreach($wfEntry in ${deployment.workflows.entrySet()})

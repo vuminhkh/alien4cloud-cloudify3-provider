@@ -218,19 +218,6 @@ public class BlueprintService {
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/workflows.py"), context);
         FileUtil.zip(generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin"),
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin.zip"));
-
-        // windows host plugin
-        Path windowsPluginDir = generatedBlueprintDirectoryPath.resolve("plugins/windows_host_plugin/plugin");
-        Files.createDirectories(windowsPluginDir);
-        Files.copy(pluginRecipeResourcesPath.resolve("windows_host_plugin/plugin/__init__.py"),
-                generatedBlueprintDirectoryPath.resolve("plugins/windows_host_plugin/plugin/__init__.py"));
-        Files.copy(pluginRecipeResourcesPath.resolve("windows_host_plugin/plugin/tasks.py"),
-                generatedBlueprintDirectoryPath.resolve("plugins/windows_host_plugin/plugin/tasks.py"));
-        Files.copy(pluginRecipeResourcesPath.resolve("windows_host_plugin/setup.py"),
-                generatedBlueprintDirectoryPath.resolve("plugins/windows_host_plugin/setup.py"));
-        FileUtil.zip(generatedBlueprintDirectoryPath.resolve("plugins/windows_host_plugin"),
-                generatedBlueprintDirectoryPath.resolve("plugins/windows_host_plugin.zip"));
-
         // Generate the blueprint at the end
         VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
