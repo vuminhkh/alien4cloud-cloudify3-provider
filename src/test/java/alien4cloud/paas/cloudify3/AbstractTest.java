@@ -76,6 +76,8 @@ public class AbstractTest {
             cloudifyURL = Context.getInstance().getCloudify3ManagerUrl();
         }
         cloudConfiguration.setUrl(cloudifyURL);
+        CloudConfiguration defaultConfiguration = new CloudifyOrchestratorFactory().getDefaultConfiguration();
+        cloudConfiguration.setImports(defaultConfiguration.getImports());
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         csarUtil.uploadAll();
         // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded
