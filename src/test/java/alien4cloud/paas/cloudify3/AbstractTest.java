@@ -28,6 +28,8 @@ public class AbstractTest {
 
     public static final String SINGLE_COMPUTE_TOPOLOGY = "single_compute";
 
+    public static final String SINGLE_WINDOWS_COMPUTE_TOPOLOGY = "single_windows_compute";
+
     public static final String NETWORK_TOPOLOGY = "network";
 
     public static final String STORAGE_TOPOLOGY = "storage";
@@ -74,6 +76,8 @@ public class AbstractTest {
             cloudifyURL = Context.getInstance().getCloudify3ManagerUrl();
         }
         cloudConfiguration.setUrl(cloudifyURL);
+        CloudConfiguration defaultConfiguration = new CloudifyOrchestratorFactory().getDefaultConfiguration();
+        cloudConfiguration.setImports(defaultConfiguration.getImports());
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         csarUtil.uploadAll();
         // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded

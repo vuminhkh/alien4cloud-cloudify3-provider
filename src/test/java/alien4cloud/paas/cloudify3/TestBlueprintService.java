@@ -88,6 +88,11 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     @Test
+    public void testGenerateSingleWindowsCompute() {
+        testGeneratedBlueprintFile(SINGLE_WINDOWS_COMPUTE_TOPOLOGY);
+    }
+
+    @Test
     public void testGenerateNetwork() {
         testGeneratedBlueprintFile(NETWORK_TOPOLOGY);
     }

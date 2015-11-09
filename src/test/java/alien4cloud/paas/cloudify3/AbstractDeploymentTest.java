@@ -82,7 +82,7 @@ public class AbstractDeploymentTest extends AbstractTest {
             }
             Thread.sleep(1000L);
             // Clean internal events queue
-            eventService.getEventsSince(now, Integer.MAX_VALUE).get();
+            // eventService.getEventsSince(now, Integer.MAX_VALUE).get();
         }
     }
 

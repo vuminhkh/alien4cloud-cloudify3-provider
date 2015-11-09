@@ -19,14 +19,10 @@ import alien4cloud.orchestrators.plugin.ILocationResourceAccessor;
 @Slf4j
 public class ResourceGenerator {
 
-    private static final String IMAGE_ID_PROP = "image";
-    private static final String FLAVOR_ID_PROP = "flavor";
-    private static final String DEFAULT_RESOURCE_NAME_PREFIX = "GeneratedCompute";
-
     @Inject
     private LocationResourceGeneratorService resourceGeneratorService;
 
-    public List<LocationResourceTemplate> generateComputes(String computeType, String imageType, String flavorType, ILocationResourceAccessor resourceAccessor) {
+    public List<LocationResourceTemplate> generateComputes(String computeType, String imageType, String flavorType, String imageIdProperty, String flavorIdProperty, ILocationResourceAccessor resourceAccessor) {
         ImageFlavorContext imageContext = resourceGeneratorService.buildContext(imageType, "id", resourceAccessor);
         ImageFlavorContext flavorContext = resourceGeneratorService.buildContext(flavorType, "id", resourceAccessor);
         boolean canProceed = true;
@@ -42,7 +38,7 @@ public class ResourceGenerator {
             log.warn("Skipping auto configuration");
             return null;
         }
-        ComputeContext computeContext = resourceGeneratorService.buildComputeContext(computeType, null, IMAGE_ID_PROP, FLAVOR_ID_PROP, resourceAccessor);
+        ComputeContext computeContext = resourceGeneratorService.buildComputeContext(computeType, null, imageIdProperty, flavorIdProperty, resourceAccessor);
 
         return resourceGeneratorService.generateComputeFromImageAndFlavor(imageContext, flavorContext, computeContext, resourceAccessor);
     }

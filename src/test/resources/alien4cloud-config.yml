@@ -99,7 +99,7 @@ openstack:
   url: http://129.185.67.11:5000/v2.0
   region: RegionOne
   cfy3:
-    manager_name: mkv-cosmo-management-server
+    manager_name: mkv321-cosmo-management-server
     manager_user:
     manager_password:
 

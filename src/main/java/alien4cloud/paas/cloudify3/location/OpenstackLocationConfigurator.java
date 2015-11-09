@@ -43,8 +43,12 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
     private List<PluginArchive> archives;
 
     public static final String COMPUTE_TYPE = "alien.nodes.openstack.Compute";
+    public static final String WINDOWS_COMPUTE_TYPE = "alien.nodes.openstack.WindowsCompute";
     public static final String IMAGE_TYPE = "alien.nodes.openstack.Image";
+    public static final String WINDOWS_IMAGE_TYPE = "alien.nodes.openstack.WindowsImage";
     public static final String FLAVOR_TYPE = "alien.nodes.openstack.Flavor";
+    private static final String IMAGE_ID_PROP = "image";
+    private static final String FLAVOR_ID_PROP = "flavor";
 
     public static final Set<String> FILTERS = Sets.newHashSet();
 
@@ -88,7 +92,9 @@ public class OpenstackLocationConfigurator implements ITypeAwareLocationConfigur
 
     @Override
     public List<LocationResourceTemplate> instances(ILocationResourceAccessor resourceAccessor) {
-        return resourceGenerator.generateComputes(COMPUTE_TYPE, IMAGE_TYPE, FLAVOR_TYPE, resourceAccessor);
+        List<LocationResourceTemplate> instances = resourceGenerator.generateComputes(COMPUTE_TYPE, IMAGE_TYPE, FLAVOR_TYPE, IMAGE_ID_PROP, FLAVOR_ID_PROP, resourceAccessor);
+        instances.addAll(resourceGenerator.generateComputes(WINDOWS_COMPUTE_TYPE, WINDOWS_IMAGE_TYPE, FLAVOR_TYPE, IMAGE_ID_PROP, FLAVOR_ID_PROP, resourceAccessor));
+        return instances;
     }
 
     @Override
