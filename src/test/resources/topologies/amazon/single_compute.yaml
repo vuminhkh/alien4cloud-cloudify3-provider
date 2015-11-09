@@ -13,5 +13,6 @@ topology_template:
     compute:
       type: alien.cloudify.aws.nodes.Compute
       properties:
-        image_id: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
-        instance_type: 2
+        image_id: ami-47a23a30
+        instance_type: t2.small
+# eu-west-1
