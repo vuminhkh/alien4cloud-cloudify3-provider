@@ -199,6 +199,7 @@ public class BlueprintService {
 
         if (!alienDeployment.getNonNatives().isEmpty()) {
             Files.copy(pluginRecipeResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
+            Files.copy(pluginRecipeResourcesPath.resolve("wrapper/scriptWrapper.bat"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.bat"));
         }
 
         // custom workflows section

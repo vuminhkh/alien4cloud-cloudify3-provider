@@ -51,3 +51,19 @@ node_types:
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [SELF, public_ip_address] }
+
+  alien.cloudify.aws.nodes.WindowsCompute:
+    derived_from: alien.cloudify.aws.nodes.Compute
+    properties:
+      user:
+        type: string
+        default: Admin
+      user:
+        type: string
+        required: true
+        default: Admin
+        description: The user to connect to the created VM in case the user/password has been created in the image.
+      password:
+        type: string
+        required: false
+        description: The password to connect to the created VM in case the user/password has been created in the image.

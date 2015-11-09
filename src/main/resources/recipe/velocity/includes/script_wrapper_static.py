@@ -7,11 +7,17 @@ import re
 import sys
 import time
 import threading
+import platform
 from StringIO import StringIO
 from cloudify_rest_client import CloudifyClient
 from cloudify import utils
 
 client = CloudifyClient(utils.get_manager_ip(), utils.get_manager_rest_service_port())
+
+
+def convert_env_value_to_string(envDict):
+    for key, value in envDict.items():
+        envDict[key] = str(value)
 
 
 def get_host(entity):
@@ -174,7 +180,10 @@ def parse_output(output):
 
 
 def execute(script_path, process, outputNames):
-    wrapper_path = ctx.download_resource("scriptWrapper.sh")
+    if platform.system() == 'Windows':
+        wrapper_path = ctx.download_resource("scriptWrapper.bat")
+    else:
+        wrapper_path = ctx.download_resource("scriptWrapper.sh")
     os.chmod(wrapper_path, 0755)
 
     os.chmod(script_path, 0755)
