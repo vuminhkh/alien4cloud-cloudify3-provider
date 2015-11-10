@@ -242,6 +242,7 @@ public class StatusService {
                         }
                     }
                 }
+                // [[ Scaling issue workarround
                 // Code for scaling workaround : here we are looking for the _a4c_substitute_for property of the node
                 // if it contains something, this means that this node is substituting others
                 // we generate 'fake' instances for these ghosts nodes
@@ -263,7 +264,7 @@ public class StatusService {
                         }
                     }
                 }
-
+                // Scaling issue workarround ]]
                 callback.onSuccess(information);
             }
 

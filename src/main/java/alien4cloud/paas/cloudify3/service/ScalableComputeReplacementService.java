@@ -211,11 +211,14 @@ public class ScalableComputeReplacementService {
         }
 
         // add "use_external_resource" property
+        boolean useExternalResource = false;
         String volumeId = FunctionEvaluator
                 .getScalarValue((ScalarPropertyValue) embededVolumeProperty.getValue().get(NormativeBlockStorageConstants.VOLUME_ID));
         if (StringUtils.isNotBlank(volumeId)) {
-            embededVolumeProperty.getValue().put(USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean.FALSE.toString()));
+            useExternalResource = true;
         }
+        embededVolumeProperty.getValue().put(USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean.valueOf(useExternalResource).toString()));
+
         // change all relationships that target the storage to make them target the compute
         transfertNodeTargetRelationships(deploymentContext, computeNode, storageNode, SCALABLE_COMPUTE_VOLUMES_PROPERTY, indexInList, cache);
     }
@@ -226,7 +229,9 @@ public class ScalableComputeReplacementService {
         NodeTemplate networkNodeTemplate = deploymentContext.getDeploymentTopology().getNodeTemplates().remove(networkNode.getId());
         addSubsituteForPropertyValue(computeNodeTemplate, networkNode.getId());
         // transfert the properties of the storage node to the scalable compute node
-        buildAndFeedComplexProperty(computeNodeTemplate, networkNodeTemplate, SCALABLE_COMPUTE_FIPS_PROPERTY);
+        ComplexPropertyValue embededFloatingProperty = buildAndFeedComplexProperty(computeNodeTemplate, networkNodeTemplate, SCALABLE_COMPUTE_FIPS_PROPERTY);
+        // TODO: manage existing floating ip
+        embededFloatingProperty.getValue().put(USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean.FALSE.toString()));
         // change all relationships that target the network to make them target the compute
         transfertNodeTargetRelationships(deploymentContext, computeNode, networkNode, SCALABLE_COMPUTE_FIPS_PROPERTY, indexInList, cache);
     }

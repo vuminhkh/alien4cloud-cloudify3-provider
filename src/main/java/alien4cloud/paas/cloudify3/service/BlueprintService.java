@@ -219,6 +219,15 @@ public class BlueprintService {
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/workflows.py"), context);
         FileUtil.zip(generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin"),
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin.zip"));
+
+        // custom openstack plugin (scalable compute workaround)
+        Files.copy(pluginRecipeResourcesPath.resolve("cloudify-openstack-plugin/openstack-plugin.yaml"),
+                generatedBlueprintDirectoryPath.resolve("openstack-plugin.yaml"));
+        FileUtil.unzip(pluginRecipeResourcesPath.resolve("cloudify-openstack-plugin/cloudify-openstack-plugin.zip"),
+                generatedBlueprintDirectoryPath.resolve("plugins"));
+        Files.copy(pluginRecipeResourcesPath.resolve("cloudify-openstack-plugin/cloudify-openstack-plugin.zip"),
+                generatedBlueprintDirectoryPath.resolve("plugins/cloudify-openstack-plugin.zip"));
+
         // Generate the blueprint at the end
         VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
