@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
+import alien4cloud.paas.cloudify3.location.AmazonLocationConfigurator;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +28,8 @@ import com.google.common.collect.Lists;
 public class AbstractTest {
 
     public static final String SINGLE_COMPUTE_TOPOLOGY = "single_compute";
+
+    public static final String SINGLE_WINDOWS_COMPUTE_TOPOLOGY = "single_windows_compute";
 
     public static final String NETWORK_TOPOLOGY = "network";
 
@@ -56,6 +59,8 @@ public class AbstractTest {
 
     @Resource
     private OpenstackLocationConfigurator openstackLocationConfigurator;
+    @Resource
+    private AmazonLocationConfigurator amazonLocationConfigurator;
 
     @Resource
     private ArchiveIndexer archiveIndexer;
@@ -79,12 +84,19 @@ public class AbstractTest {
             cloudifyURL = Context.getInstance().getCloudify3ManagerUrl();
         }
         cloudConfiguration.setUrl(cloudifyURL);
+        CloudConfiguration defaultConfiguration = new CloudifyOrchestratorFactory().getDefaultConfiguration();
+        cloudConfiguration.setImports(defaultConfiguration.getImports());
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         csarUtil.uploadAll();
         // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded
         openstackLocationConfigurator.postConstruct();
+        amazonLocationConfigurator.postConstruct();
         List<ParsingError> parsingErrors = Lists.newArrayList();
         for (PluginArchive pluginArchive : openstackLocationConfigurator.pluginArchives()) {
+            // index the archive in alien catalog
+            archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
+        }
+        for (PluginArchive pluginArchive : amazonLocationConfigurator.pluginArchives()) {
             // index the archive in alien catalog
             archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
         }

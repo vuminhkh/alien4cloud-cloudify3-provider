@@ -9,12 +9,6 @@ node_types:
   alien.nodes.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
-      _a4c_att_ip_address:
-        default:
-          function: get_attribute
-          parameters:
-            - SELF
-            - ip
       _a4c_att_public_ip_address:
         default:
           function: get_attribute
@@ -22,17 +16,17 @@ node_types:
             - TARGET
             - cloudify.openstack.server_connected_to_floating_ip
             - floating_ip_address
+      _a4c_att_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - ip
 
 
 
 node_templates:
 
-
-  compute:
-    type: alien.nodes.openstack.Compute
-    properties: 
-      image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
-      flavor: 2
 
 
 
@@ -42,5 +36,5 @@ plugins:
     source: custom_wf_plugin
 
 workflows:
-  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
   a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
+  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install

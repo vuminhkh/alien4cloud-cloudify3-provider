@@ -1,11 +1,10 @@
-#parse("provider/common/generic_resource.yaml.vm")
 #foreach($network in ${deployment.internalNetworks})
   ${network.id}:
     type: ${network.nodeTemplate.type}
     properties:
       resource_id: ${network.id}
 ${util.natives.formatProperties(3, ${network.nodeTemplate.properties}, ${util.natives.loadPropertyMapping(${network.indexedToscaElement}, "_a4c_c3_network_prop_map")})}
-  ${network.id}_subnet:
+  ${mapping.generatedNodePrefix}_${network.id}_subnet:
     type: cloudify.openstack.nodes.Subnet
     properties:
       resource_id: ${network.id}_subnet

@@ -1,0 +1,19 @@
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+description: Single compute test
+template_name: single_windows_compute_test
+template_version: 0.1.0-SNAPSHOT
+template_author: admin
+
+imports:
+  - tosca-normative-types:1.0.0.wd06-SNAPSHOT
+  - openstack-types:1.0.0-SNAPSHOT
+
+topology_template:
+  node_templates:
+    compute:
+      type: alien.nodes.openstack.WindowsCompute
+      properties:
+        image: 53e6ef20-a087-44d1-9bdb-5c7f4bffad5b
+        flavor: 3
+        user: Admin
+        key_pair: khang_keypair

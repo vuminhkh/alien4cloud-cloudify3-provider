@@ -1,0 +1,69 @@
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+
+template_name: cloudify-amazon-types
+template_author: Alien4cloud
+template_version: 1.1.0-SNAPSHOT
+
+imports:
+  - tosca-normative-types:1.0.0.wd06-SNAPSHOT
+
+data_types:
+
+node_types:
+  # configuration types
+  alien.cloudify.aws.nodes.Image:
+    abstract: true
+    derived_from: tosca.nodes.Root
+    properties:
+      id:
+        type: string
+    capabilities:
+      os:
+        type: tosca.capabilities.OperatingSystem
+
+  alien.cloudify.aws.nodes.InstanceType:
+    abstract: true
+    derived_from: tosca.nodes.Root
+    properties:
+      id:
+        type: string
+    capabilities:
+      host:
+        type: tosca.capabilities.Container
+
+  alien.cloudify.aws.nodes.Compute:
+    derived_from: tosca.nodes.Compute
+    tags:
+      _a4c_c3_derived_from: cloudify.aws.nodes.Instance
+    properties:
+      parameters:
+        type: map
+        entry_schema:
+          type: string
+        required: false
+        description: "key-value server configuration as described in http://boto.readthedocs.org/en/latest/ref/ec2.html#module-boto.ec2.instance"
+      image_id:
+        type: string
+        default: ''
+      instance_type:
+        type: string
+        default: ''
+    attributes:
+      ip_address: { get_attribute: [SELF, ip] }
+      public_ip_address: { get_attribute: [SELF, public_ip_address] }
+
+  alien.cloudify.aws.nodes.WindowsCompute:
+    derived_from: alien.cloudify.aws.nodes.Compute
+    properties:
+      user:
+        type: string
+        default: Admin
+      user:
+        type: string
+        required: true
+        default: Admin
+        description: The user to connect to the created VM in case the user/password has been created in the image.
+      password:
+        type: string
+        required: false
+        description: The password to connect to the created VM in case the user/password has been created in the image.

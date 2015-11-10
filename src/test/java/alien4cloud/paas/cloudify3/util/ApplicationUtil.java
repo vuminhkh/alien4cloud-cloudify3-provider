@@ -26,8 +26,7 @@ import alien4cloud.utils.FileUtil;
 @Component
 @Slf4j
 public class ApplicationUtil {
-
-    private static final String TOPOLOGIES_PATH = "src/test/resources/topologies/";
+    private static final String TOPOLOGIES_PATH = "src/test/resources/topologies/" + LocationUtil.getType() + "/";
 
     @Resource
     private ApplicationService applicationService;

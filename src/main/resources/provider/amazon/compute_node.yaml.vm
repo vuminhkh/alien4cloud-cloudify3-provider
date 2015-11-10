@@ -1,0 +1,4 @@
+#parse("provider/common/generic_resource.yaml.vm")
+#foreach($compute in ${deployment.computes})
+#providerResourceNode(${compute.nodeTemplate.type}, $compute)
+#end

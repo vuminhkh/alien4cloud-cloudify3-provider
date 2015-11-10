@@ -199,6 +199,7 @@ public class BlueprintService {
 
         if (!alienDeployment.getNonNatives().isEmpty()) {
             Files.copy(pluginRecipeResourcesPath.resolve("wrapper/scriptWrapper.sh"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.sh"));
+            Files.copy(pluginRecipeResourcesPath.resolve("wrapper/scriptWrapper.bat"), generatedBlueprintDirectoryPath.resolve("scriptWrapper.bat"));
         }
 
         // custom workflows section
@@ -218,7 +219,6 @@ public class BlueprintService {
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/workflows.py"), context);
         FileUtil.zip(generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin"),
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin.zip"));
-
         // Generate the blueprint at the end
         VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
