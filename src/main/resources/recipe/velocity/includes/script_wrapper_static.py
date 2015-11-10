@@ -180,12 +180,6 @@ def parse_output(output):
 
 
 def execute(script_path, process, outputNames):
-    if platform.system() == 'Windows':
-        wrapper_path = ctx.download_resource("scriptWrapper.bat")
-    else:
-        wrapper_path = ctx.download_resource("scriptWrapper.sh")
-    os.chmod(wrapper_path, 0755)
-
     os.chmod(script_path, 0755)
     on_posix = 'posix' in sys.builtin_module_names
 
@@ -195,6 +189,11 @@ def execute(script_path, process, outputNames):
 
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
+        if platform.system() == 'Windows':
+            wrapper_path = ctx.download_resource("scriptWrapper.bat")
+        else:
+            wrapper_path = ctx.download_resource("scriptWrapper.sh")
+        os.chmod(wrapper_path, 0755)
         command = '{0} {1}'.format(wrapper_path, script_path)
     else:
         command = script_path
