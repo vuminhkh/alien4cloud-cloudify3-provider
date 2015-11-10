@@ -180,12 +180,6 @@ def parse_output(output):
 
 
 def execute(script_path, process, outputNames):
-    if platform.system() == 'Windows':
-        wrapper_path = ctx.download_resource("scriptWrapper.bat")
-    else:
-        wrapper_path = ctx.download_resource("scriptWrapper.sh")
-    os.chmod(wrapper_path, 0755)
-
     os.chmod(script_path, 0755)
     on_posix = 'posix' in sys.builtin_module_names
 
@@ -195,6 +189,11 @@ def execute(script_path, process, outputNames):
 
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
+        if platform.system() == 'Windows':
+            wrapper_path = ctx.download_resource("scriptWrapper.bat")
+        else:
+            wrapper_path = ctx.download_resource("scriptWrapper.sh")
+        os.chmod(wrapper_path, 0755)
         command = '{0} {1}'.format(wrapper_path, script_path)
     else:
         command = script_path
@@ -230,15 +229,17 @@ def execute(script_path, process, outputNames):
         for outputName in outputNameList:
             ctx.logger.info('Ouput name: {0} value : {1}'.format(outputName, parsed_output['outputs'][outputName]))
 
-    ok_message = "Script {0} executed normally with standard output {1} and error output {2}".format(command, stdout_consumer.buffer.getvalue(),
-                                                                                                     stderr_consumer.buffer.getvalue())
-    error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,
-                                                                                                                         stdout_consumer.buffer.getvalue(),
-                                                                                                                         stderr_consumer.buffer.getvalue())
     if return_code != 0:
+        error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,
+                                                                                                                             stdout_consumer.buffer.getvalue(),
+                                                                                                                             stderr_consumer.buffer.getvalue())
+        error_message = str(unicode(error_message, errors='ignore'))
         ctx.logger.error(error_message)
         raise NonRecoverableError(error_message)
     else:
+        ok_message = "Script {0} executed normally with standard output {1} and error output {2}".format(command, stdout_consumer.buffer.getvalue(),
+                                                                                                         stderr_consumer.buffer.getvalue())
+        ok_message = str(unicode(ok_message, errors='ignore'))
         ctx.logger.info(ok_message)
 
     return parsed_output

@@ -5,12 +5,10 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
-import alien4cloud.paas.cloudify3.configuration.Imports;
-import com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-
-import com.google.common.collect.Maps;
 
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.orchestrators.ArtifactSupport;
@@ -18,7 +16,10 @@ import alien4cloud.model.orchestrators.locations.LocationSupport;
 import alien4cloud.orchestrators.plugin.IOrchestratorPluginFactory;
 import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
-import lombok.extern.slf4j.Slf4j;
+import alien4cloud.paas.cloudify3.configuration.Imports;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @Slf4j
 public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<CloudifyOrchestrator, CloudConfiguration> {
@@ -42,8 +43,10 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
     public CloudConfiguration getDefaultConfiguration() {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
         Imports imports = new Imports();
-        imports.setAws(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml", "http://www.getcloudify.org/spec/aws-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
-        imports.setOpenstack(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml", "http://www.getcloudify.org/spec/openstack-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
+        imports.setAws(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
+                "http://www.getcloudify.org/spec/aws-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
+        imports.setOpenstack(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
+                "http://www.getcloudify.org/spec/openstack-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
         cloudConfiguration.setImports(imports);
         return cloudConfiguration;
     }
@@ -88,6 +91,6 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
 
     @Override
     public ArtifactSupport getArtifactSupport() {
-        return new ArtifactSupport(new String[] { "tosca.artifacts.Implementation.Bash" });
+        return new ArtifactSupport(new String[] { "tosca.artifacts.Implementation.Bash", "alien.artifacts.BatchScript" });
     }
 }
