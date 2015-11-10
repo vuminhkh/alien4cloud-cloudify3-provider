@@ -1,6 +1,7 @@
 @echo off
 setlocal ENABLEDELAYEDEXPANSION
 call %1 %*
+if %errorlevel% neq 0 exit /b %errorlevel%
 set token=%EXPECTED_OUTPUTS%
 :loop
 if "!token!" EQU "" goto END

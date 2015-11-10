@@ -49,7 +49,6 @@ if other_instances_map is not None:
         env_map[other_instances_key + '$inputEntry.key'] = other_instances_map[other_instances_key]
 #end
 #end
-convert_env_value_to_string(env_map)
 new_script_process = {'env': env_map}
 
 #if($util.nonNative.operationHasDeploymentArtifacts($operation))
@@ -99,6 +98,7 @@ operationOutputNames = None
 #if(${operation.getOutputs()} && !${operation.getOutputs().isEmpty()})
 operationOutputNames = '${util.nonNative.getOperationOutputNames(${operation})}'
 #end
+convert_env_value_to_string(new_script_process['env'])
 parsed_output = execute(ctx.download_resource('${util.nonNative.getArtifactRelativePath(${operation.implementationArtifact})}'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))
