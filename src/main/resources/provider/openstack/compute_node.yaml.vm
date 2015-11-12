@@ -43,7 +43,7 @@
       cloudify.interfaces.worker_installer:
         install:
           inputs:
-            cloudify_agent: &CLOUDIFY_AGENT
+            cloudify_agent: &CLOUDIFY_AGENT_${compute.id}
               service:
                 successful_consecutive_status_queries_count: 10
                 status_transition_sleep_interval: 5
@@ -57,20 +57,20 @@
 #end
         start:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
         stop:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
         uninstall:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
         restart:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
       cloudify.interfaces.plugin_installer:
         install:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
 #if(!$computeHardSetPassword)
   ${mapping.generatedNodePrefix}_key_pair_for_${compute.id}:
     type: cloudify.openstack.nodes.KeyPair
