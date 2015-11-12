@@ -51,6 +51,10 @@ public class AmazonLocationConfigurator implements ITypeAwareLocationConfigurato
 
     public static final Set<String> FILTERS = Sets.newHashSet();
 
+    static {
+        FILTERS.add("alien.nodes.PublicNetwork");
+    }
+
     @PostConstruct
     public void postConstruct() {
         this.archives = Lists.newArrayList();

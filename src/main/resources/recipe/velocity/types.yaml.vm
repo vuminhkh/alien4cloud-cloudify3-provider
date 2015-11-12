@@ -1,4 +1,4 @@
-## Compute types
+## Native types
 #if($util.common.collectionHasElement(${deployment.nativeTypes}))
 #foreach($nativeType in ${deployment.nativeTypes})
   ${nativeType.elementId}:
@@ -23,3 +23,4 @@
 #end
 #end
 #end
+#parse("provider/${deployment.locationType}/provider_types.yaml.vm")
