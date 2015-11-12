@@ -1,17 +1,17 @@
 package alien4cloud.paas.cloudify3.configuration;
 
-import alien4cloud.ui.form.annotation.FormProperties;
+import java.util.List;
+
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
+import alien4cloud.ui.form.annotation.FormProperties;
 
 @Getter
 @Setter
-@FormProperties({"openstack", "aws"})
+@FormProperties({ "openstack", "amazon" })
 public class Imports {
 
     private List<String> openstack;
 
-    private List<String> aws;
+    private List<String> amazon;
 }

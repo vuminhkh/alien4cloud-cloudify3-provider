@@ -1,6 +1,7 @@
 #parse("provider/common/generic_resource.yaml.vm")
 #foreach($compute in ${deployment.computes})
 #set($computeHardSetPassword = ${compute.nodeTemplate.properties.get("password").value})
+#set($computeIsWindows = (${compute.nodeTemplate.type} == "alien.nodes.openstack.WindowsCompute"))
   ${compute.id}:
     type: ${compute.nodeTemplate.type}
     properties: ${util.natives.formatProperties(3, $compute.nodeTemplate.properties, $deployment.propertyMappings, $compute.nodeTemplate.type)}
@@ -17,7 +18,7 @@
 #end
 #set( $publicNetworks = ${util.network.getExternalNetworks($compute)} )
 #set( $privateNetworks = ${util.network.getInternalNetworks($compute)} )
-#if($util.collectionHasElement(${publicNetworks}) || $util.collectionHasElement(${privateNetworks}) || !$computeHardSetPassword)
+#if($util.collectionHasElement(${publicNetworks}) || $util.collectionHasElement(${privateNetworks}) || (!$computeHardSetPassword && $computeIsWindows))
     relationships:
 #foreach($internalNetwork in $privateNetworks)
       - target: ${internalNetwork.id}
@@ -30,7 +31,7 @@
         type: cloudify.openstack.server_connected_to_floating_ip
 #end
 #end
-#if(${compute.nodeTemplate.type} == "alien.nodes.openstack.WindowsCompute")
+#if($computeIsWindows)
 #if(!$computeHardSetPassword)
       - target: ${mapping.generatedNodePrefix}_key_pair_for_${compute.id}
         type: cloudify.openstack.server_connected_to_keypair
