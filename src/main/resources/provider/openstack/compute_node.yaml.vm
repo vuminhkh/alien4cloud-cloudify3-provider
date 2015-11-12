@@ -49,7 +49,7 @@
                 status_transition_sleep_interval: 5
                 start_timeout: 240
                 stop_timeout: 240
-              user: ${compute.nodeTemplate.properties.get("user").value}
+              user: "${compute.nodeTemplate.properties.get("user").value}"
 #if($computeHardSetPassword)
               password: "$computeHardSetPassword"
 #else

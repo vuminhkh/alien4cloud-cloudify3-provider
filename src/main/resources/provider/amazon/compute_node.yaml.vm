@@ -36,8 +36,8 @@
                 status_transition_sleep_interval: 5
                 start_timeout: 240
                 stop_timeout: 240
-              user: ${compute.nodeTemplate.properties.get("user").value}
-              password: ${compute.nodeTemplate.properties.get("password").value}
+              user: "${compute.nodeTemplate.properties.get("user").value}"
+              password: "${compute.nodeTemplate.properties.get("password").value}"
         start:
           inputs:
             cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
