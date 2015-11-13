@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.elasticsearch.common.base.Objects;
 import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.collect.Maps;
 import org.elasticsearch.common.collect.Sets;
@@ -60,20 +61,14 @@ import alien4cloud.utils.TypeMap;
 public class ScalableComputeReplacementService {
 
     private static final String DELETABLE_VOLUME_TYPE = "alien.cloudify.openstack.nodes.DeletableVolume";
-
     private static final String PUBLIC_NETWORK_TYPE = "alien.nodes.openstack.PublicNetwork";
-
     private static final String DELETABLE_PROPERTY = "deletable";
-
     private static final String SCALABLE_COMPUTE_TYPE = "alien.nodes.openstack.ScalableCompute";
-
     private static final String SCALABLE_COMPUTE_VOLUMES_PROPERTY = "volumes";
-
     private static final String SCALABLE_COMPUTE_FIPS_PROPERTY = "floatingips";
-
     private static final String SUBSTITUE_FOR_PROPERTY = "_a4c_substitute_for";
-
     private static final String USE_EXTERNAL_RESOURCE_PROPERTY = "use_external_resource";
+    private static final String RESOURCE_NAME_PROPERTY = "resource_name";
 
     @Inject
     private TopologyTreeBuilderService topologyTreeBuilderService;
@@ -203,21 +198,19 @@ public class ScalableComputeReplacementService {
         addSubsituteForPropertyValue(computeNodeTemplate, storageNode.getId());
         // transfert the properties of the storage node to the scalable compute node
         ComplexPropertyValue embededVolumeProperty = buildAndFeedComplexProperty(computeNodeTemplate, storageNodeTemplate, SCALABLE_COMPUTE_VOLUMES_PROPERTY);
+
+        // add resource_name
+        addProperty(embededVolumeProperty.getValue(), RESOURCE_NAME_PROPERTY, new ScalarPropertyValue(storageNode.getId()));
+
         // add deletable property
-        if (storageNodeTemplate.getType().equals(DELETABLE_VOLUME_TYPE)) {
-            embededVolumeProperty.getValue().put(DELETABLE_PROPERTY, new ScalarPropertyValue(Boolean.TRUE.toString()));
-        } else {
-            embededVolumeProperty.getValue().put(DELETABLE_PROPERTY, new ScalarPropertyValue(Boolean.FALSE.toString()));
-        }
+        addProperty(embededVolumeProperty.getValue(), DELETABLE_PROPERTY,
+                new ScalarPropertyValue(Boolean.valueOf(Objects.equal(storageNodeTemplate.getType(), DELETABLE_VOLUME_TYPE)).toString()));
 
         // add "use_external_resource" property
-        boolean useExternalResource = false;
-        String volumeId = FunctionEvaluator
-                .getScalarValue((ScalarPropertyValue) embededVolumeProperty.getValue().get(NormativeBlockStorageConstants.VOLUME_ID));
-        if (StringUtils.isNotBlank(volumeId)) {
-            useExternalResource = true;
-        }
-        embededVolumeProperty.getValue().put(USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean.valueOf(useExternalResource).toString()));
+        ScalarPropertyValue volumeIdScalar = (ScalarPropertyValue) embededVolumeProperty.getValue().get(NormativeBlockStorageConstants.VOLUME_ID);
+        String volumeId = FunctionEvaluator.getScalarValue(volumeIdScalar);
+        addProperty(embededVolumeProperty.getValue(), USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean.valueOf(StringUtils.isNotBlank(volumeId))
+                .toString()));
 
         // change all relationships that target the storage to make them target the compute
         transfertNodeTargetRelationships(deploymentContext, computeNode, storageNode, SCALABLE_COMPUTE_VOLUMES_PROPERTY, indexInList, cache);
@@ -230,6 +223,9 @@ public class ScalableComputeReplacementService {
         addSubsituteForPropertyValue(computeNodeTemplate, networkNode.getId());
         // transfert the properties of the storage node to the scalable compute node
         ComplexPropertyValue embededFloatingProperty = buildAndFeedComplexProperty(computeNodeTemplate, networkNodeTemplate, SCALABLE_COMPUTE_FIPS_PROPERTY);
+
+        // add resource_name
+        addProperty(embededFloatingProperty.getValue(), RESOURCE_NAME_PROPERTY, new ScalarPropertyValue(networkNode.getId()));
         // TODO: manage existing floating ip
         embededFloatingProperty.getValue().put(USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean.FALSE.toString()));
         // change all relationships that target the network to make them target the compute
@@ -308,6 +304,10 @@ public class ScalableComputeReplacementService {
                 }
             }
         }
+    }
+
+    private void addProperty(Map<String, Object> map, String propertyName, Object propertyValue) {
+        map.put(propertyName, propertyValue);
     }
 
     public static List getSubstituteForPropertyAsList(Node node) {

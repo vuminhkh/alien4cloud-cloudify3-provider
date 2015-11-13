@@ -108,7 +108,7 @@ data_types:
         required: true
       deletable:
         type: boolean
-        default: false;
+        default: false
       # inherited from tosca.nodes.BlockStorage
       size:
         type: scalar-unit.size
@@ -134,6 +134,7 @@ data_types:
           e.g., ‘/dev/hda1’
           Note: this property will be moved in next releases to the AttachTo relationship as it is specified by TOSCA spec.
         required: false
+
     tags:
       _a4c_c3_prop_map: >
         {"size": {"path": "volume.size", "unit": "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id"}
@@ -167,7 +168,7 @@ data_types:
         required: false
     tags:
       _a4c_c3_prop_map: >
-        {"network_name": "floatingip.floating_network_name"}        
+        {"network_name": "floatingip.floating_network_name"}
 
 node_types:
   alien.nodes.openstack.Image:
@@ -233,7 +234,7 @@ node_types:
     abstract: false
     derived_from: alien.nodes.openstack.Compute
     tags:
-      _a4c_c3_derived_from: cloudify.openstack.nodes.ScalableServer    
+      _a4c_c3_derived_from: cloudify.openstack.nodes.ScalableServer
     properties:
       volumes:
         type: list

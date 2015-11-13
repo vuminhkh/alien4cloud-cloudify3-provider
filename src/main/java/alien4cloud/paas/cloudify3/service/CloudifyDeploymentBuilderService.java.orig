@@ -5,8 +5,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+<<<<<<< HEAD
 import javax.inject.Inject;
 
+import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
+=======
+>>>>>>> 0d62567da8514144263a6701759413219bdab5e8
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -29,11 +33,14 @@ import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+<<<<<<< HEAD
+import alien4cloud.paas.wf.WorkflowsBuilderService;
+import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
+=======
 import alien4cloud.paas.wf.AbstractStep;
 import alien4cloud.paas.wf.NodeActivityStep;
 import alien4cloud.paas.wf.Workflow;
-import alien4cloud.paas.wf.WorkflowsBuilderService;
-import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
+>>>>>>> 0d62567da8514144263a6701759413219bdab5e8
 import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 
