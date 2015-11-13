@@ -30,22 +30,27 @@ def get_host(entity):
 
 def has_attribute_mapping(entity, attribute_name):
     ctx.logger.info('Check if it exists mapping for attribute {0} in {1}'.format(attribute_name, entity.node.properties))
-    return ('_a4c_att_' + attribute_name) in entity.node.properties
+    mapping_configuration = entity.node.properties.get('_a4c_att_' + attribute_name, None)
+    if mapping_configuration is not None:
+        if mapping_configuration['parameters'][0] == 'SELF' and mapping_configuration['parameters'][1] == attribute_name:
+            return False
+        else:
+            return True
+    return False
 
 
 def process_attribute_mapping(entity, attribute_name, data_retriever_function):
     # This is where attribute mapping is defined in the cloudify type
     mapping_configuration = entity.node.properties['_a4c_att_' + attribute_name]
     ctx.logger.info('Mapping configuration found for attribute {0} is {1}'.format(attribute_name, mapping_configuration))
-    if mapping_configuration:
-        # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
-        # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
-        if mapping_configuration['parameters'][0] == 'SELF':
-            return data_retriever_function(entity, mapping_configuration['parameters'][1])
-        elif mapping_configuration['parameters'][0] == 'TARGET' and entity.instance.relationships:
-            for relationship in entity.instance.relationships:
-                if mapping_configuration['parameters'][1] in relationship.type_hierarchy:
-                    return data_retriever_function(relationship.target, mapping_configuration['parameters'][2])
+    # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
+    # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
+    if mapping_configuration['parameters'][0] == 'SELF':
+        return data_retriever_function(entity, mapping_configuration['parameters'][1])
+    elif mapping_configuration['parameters'][0] == 'TARGET' and entity.instance.relationships:
+        for relationship in entity.instance.relationships:
+            if mapping_configuration['parameters'][1] in relationship.type_hierarchy:
+                return data_retriever_function(relationship.target, mapping_configuration['parameters'][2])
     return ""
 
 
@@ -122,25 +127,30 @@ def __get_relationship(node, target_name, relationship_type):
 
 def __has_attribute_mapping(node, attribute_name):
     ctx.logger.info('Check if it exists mapping for attribute {0} in {1}'.format(attribute_name, node.properties))
-    return ('_a4c_att_' + attribute_name) in node.properties
+    mapping_configuration = node.properties.get('_a4c_att_' + attribute_name, None)
+    if mapping_configuration is not None:
+        if mapping_configuration['parameters'][0] == 'SELF' and mapping_configuration['parameters'][1] == attribute_name:
+            return False
+        else:
+            return True
+    return False
 
 
 def __process_attribute_mapping(node, node_instance, attribute_name, data_retriever_function):
     # This is where attribute mapping is defined in the cloudify type
     mapping_configuration = node.properties['_a4c_att_' + attribute_name]
     ctx.logger.info('Mapping configuration found for attribute {0} is {1}'.format(attribute_name, mapping_configuration))
-    if mapping_configuration:
-        # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
-        # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
-        if mapping_configuration['parameters'][0] == 'SELF':
-            return data_retriever_function(node, node_instance, mapping_configuration['parameters'][1])
-        elif mapping_configuration['parameters'][0] == 'TARGET' and node_instance.relationships:
-            for rel in node_instance.relationships:
-                relationship = __get_relationship(node, rel.get('target_name'), rel.get('type'))
-                if mapping_configuration['parameters'][1] in relationship.get('type_hierarchy'):
-                    target_instance = client.node_instances.get(rel.get('target_id'))
-                    target_node = client.nodes.get(ctx.deployment.id, target_instance.node_id)
-                    return data_retriever_function(target_node, target_instance, mapping_configuration['parameters'][2])
+    # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
+    # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
+    if mapping_configuration['parameters'][0] == 'SELF':
+        return data_retriever_function(node, node_instance, mapping_configuration['parameters'][1])
+    elif mapping_configuration['parameters'][0] == 'TARGET' and node_instance.relationships:
+        for rel in node_instance.relationships:
+            relationship = __get_relationship(node, rel.get('target_name'), rel.get('type'))
+            if mapping_configuration['parameters'][1] in relationship.get('type_hierarchy'):
+                target_instance = client.node_instances.get(rel.get('target_id'))
+                target_node = client.nodes.get(ctx.deployment.id, target_instance.node_id)
+                return data_retriever_function(target_node, target_instance, mapping_configuration['parameters'][2])
     return None
 
 

@@ -23,7 +23,7 @@
 #foreach($internalNetwork in $privateNetworks)
       - target: ${internalNetwork.id}
         type: cloudify.relationships.connected_to
-      - target: ${internalNetwork.id}_subnet
+      - target: ${mapping.generatedNodePrefix}_${internalNetwork.id}_subnet
         type: cloudify.relationships.depends_on
 #end
 #foreach($externalNetwork in $publicNetworks)
