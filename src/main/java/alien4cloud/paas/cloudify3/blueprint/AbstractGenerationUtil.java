@@ -10,7 +10,6 @@ import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
-import alien4cloud.paas.cloudify3.service.model.NativeType;
 
 @AllArgsConstructor
 public abstract class AbstractGenerationUtil {
