@@ -287,8 +287,8 @@ public class ScalableComputeReplacementService {
                                             if (ToscaFunctionConstants.TARGET.equals(functionPropertyValue.getTemplateName())) {
                                                 // ok we have a get_attribute on a TARGET, we have to change this
                                                 String attributeName = functionPropertyValue.getElementNameToFetch();
-                                                // TODO: for the moment, we prefix the attribute this way : volumes_0_device
-                                                functionPropertyValue.setElementNameToFetch(mainPropertyListName + "_" + indexInList + "_" + attributeName);
+                                                // we want to transform the function into a one fetching nested properties
+                                                transformFunction(functionPropertyValue, mainPropertyListName, String.valueOf(indexInList), attributeName);
                                                 typeAsChanged = true;
                                             }
                                         }
@@ -304,6 +304,14 @@ public class ScalableComputeReplacementService {
                 }
             }
         }
+    }
+
+    private void transformFunction(FunctionPropertyValue function, String mainPropertyListName, String nodeName, String attributeName) {
+        String att = attributeName;
+        if ("device".equals(attributeName)) {
+            att = "device_name";
+        }
+        function.replaceAllParamsExceptTemplateNameWith(mainPropertyListName, nodeName, att);
     }
 
     private void addProperty(Map<String, Object> map, String propertyName, Object propertyValue) {
