@@ -89,7 +89,9 @@ public class AbstractDeploymentTest extends AbstractTest {
     @Before
     public void before() throws Exception {
         super.before();
-        // cleanDeployments();
+        if (online) {
+            cleanDeployments();
+        }
     }
 
     @After

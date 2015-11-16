@@ -6,7 +6,6 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
-import alien4cloud.paas.cloudify3.location.AmazonLocationConfigurator;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +16,7 @@ import alien4cloud.model.topology.Topology;
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
+import alien4cloud.paas.cloudify3.location.AmazonLocationConfigurator;
 import alien4cloud.paas.cloudify3.location.OpenstackLocationConfigurator;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
 import alien4cloud.tosca.ArchiveIndexer;
@@ -54,6 +54,8 @@ public class AbstractTest {
 
     private static boolean isInitialized = false;
 
+    boolean online = true;
+
     @Resource
     private CSARUtil csarUtil;
 
@@ -79,14 +81,22 @@ public class AbstractTest {
         }
         FileUtil.delete(Paths.get(repositoryCsarDirectory));
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
-        String cloudifyURL = System.getenv("CLOUDIFY_URL");
-        if (cloudifyURL == null) {
-            cloudifyURL = Context.getInstance().getCloudify3ManagerUrl();
+        if (online) {
+            String cloudifyURL = System.getenv("CLOUDIFY_URL");
+            if (cloudifyURL == null) {
+                cloudifyURL = Context.getInstance().getCloudify3ManagerUrl();
+            }
+            cloudConfiguration.setUrl(cloudifyURL);
         }
-        cloudConfiguration.setUrl(cloudifyURL);
         CloudConfiguration defaultConfiguration = new CloudifyOrchestratorFactory().getDefaultConfiguration();
         cloudConfiguration.setImports(defaultConfiguration.getImports());
-        cloudConfigurationHolder.setConfiguration(cloudConfiguration);
+        try {
+            cloudConfigurationHolder.setConfiguration(cloudConfiguration);
+        } catch (Exception e) {
+            if (online) {
+                throw e;
+            }
+        }
         csarUtil.uploadAll();
         // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded
         openstackLocationConfigurator.postConstruct();

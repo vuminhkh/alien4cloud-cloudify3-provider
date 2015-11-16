@@ -6,7 +6,6 @@ import java.nio.file.StandardCopyOption;
 
 import javax.annotation.Resource;
 
-import alien4cloud.paas.cloudify3.util.LocationUtil;
 import lombok.SneakyThrows;
 
 import org.junit.Assert;
@@ -22,6 +21,7 @@ import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.ScalableComputeReplacementService;
 import alien4cloud.paas.cloudify3.util.FileTestUtil;
+import alien4cloud.paas.cloudify3.util.LocationUtil;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.utils.FileUtil;
 
@@ -42,18 +42,19 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     private ScalableComputeReplacementService scalableComputeReplacementService;
 
     private boolean record = true;
-    private boolean validateOnCdfyManager = true;
 
     @Override
     @Before
     public void before() throws Exception {
         super.before();
         Thread.sleep(1000L);
-        Blueprint[] blueprints = blueprintDAO.list();
-        for (Blueprint blueprint : blueprints) {
-            blueprintDAO.delete(blueprint.getId());
+        if (online) {
+            Blueprint[] blueprints = blueprintDAO.list();
+            for (Blueprint blueprint : blueprints) {
+                blueprintDAO.delete(blueprint.getId());
+            }
+            Thread.sleep(1000L);
         }
-        Thread.sleep(1000L);
     }
 
     private interface DeploymentContextVisitor {
@@ -84,7 +85,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         if (record) {
             FileUtil.delete(Paths.get(recordedDirectory));
             FileUtil.copy(generatedDirectory, Paths.get(recordedDirectory), StandardCopyOption.REPLACE_EXISTING);
-            if (validateOnCdfyManager) {
+            if (online) {
                 // Check if cloudify accept the blueprint
                 blueprintDAO.create(topology, generated.toString());
                 blueprintDAO.delete(topology);
@@ -152,13 +153,13 @@ public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Test
     public void testGenerateScalableBlockStorage() {
-        validateOnCdfyManager = false;
+        // validateOnCdfyManager = false;
         testGeneratedBlueprintFile(SCALABLE_STORAGE_TOPOLOGY, getScalableReplacementVisitor());
     }
 
     @Test
     public void testGenerateScalableFloatingIp() {
-        validateOnCdfyManager = false;
+        // validateOnCdfyManager = false;
         testGeneratedBlueprintFile(SCALABLE_FLOAATING_IP_TOPOLOGY, getScalableReplacementVisitor());
     }
 
