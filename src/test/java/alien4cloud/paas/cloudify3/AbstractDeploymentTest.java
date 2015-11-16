@@ -10,6 +10,8 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Resource;
 
+import alien4cloud.paas.cloudify3.location.OpenstackLocationConfigurator;
+import alien4cloud.paas.cloudify3.util.LocationUtil;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -80,7 +82,7 @@ public class AbstractDeploymentTest extends AbstractTest {
             }
             Thread.sleep(1000L);
             // Clean internal events queue
-            eventService.getEventsSince(now, Integer.MAX_VALUE).get();
+            // eventService.getEventsSince(now, Integer.MAX_VALUE).get();
         }
     }
 
@@ -93,7 +95,7 @@ public class AbstractDeploymentTest extends AbstractTest {
 
     @After
     public void after() throws Exception {
-//        cleanDeployments();
+        // cleanDeployments();
     }
 
     protected PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName) {
@@ -112,7 +114,7 @@ public class AbstractDeploymentTest extends AbstractTest {
         deploymentContext.setDeployment(deployment);
         Map<String, Location> locationMap = Maps.newHashMap();
         Location location = new Location();
-        location.setInfrastructureType("openstack");
+        location.setInfrastructureType(LocationUtil.getType());
         locationMap.put(AlienConstants.GROUP_ALL, location);
         deploymentContext.setLocations(locationMap);
         return deploymentContext;

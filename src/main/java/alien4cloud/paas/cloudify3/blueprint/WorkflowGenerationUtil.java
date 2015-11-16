@@ -1,17 +1,27 @@
 package alien4cloud.paas.cloudify3.blueprint;
 
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.collections4.MapUtils;
+
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
+import alien4cloud.paas.cloudify3.service.model.HostWorkflow;
+import alien4cloud.paas.cloudify3.service.model.WorkflowStepLink;
+import alien4cloud.paas.cloudify3.service.model.Workflows;
 import alien4cloud.paas.wf.AbstractStep;
 import alien4cloud.paas.wf.DelegateWorkflowActivity;
 import alien4cloud.paas.wf.NodeActivityStep;
 import alien4cloud.paas.wf.OperationCallActivity;
 import alien4cloud.paas.wf.SetStateActivity;
 import alien4cloud.paas.wf.Workflow;
+
+import com.google.common.collect.Lists;
 
 @Slf4j
 public class WorkflowGenerationUtil extends AbstractGenerationUtil {
@@ -35,6 +45,34 @@ public class WorkflowGenerationUtil extends AbstractGenerationUtil {
 
     public boolean isDelegateActivityStep(AbstractStep step) {
         return step instanceof NodeActivityStep && ((NodeActivityStep) step).getActivity() instanceof DelegateWorkflowActivity;
+    }
+
+    public List<WorkflowStepLink> getExternalLinkns(Workflows workflows, String workflowName) {
+        switch (workflowName) {
+        case Workflow.INSTALL_WF:
+            return getExternalLinks(workflows.getInstallHostWorkflows());
+        case Workflow.UNINSTALL_WF:
+            return getExternalLinks(workflows.getUninstallHostWorkflows());
+        default:
+            return null;
+        }
+    }
+
+    private List<WorkflowStepLink> getExternalLinks(Map<String, HostWorkflow> installWorkflowSteps) {
+        List<WorkflowStepLink> links = Lists.newArrayList();
+        if (MapUtils.isNotEmpty(installWorkflowSteps)) {
+            for (HostWorkflow wf : installWorkflowSteps.values()) {
+                links.addAll(wf.getExternalLinks());
+            }
+        }
+        return links;
+    }
+
+    /**
+     * Just format the string to make it usable as a method name.
+     */
+    public String getPythonNormalizedString(String input) {
+        return input.replaceAll("-", "_").replaceAll(" ", "_").toLowerCase();
     }
 
 }

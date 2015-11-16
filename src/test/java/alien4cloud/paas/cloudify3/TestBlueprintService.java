@@ -6,6 +6,7 @@ import java.nio.file.StandardCopyOption;
 
 import javax.annotation.Resource;
 
+import alien4cloud.paas.cloudify3.util.LocationUtil;
 import lombok.SneakyThrows;
 
 import org.junit.Assert;
@@ -36,7 +37,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
-    private boolean record = true;
+    private boolean record = false;
 
     @Override
     @Before
@@ -68,7 +69,7 @@ public class TestBlueprintService extends AbstractDeploymentTest {
         }
         Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(context));
         Path generatedDirectory = generated.getParent();
-        String recordedDirectory = "src/test/resources/outputs/blueprints/" + outputFile;
+        String recordedDirectory = "src/test/resources/outputs/blueprints/" + LocationUtil.getType() + "/" + outputFile;
         if (record) {
             FileUtil.delete(Paths.get(recordedDirectory));
             FileUtil.copy(generatedDirectory, Paths.get(recordedDirectory), StandardCopyOption.REPLACE_EXISTING);
@@ -84,6 +85,11 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Test
     public void testGenerateSingleCompute() {
         testGeneratedBlueprintFile(SINGLE_COMPUTE_TOPOLOGY);
+    }
+
+    @Test
+    public void testGenerateSingleWindowsCompute() {
+        testGeneratedBlueprintFile(SINGLE_WINDOWS_COMPUTE_TOPOLOGY);
     }
 
     @Test

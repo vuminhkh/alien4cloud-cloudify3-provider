@@ -9,37 +9,23 @@ node_types:
   alien.nodes.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
-      _a4c_mapped_to:
-        default: cloudify.openstack.nodes.Server
-      server:
-        default: {}
-      use_external_resource:
-        default: ""
-      resource_id:
-        default: ""
-      image:
-        default: ""
-      flavor:
-        default: ""
-      management_network_name:
-        default: ""
-      use_password:
-        default: ""
-      openstack_config:
-        default: {}
+      _a4c_att_public_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - TARGET
+            - cloudify.openstack.server_connected_to_floating_ip
+            - floating_ip_address
+      _a4c_att_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - ip
 
 
 
 node_templates:
-
-
-  compute:
-    type: alien.nodes.openstack.Compute
-    properties: 
-      image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
-      flavor: 2
-
-
 
 
 

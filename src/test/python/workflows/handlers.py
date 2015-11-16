@@ -65,3 +65,12 @@ def host_pre_stop(host_node_instance):
                 'cloudify.interfaces.worker_installer.uninstall')
         ]
     return tasks
+
+
+def build_persistent_event_task(instance):
+    return None
+
+
+def build_wf_event_task(instance, step_id, stage):
+    event_msg = build_pre_event(WfEvent(stage, step_id))
+    return instance.send_event(event_msg)

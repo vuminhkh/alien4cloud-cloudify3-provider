@@ -157,6 +157,35 @@ node_types:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
 
+  alien.nodes.openstack.WindowsCompute:
+    derived_from: alien.nodes.openstack.Compute
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.WindowsServer
+      _a4c_c3_prop_map: >
+        {"key_pair": null, "private_key_path": null, "user": null, "password": null}
+    properties:
+      key_pair:
+        type: string
+        required: true
+        description: |
+          The existing keypair's name on OpenStack.
+          The private key must be copied to the manager's machine (or manager's docker container) to the path defined in private_key_path
+      private_key_path:
+        type: string
+        required: true
+        default: /root/.ssh/agent_key.pem
+        description: |
+          Path to the private key of the keypair defined in key_pair property on the manager's machine (or manager's docker container).
+          Default is set to the agent private key path
+      user:
+        type: string
+        required: true
+        default: Admin
+        description: The user to connect to the created VM in case the user/password has been created in the image.
+      password:
+        type: string
+        required: false
+        description: The password to connect to the created VM in case the user/password has been created in the image.
 # TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
   alien.nodes.PublicNetwork:
     abstract: true

@@ -5,10 +5,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import alien4cloud.model.components.*;
-import com.google.common.collect.Maps;
-
 import alien4cloud.model.common.Tag;
+import alien4cloud.model.components.AbstractPropertyValue;
+import alien4cloud.model.components.FunctionPropertyValue;
+import alien4cloud.model.components.IValue;
+import alien4cloud.model.components.IndexedNodeType;
+import alien4cloud.model.components.PropertyValue;
+import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
@@ -19,6 +22,8 @@ import alien4cloud.paas.cloudify3.util.mapping.PropertyValueUtil;
 import alien4cloud.paas.exception.NotSupportedException;
 import alien4cloud.utils.TagUtil;
 
+import com.google.common.collect.Maps;
+
 public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     public static final String MAPPED_TO_KEY = "_a4c_c3_derived_from";
@@ -26,6 +31,25 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
     public NativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
             PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
+    }
+
+    public String formatTextValue(int indentLevel, String text) {
+        if (text.contains("\n")) {
+            StringBuilder indentationBuffer = new StringBuilder();
+            for (int i = 0; i < indentLevel; i++) {
+                indentationBuffer.append("  ");
+            }
+            String indentation = indentationBuffer.toString();
+            StringBuilder formattedTextBuffer = new StringBuilder("|\n");
+            indentation += "  ";
+            String[] lines = text.split("\n");
+            for (String line : lines) {
+                formattedTextBuffer.append(indentation).append(line).append("\n");
+            }
+            return formattedTextBuffer.toString();
+        } else {
+            return text;
+        }
     }
 
     /**
@@ -86,7 +110,7 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
         for (Map.Entry<String, AbstractPropertyValue> propertyEntry : properties.entrySet()) {
             if (propertyEntry.getValue() != null) {
                 buffer.append("\n").append(indent(indentLevel)).append(propertyEntry.getKey()).append(": ")
-                        .append(formatPropertyValue(indentLevel + 1, propertyEntry.getValue()));
+                        .append(formatTextValue(indentLevel + 1, propertyEntry.getValue()));
             }
         }
         return buffer.toString();
@@ -105,7 +129,7 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
         return formatProperties(indentLevel, mappedProperties);
     }
 
-    private String formatPropertyValue(int indentLevel, AbstractPropertyValue propertyValue) {
+    private String formatTextValue(int indentLevel, AbstractPropertyValue propertyValue) {
         if (propertyValue instanceof PropertyValue) {
             return formatValue(indentLevel, ((PropertyValue) propertyValue).getValue());
         } else {
@@ -115,7 +139,7 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     private String formatValue(int indentLevel, Object value) {
         if (value instanceof String) {
-            return (String) value;
+            return formatTextValue(indentLevel, (String) value);
         } else if (value instanceof Map) {
             return formatMapValue(indentLevel, (Map<String, Object>) value);
         } else if (value instanceof Object[]) {

@@ -29,17 +29,18 @@ import json
 #         self.host_id = host_id
 #         self.activity = json.dumps(activity.__dict__)
 
+class WfStartEvent(object):
+
+    def __init__(self, workflow_name, subworkflow=None):
+        self.workflow_name = workflow_name
+        self.subworkflow = subworkflow
+
 
 class WfEvent(object):
 
-    def __init__(self, instance_id, stage, step_id):
-        self.instance_id = instance_id
+    def __init__(self, stage, step_id):
         self.stage = stage
         self.step_id = step_id
-
-
-def build_wf_event(wf_event):
-    return "wfe:" + json.dumps(wf_event.__dict__)
 
 
 class PersistentResourceEvent(object):

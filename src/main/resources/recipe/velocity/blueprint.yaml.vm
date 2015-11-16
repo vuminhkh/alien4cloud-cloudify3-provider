@@ -9,11 +9,11 @@ This template is used to generate cloudify 3 recipe from alien model
 tosca_definitions_version: $mapping.dslVersion
 
 imports:
-  - http://www.getcloudify.org/spec/cloudify/3.2/types.yaml
-#parse("provider/${deployment.locationType}/imports.yaml.vm")
+#foreach($import in $cloud.getImportsByLocation($deployment.locationType))
+  - $import
+#end
 
 node_types:
-
 #parse("types.yaml.vm")
 
 #if($util.collectionHasElement($deployment.nonNativesTypes))
@@ -93,6 +93,7 @@ plugins:
     source: custom_wf_plugin
 
 workflows:
-#foreach($wfEntry in ${deployment.workflows.entrySet()})
+#foreach($wfEntry in ${deployment.workflows.workflows.entrySet()})
   a4c_${wfEntry.key}: custom_wf_plugin.plugin.workflows.a4c_${wfEntry.key}
 #end
+  a4c_scale: custom_wf_plugin.plugin.workflows.a4c_scale
