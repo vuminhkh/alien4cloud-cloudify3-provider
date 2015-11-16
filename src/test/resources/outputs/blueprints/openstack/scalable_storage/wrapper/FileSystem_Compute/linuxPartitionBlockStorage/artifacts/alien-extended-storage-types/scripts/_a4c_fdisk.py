@@ -270,9 +270,9 @@ env_map['TARGET_INSTANCES'] = get_instance_list(ctx.target.node.id)
 env_map['SOURCE_NODE'] = ctx.source.node.id
 env_map['SOURCE_INSTANCE'] = ctx.source.instance.id
 env_map['SOURCE_INSTANCES'] = get_instance_list(ctx.source.node.id)
-env_map['DEVICE'] = get_attribute(ctx.target, 'volumes_0_device')
+env_map['DEVICE'] = get_attribute(ctx.target, 'device_name')
 env_map['PARTITION_TYPE'] = r'83'
-other_instances_map = _all_instances_get_attribute(ctx.target, 'volumes_0_device')
+other_instances_map = _all_instances_get_attribute(ctx.target, 'device_name')
 if other_instances_map is not None:
     for other_instances_key in other_instances_map:
         env_map[other_instances_key + 'DEVICE'] = other_instances_map[other_instances_key]

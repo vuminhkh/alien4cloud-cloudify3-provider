@@ -115,17 +115,19 @@ def create(nova_client, neutron_client, cinder_client, args, **kwargs):
 
     # Create floating ips
     floating_ips_properties = ctx.node.properties['floatingips']
-    floating_ip_index = 0
     for floating_ip_property in floating_ips_properties:
-        create_floatingip(neutron_client, floating_ip_index, floating_ip_property)
-        floating_ip_index += 1
+        if 'resource_name' in floating_ip_property:
+            create_floatingip(neutron_client, floating_ip_property['resource_name'], floating_ip_property)
+        else:
+            raise NonRecoverableError("floating_ip resource_name property not specified")
     # END Create floating ips
     # Create volume
     volumes_properties = ctx.node.properties['volumes']
-    volume_index = 0
     for volume_property in volumes_properties:
-        create_volume(cinder_client, volume_index, volume_property)
-        volume_index += 1
+        if 'resource_name' in volume_property:
+            create_volume(cinder_client, volume_property['resource_name'], volume_property)
+        else:
+            raise NonRecoverableError("volume resource_name property not specified")
     # END Create volume
 
     server = {
@@ -308,13 +310,13 @@ def start(nova_client, cinder_client, start_retry_interval, private_key_path, **
         _set_network_and_ip_runtime_properties(server)
         # Connect floating ips
         if 'floating_ips' in ctx.instance.runtime_properties:
-            for index in ctx.instance.runtime_properties['floating_ips']:
-                connect_floatingip(nova_client=nova_client, index=index, fixed_ip=None)
+            for resource_name in ctx.instance.runtime_properties['floating_ips']:
+                connect_floatingip(nova_client=nova_client, resource_name=resource_name, fixed_ip=None)
         # END Connect floating ips
         # Attach volumes
         if 'volumes' in ctx.instance.runtime_properties:
-            for index in ctx.instance.runtime_properties['volumes']:
-                attach_volume(nova_client=nova_client, cinder_client=cinder_client, index=index)
+            for resource_name in ctx.instance.runtime_properties['volumes']:
+                attach_volume(nova_client=nova_client, cinder_client=cinder_client, resource_name=resource_name)
         # END Attach volumes
         return
 
@@ -359,13 +361,13 @@ def stop(nova_client, cinder_client, **kwargs):
 
     # Disconnect floating ips
     if 'floating_ips' in ctx.instance.runtime_properties:
-        for index in ctx.instance.runtime_properties['floating_ips']:
-            disconnect_floatingip(nova_client=nova_client, index=index)
+        for resource_name in ctx.instance.runtime_properties['floating_ips']:
+            disconnect_floatingip(nova_client=nova_client, resource_name=resource_name)
     # END Disconnect floating ips
     # Detach volumes
     if 'volumes' in ctx.instance.runtime_properties:
-        for index in ctx.instance.runtime_properties['volumes']:
-            detach_volume(nova_client=nova_client, cinder_client=cinder_client, index=index)
+        for resource_name in ctx.instance.runtime_properties['volumes']:
+            detach_volume(nova_client=nova_client, cinder_client=cinder_client, resource_name=resource_name)
     # END Detach volumes
 
 
@@ -385,13 +387,13 @@ def delete(nova_client, neutron_client, cinder_client, **kwargs):
 
     # Delete floating ips
     if 'floating_ips' in ctx.instance.runtime_properties:
-        for index in ctx.instance.runtime_properties['floating_ips']:
-            delete_floatingip(neutron_client=neutron_client, index=index)
+        for resource_name in ctx.instance.runtime_properties['floating_ips']:
+            delete_floatingip(neutron_client=neutron_client, resource_name=resource_name)
     # END Delete floating ips
     # Delete volumes
     if 'volumes' in ctx.instance.runtime_properties:
-        for index in ctx.instance.runtime_properties['volumes']:
-            delete_volume(cinder_client=cinder_client, index=index)
+        for resource_name in ctx.instance.runtime_properties['volumes']:
+            delete_volume(cinder_client=cinder_client, resource_name=resource_name)
     # END Delete volumes
     delete_runtime_properties(ctx, RUNTIME_PROPERTIES_KEYS)
 
@@ -436,13 +438,12 @@ def _set_network_and_ip_runtime_properties(server):
     ctx.instance.runtime_properties[IP_PROPERTY] = manager_network_ip
 
 
-def set_floatingip_runtime_properties(index, id, type, name, ip, external, deletable):
+def set_floatingip_runtime_properties(resource_name, id, type, ip, external, deletable):
     if 'floating_ips' in ctx.instance.runtime_properties:
         ctx.instance.runtime_properties['floating_ips'].update({
-            str(index): {
+            resource_name: {
                 OPENSTACK_ID_PROPERTY: id,
                 OPENSTACK_TYPE_PROPERTY: type,
-                OPENSTACK_NAME_PROPERTY: name,
                 IP_ADDRESS_PROPERTY: ip,
                 USE_EXTERNAL_RESOURCE_PROPERTY: external,
                 'deletable': deletable
@@ -451,10 +452,9 @@ def set_floatingip_runtime_properties(index, id, type, name, ip, external, delet
     else:
         ctx.instance.runtime_properties.update({
             'floating_ips': {
-                str(index): {
+                resource_name: {
                     OPENSTACK_ID_PROPERTY: id,
                     OPENSTACK_TYPE_PROPERTY: type,
-                    OPENSTACK_NAME_PROPERTY: name,
                     IP_ADDRESS_PROPERTY: ip,
                     USE_EXTERNAL_RESOURCE_PROPERTY: external,
                     'deletable': deletable
@@ -463,12 +463,11 @@ def set_floatingip_runtime_properties(index, id, type, name, ip, external, delet
         })
 
 
-def create_floatingip(neutron_client, index, property):
+def create_floatingip(neutron_client, resource_name, property):
     external = property[USE_EXTERNAL_RESOURCE_PROPERTY]\
         if USE_EXTERNAL_RESOURCE_PROPERTY in property else False
     deletable = property['deletable']\
         if 'deletable' in property else False
-    name='floatingip_'+str(index)
 
     if external:
         resource_id = property['resource_id']
@@ -484,15 +483,14 @@ def create_floatingip(neutron_client, index, property):
         # store openstack name runtime property, unless it's a floating IP type,
         # in which case the ip will be stored in the runtime properties instead.
         ctx.logger.info('Using external resource {0}: {1}'.format(
-            FLOATINGIP_OPENSTACK_TYPE, property['resource_id']))
+            FLOATINGIP_OPENSTACK_TYPE, neutron_client.get_id_from_resource(resource)))
         ctx.logger.info('Using external resource {0}: {1}'.format(
             IP_ADDRESS_PROPERTY, resource['floating_ip_address']))
 
         set_floatingip_runtime_properties(
-            index=index,
+            resource_name=resource_name,
             id=neutron_client.get_id_from_resource(resource),
             type=FLOATINGIP_OPENSTACK_TYPE,
-            name=neutron_client.get_name_from_resource(resource),
             ip=resource['floating_ip_address'],
             external=external,
             deletable=deletable
@@ -523,10 +521,9 @@ def create_floatingip(neutron_client, index, property):
         {'floatingip': floatingip})['floatingip']
 
     set_floatingip_runtime_properties(
-        index=index,
+        resource_name=resource_name,
         id=fip['id'],
         type=FLOATINGIP_OPENSTACK_TYPE,
-        name=name,
         ip=fip[IP_ADDRESS_PROPERTY],
         external=external,
         deletable=deletable
@@ -536,12 +533,12 @@ def create_floatingip(neutron_client, index, property):
     return
 
 
-def connect_floatingip(nova_client, index, fixed_ip, **kwargs):
+def connect_floatingip(nova_client, resource_name, fixed_ip, **kwargs):
     server_id = ctx.instance.runtime_properties[OPENSTACK_ID_PROPERTY]
-    floating_ip_id = ctx.instance.runtime_properties['floating_ips'][str(index)][OPENSTACK_ID_PROPERTY]
+    floating_ip_id = ctx.instance.runtime_properties['floating_ips'][resource_name][OPENSTACK_ID_PROPERTY]
 
     if ctx.node.properties[USE_EXTERNAL_RESOURCE_PROPERTY]\
-        and ctx.instance.runtime_properties['floating_ips'][str(index)][USE_EXTERNAL_RESOURCE_PROPERTY]:
+        and ctx.instance.runtime_properties['floating_ips'][resource_name][USE_EXTERNAL_RESOURCE_PROPERTY]:
         ctx.logger.info('Validating external floatingip and server '
                         'are associated')
         if nova_client.floating_ips.get(floating_ip_id).instance_id ==\
@@ -552,34 +549,34 @@ def connect_floatingip(nova_client, index, fixed_ip, **kwargs):
             'connected'.format(server_id, floating_ip_id))
 
     floating_ip_address =\
-        ctx.instance.runtime_properties['floating_ips'][str(index)][IP_ADDRESS_PROPERTY]
+        ctx.instance.runtime_properties['floating_ips'][resource_name][IP_ADDRESS_PROPERTY]
     server = nova_client.servers.get(server_id)
     server.add_floating_ip(floating_ip_address, fixed_ip or None)
 
 
-def disconnect_floatingip(nova_client, index, **kwargs):
+def disconnect_floatingip(nova_client, resource_name, **kwargs):
     if ctx.node.properties[USE_EXTERNAL_RESOURCE_PROPERTY]\
-        and ctx.instance.runtime_properties['floating_ips'][str(index)][USE_EXTERNAL_RESOURCE_PROPERTY]:
+        and ctx.instance.runtime_properties['floating_ips'][resource_name][USE_EXTERNAL_RESOURCE_PROPERTY]:
         ctx.logger.info('Not disassociating floatingip and server since '
                         'external floatingip and server are being used')
         return
 
     server_id = ctx.instance.runtime_properties[OPENSTACK_ID_PROPERTY]
     floating_ip_address =\
-        ctx.instance.runtime_properties['floating_ips'][str(index)][IP_ADDRESS_PROPERTY]
+        ctx.instance.runtime_properties['floating_ips'][resource_name][IP_ADDRESS_PROPERTY]
     server = nova_client.servers.get(server_id)
     server.remove_floating_ip(floating_ip_address)
 
 
-def delete_floatingip(neutron_client, index):
+def delete_floatingip(neutron_client, resource_name):
     floating_ip_type =\
-        ctx.instance.runtime_properties['floating_ips'][str(index)][OPENSTACK_TYPE_PROPERTY]
-    if not ctx.instance.runtime_properties['floating_ips'][str(index)][USE_EXTERNAL_RESOURCE_PROPERTY]\
-        and ctx.instance.runtime_properties['floating_ips'][str(index)]['deletable']:
+        ctx.instance.runtime_properties['floating_ips'][resource_name][OPENSTACK_TYPE_PROPERTY]
+    if not ctx.instance.runtime_properties['floating_ips'][resource_name][USE_EXTERNAL_RESOURCE_PROPERTY]\
+        and ctx.instance.runtime_properties['floating_ips'][resource_name]['deletable']:
         ctx.logger.info('deleting {0}'.format(floating_ip_type))
         neutron_client.cosmo_delete_resource(
             floating_ip_type,
-            ctx.instance.runtime_properties['floating_ips'][str(index)][OPENSTACK_ID_PROPERTY])
+            ctx.instance.runtime_properties['floating_ips'][resource_name][OPENSTACK_ID_PROPERTY])
     else:
         ctx.logger.info('not deleting {0} since an external or not deletable {0} is '
                         'being used'.format(floating_ip_type))
@@ -643,10 +640,10 @@ def disconnect_security_group(nova_client, **kwargs):
                                                           is_connected=False)
 
 
-def set_volume_runtime_properties(index, id, type, name, external, device_name, deletable):
+def set_volume_runtime_properties(resource_name, id, type, name, external, device_name, deletable):
     if 'volumes' in ctx.instance.runtime_properties:
         ctx.instance.runtime_properties['volumes'].update({
-            str(index): {
+            resource_name: {
                 OPENSTACK_ID_PROPERTY: id,
                 OPENSTACK_TYPE_PROPERTY: type,
                 OPENSTACK_NAME_PROPERTY: name,
@@ -658,7 +655,7 @@ def set_volume_runtime_properties(index, id, type, name, external, device_name, 
     else:
         ctx.instance.runtime_properties.update({
             'volumes': {
-                str(index): {
+                resource_name: {
                     OPENSTACK_ID_PROPERTY: id,
                     OPENSTACK_TYPE_PROPERTY: type,
                     OPENSTACK_NAME_PROPERTY: name,
@@ -670,7 +667,7 @@ def set_volume_runtime_properties(index, id, type, name, external, device_name, 
         })
 
 
-def create_volume(cinder_client, index, property):
+def create_volume(cinder_client, resource_name, property):
     external = property[USE_EXTERNAL_RESOURCE_PROPERTY]\
         if USE_EXTERNAL_RESOURCE_PROPERTY in property else False
     device = property[volume.DEVICE_NAME_PROPERTY]\
@@ -679,6 +676,31 @@ def create_volume(cinder_client, index, property):
         if 'deletable' in property else False
 
     if external:
+        resource_id = property['resource_id']
+        if not resource_id:
+            raise NonRecoverableError(
+                "Can't set '{0}' to True without supplying a value for "
+                "'resource_id'".format(USE_EXTERNAL_RESOURCE_PROPERTY))
+        resource = get_resource_by_name_or_id(resource_id,
+                                              VOLUME_OPENSTACK_TYPE,
+                                              cinder_client,
+                                              True,
+                                              'display_name')
+
+        ctx.logger.info('Using external resource {0}: {1}'.format(
+            VOLUME_OPENSTACK_TYPE, cinder_client.get_id_from_resource(resource)))
+        ctx.logger.info('Using external resource {0}: {1}'.format(
+            'name', cinder_client.get_name_from_resource(resource)))
+
+        set_volume_runtime_properties(
+            resource_name=resource_name,
+            id=cinder_client.get_id_from_resource(resource),
+            type=VOLUME_OPENSTACK_TYPE,
+            name=cinder_client.get_name_from_resource(resource),
+            external=external,
+            device_name=device,
+            deletable=deletable
+        )
         return
 
     name = property['resource_id'] if 'resource_id' in property else ''
@@ -693,7 +715,7 @@ def create_volume(cinder_client, index, property):
     v = cinder_client.volumes.create(**volume_dict)
 
     set_volume_runtime_properties(
-        index=index,
+        resource_name=resource_name,
         id=v.id,
         type=VOLUME_OPENSTACK_TYPE,
         name=volume_dict['display_name'],
@@ -709,12 +731,12 @@ def create_volume(cinder_client, index, property):
     )
 
 
-def attach_volume(nova_client, cinder_client, index, **kwargs):
+def attach_volume(nova_client, cinder_client, resource_name, **kwargs):
     server_id = ctx.instance.runtime_properties[OPENSTACK_ID_PROPERTY]
-    volume_id = ctx.instance.runtime_properties['volumes'][str(index)][OPENSTACK_ID_PROPERTY]
+    volume_id = ctx.instance.runtime_properties['volumes'][resource_name][OPENSTACK_ID_PROPERTY]
 
     if ctx.node.properties[USE_EXTERNAL_RESOURCE_PROPERTY]\
-        and ctx.instance.runtime_properties['volumes'][str(index)][USE_EXTERNAL_RESOURCE_PROPERTY]:
+        and ctx.instance.runtime_properties['volumes'][resource_name][USE_EXTERNAL_RESOURCE_PROPERTY]:
         ctx.logger.info('Validating external volume and server '
                         'are connected')
         attachment = volume.get_attachment(cinder_client=cinder_client,
@@ -727,7 +749,7 @@ def attach_volume(nova_client, cinder_client, index, **kwargs):
                 'Expected external resources server {0} and volume {1} to be '
                 'connected'.format(server_id, volume_id))
 
-    device = ctx.instance.runtime_properties['volumes'][str(index)][volume.DEVICE_NAME_PROPERTY]
+    device = ctx.instance.runtime_properties['volumes'][resource_name][volume.DEVICE_NAME_PROPERTY]
     nova_client.volumes.create_server_volume(
         server_id,
         volume_id,
@@ -754,7 +776,7 @@ def attach_volume(nova_client, cinder_client, index, **kwargs):
             ctx.logger.info('Detected device name for attachment of volume '
                             '{0} to server {1}: {2}'
                             .format(volume_id, server_id, device_name))
-            ctx.instance.runtime_properties['volumes'][str(index)][volume.DEVICE_NAME_PROPERTY] = device_name
+            ctx.instance.runtime_properties['volumes'][resource_name][volume.DEVICE_NAME_PROPERTY] = device_name
     except Exception, e:
         if not isinstance(e, NonRecoverableError):
             __prepare_attach_volume_to_be_repeated(
@@ -785,28 +807,28 @@ def _detach_volume(nova_client, cinder_client, server_id, volume_id):
                                  status=volume.VOLUME_STATUS_AVAILABLE)
 
 
-def detach_volume(nova_client, cinder_client, index, **kwargs):
+def detach_volume(nova_client, cinder_client, resource_name, **kwargs):
     if ctx.node.properties[USE_EXTERNAL_RESOURCE_PROPERTY]\
-        and ctx.instance.runtime_properties['volumes'][str(index)][USE_EXTERNAL_RESOURCE_PROPERTY]:
+        and ctx.instance.runtime_properties['volumes'][resource_name][USE_EXTERNAL_RESOURCE_PROPERTY]:
         ctx.logger.info('Not detaching volume from server since '
                         'external volume and server are being used')
         return
 
     server_id = ctx.instance.runtime_properties[OPENSTACK_ID_PROPERTY]
-    volume_id = ctx.instance.runtime_properties['volumes'][str(index)][OPENSTACK_ID_PROPERTY]
+    volume_id = ctx.instance.runtime_properties['volumes'][resource_name][OPENSTACK_ID_PROPERTY]
 
     _detach_volume(nova_client, cinder_client, server_id, volume_id)
 
 
-def delete_volume(cinder_client, index):
+def delete_volume(cinder_client, resource_name):
     volume_type =\
-        ctx.instance.runtime_properties['volumes'][str(index)][OPENSTACK_TYPE_PROPERTY]
-    if not ctx.instance.runtime_properties['volumes'][str(index)][USE_EXTERNAL_RESOURCE_PROPERTY]\
-        and ctx.instance.runtime_properties['volumes'][str(index)]['deletable']:
+        ctx.instance.runtime_properties['volumes'][resource_name][OPENSTACK_TYPE_PROPERTY]
+    if not ctx.instance.runtime_properties['volumes'][resource_name][USE_EXTERNAL_RESOURCE_PROPERTY]\
+        and ctx.instance.runtime_properties['volumes'][resource_name]['deletable']:
         ctx.logger.info('deleting {0}'.format(volume_type))
         cinder_client.cosmo_delete_resource(
             volume_type,
-            ctx.instance.runtime_properties['volumes'][str(index)][OPENSTACK_ID_PROPERTY])
+            ctx.instance.runtime_properties['volumes'][resource_name][OPENSTACK_ID_PROPERTY])
     else:
         ctx.logger.info('not deleting {0} since an external or not deletable {0} is '
                         'being used'.format(volume_type))

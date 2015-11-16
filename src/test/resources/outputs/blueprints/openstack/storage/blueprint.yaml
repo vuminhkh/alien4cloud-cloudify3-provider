@@ -9,6 +9,8 @@ node_types:
   alien.nodes.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
+      _a4c_substitute_for:
+        default: []
       _a4c_att_ip_address:
         default:
           function: get_attribute
@@ -25,6 +27,8 @@ node_types:
   alien.cloudify.openstack.nodes.DeletableVolume:
     derived_from: cloudify.openstack.nodes.Volume
     properties:
+      _a4c_substitute_for:
+        default: []
       _a4c_att_device:
         default:
           function: get_attribute
@@ -34,6 +38,8 @@ node_types:
   alien.cloudify.openstack.nodes.Volume:
     derived_from: cloudify.openstack.nodes.Volume
     properties:
+      _a4c_substitute_for:
+        default: []
       _a4c_att_device:
         default:
           function: get_attribute
@@ -58,7 +64,6 @@ node_templates:
     properties: 
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
       flavor: 2
-
   BlockStorage:
     type: alien.cloudify.openstack.nodes.Volume
     interfaces:
@@ -103,10 +108,6 @@ plugins:
   custom_wf_plugin:
     executor: central_deployment_agent
     source: custom_wf_plugin
-  windows_host_plugin:
-    source: windows-host-plugin
-    executor: host_agent
-
 
 workflows:
   a4c_install: custom_wf_plugin.plugin.workflows.a4c_install

@@ -8,11 +8,17 @@ import re
 import sys
 import time
 import threading
+import platform
 from StringIO import StringIO
 from cloudify_rest_client import CloudifyClient
 from cloudify import utils
 
 client = CloudifyClient(utils.get_manager_ip(), utils.get_manager_rest_service_port())
+
+
+def convert_env_value_to_string(envDict):
+    for key, value in envDict.items():
+        envDict[key] = str(value)
 
 
 def get_host(entity):
@@ -175,9 +181,6 @@ def parse_output(output):
 
 
 def execute(script_path, process, outputNames):
-    wrapper_path = ctx.download_resource("scriptWrapper.sh")
-    os.chmod(wrapper_path, 0755)
-
     os.chmod(script_path, 0755)
     on_posix = 'posix' in sys.builtin_module_names
 
@@ -187,6 +190,11 @@ def execute(script_path, process, outputNames):
 
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
+        if platform.system() == 'Windows':
+            wrapper_path = ctx.download_resource("scriptWrapper.bat")
+        else:
+            wrapper_path = ctx.download_resource("scriptWrapper.sh")
+        os.chmod(wrapper_path, 0755)
         command = '{0} {1}'.format(wrapper_path, script_path)
     else:
         command = script_path
@@ -222,15 +230,17 @@ def execute(script_path, process, outputNames):
         for outputName in outputNameList:
             ctx.logger.info('Ouput name: {0} value : {1}'.format(outputName, parsed_output['outputs'][outputName]))
 
-    ok_message = "Script {0} executed normally with standard output {1} and error output {2}".format(command, stdout_consumer.buffer.getvalue(),
-                                                                                                     stderr_consumer.buffer.getvalue())
-    error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,
-                                                                                                                         stdout_consumer.buffer.getvalue(),
-                                                                                                                         stderr_consumer.buffer.getvalue())
     if return_code != 0:
+        error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,
+                                                                                                                             stdout_consumer.buffer.getvalue(),
+                                                                                                                             stderr_consumer.buffer.getvalue())
+        error_message = str(unicode(error_message, errors='ignore'))
         ctx.logger.error(error_message)
         raise NonRecoverableError(error_message)
     else:
+        ok_message = "Script {0} executed normally with standard output {1} and error output {2}".format(command, stdout_consumer.buffer.getvalue(),
+                                                                                                         stderr_consumer.buffer.getvalue())
+        ok_message = str(unicode(ok_message, errors='ignore'))
         ctx.logger.info(ok_message)
 
     return parsed_output
@@ -257,7 +267,6 @@ env_map = {}
 env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
-
 new_script_process = {'env': env_map}
 
 
@@ -267,6 +276,7 @@ if inputs.get('process', None) is not None and inputs['process'].get('env', None
     new_script_process['env'].update(inputs['process']['env'])
 
 operationOutputNames = None
+convert_env_value_to_string(new_script_process['env'])
 parsed_output = execute(ctx.download_resource('artifacts/apache-type/scripts/start_apache.sh'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))

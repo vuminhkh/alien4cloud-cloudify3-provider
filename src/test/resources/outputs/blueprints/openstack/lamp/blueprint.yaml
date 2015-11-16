@@ -9,6 +9,8 @@ node_types:
   alien.nodes.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
+      _a4c_substitute_for:
+        default: []
       _a4c_att_ip_address:
         default:
           function: get_attribute
@@ -24,8 +26,14 @@ node_types:
             - floating_ip_address
   alien.nodes.openstack.PublicNetwork:
     derived_from: cloudify.openstack.nodes.FloatingIP
+    properties:
+      _a4c_substitute_for:
+        default: []
   alien.nodes.openstack.PrivateNetwork:
     derived_from: cloudify.openstack.nodes.Network
+    properties:
+      _a4c_substitute_for:
+        default: []
 
   alien.nodes.Apache:
     derived_from: cloudify.nodes.WebServer
@@ -74,13 +82,12 @@ node_templates:
     properties: 
       floatingip: 
         floating_network_name: net-pub
-
   InternalNetwork:
     type: alien.nodes.openstack.PrivateNetwork
     properties:
       resource_id: InternalNetwork
 
-  InternalNetwork_subnet:
+  _a4c_InternalNetwork_subnet:
     type: cloudify.openstack.nodes.Subnet
     properties:
       resource_id: InternalNetwork_subnet
@@ -152,10 +159,6 @@ plugins:
   custom_wf_plugin:
     executor: central_deployment_agent
     source: custom_wf_plugin
-  windows_host_plugin:
-    source: windows-host-plugin
-    executor: host_agent
-
 
 workflows:
   a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
