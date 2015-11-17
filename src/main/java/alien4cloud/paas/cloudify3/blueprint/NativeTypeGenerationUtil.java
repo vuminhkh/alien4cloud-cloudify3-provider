@@ -33,6 +33,25 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
         super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
+    public String formatTextValue(int indentLevel, String text) {
+        if (text.contains("\n")) {
+            StringBuilder indentationBuffer = new StringBuilder();
+            for (int i = 0; i < indentLevel; i++) {
+                indentationBuffer.append("  ");
+            }
+            String indentation = indentationBuffer.toString();
+            StringBuilder formattedTextBuffer = new StringBuilder("|\n");
+            indentation += "  ";
+            String[] lines = text.split("\n");
+            for (String line : lines) {
+                formattedTextBuffer.append(indentation).append(line).append("\n");
+            }
+            return formattedTextBuffer.toString();
+        } else {
+            return text;
+        }
+    }
+
     /**
      * Check if a property has been defined with a non null and not empty value.
      *
@@ -134,7 +153,7 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     private String formatValue(boolean appendLf, int indentLevel, Object value) {
         if (value instanceof String) {
-            return (String) value;
+            return formatTextValue(indentLevel, (String) value);
         } else if (value instanceof Map) {
             return formatMapValue(appendLf, indentLevel, (Map<String, Object>) value);
         } else if (value instanceof Object[]) {

@@ -93,6 +93,7 @@ plugins:
     source: custom_wf_plugin
 
 workflows:
-#foreach($wfEntry in ${deployment.workflows.entrySet()})
+#foreach($wfEntry in ${deployment.workflows.workflows.entrySet()})
   a4c_${wfEntry.key}: custom_wf_plugin.plugin.workflows.a4c_${wfEntry.key}
 #end
+  a4c_scale: custom_wf_plugin.plugin.workflows.a4c_scale

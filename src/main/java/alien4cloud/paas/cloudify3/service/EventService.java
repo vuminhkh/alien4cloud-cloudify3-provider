@@ -18,6 +18,14 @@ import alien4cloud.paas.cloudify3.model.EventType;
 import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
+import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
+import alien4cloud.paas.cloudify3.model.Event;
+import alien4cloud.paas.cloudify3.model.EventAlienPersistent;
+import alien4cloud.paas.cloudify3.model.EventAlienWorkflow;
+import alien4cloud.paas.cloudify3.model.EventAlienWorkflowStarted;
+import alien4cloud.paas.cloudify3.model.EventType;
+import alien4cloud.paas.cloudify3.model.NodeInstance;
+import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
 import alien4cloud.paas.cloudify3.restclient.NodeClient;
 import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
@@ -27,6 +35,15 @@ import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
 import alien4cloud.paas.model.PaaSInstancePersistentResourceMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
+import alien4cloud.paas.model.AbstractMonitorEvent;
+import alien4cloud.paas.model.DeploymentStatus;
+import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
+import alien4cloud.paas.model.PaaSInstancePersistentResourceMonitorEvent;
+import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.paas.model.PaaSWorkflowMonitorEvent;
+import alien4cloud.paas.model.PaaSWorkflowStepMonitorEvent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
@@ -264,6 +281,44 @@ public class EventService {
                 alienEvent = new PaaSInstancePersistentResourceMonitorEvent(cloudifyEvent.getContext().getNodeName(), cloudifyEvent.getContext().getNodeId(),
                         eventAlienPersistent.getPersistentAlienAttribute(), attributeValue);
             } catch (Exception e) {
+                return null;
+            }
+            break;
+        case EventType.A4C_WORKFLOW_STARTED:
+            String wfCloudifyEvent = cloudifyEvent.getMessage().getText();
+            objectMapper = new ObjectMapper();
+            objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+            try {
+                EventAlienWorkflowStarted eventAlienWorkflowStarted = objectMapper.readValue(wfCloudifyEvent, EventAlienWorkflowStarted.class);
+                PaaSWorkflowStepMonitorEvent e = new PaaSWorkflowStepMonitorEvent();
+                PaaSWorkflowMonitorEvent pwme = new PaaSWorkflowMonitorEvent();
+                pwme.setExecutionId(cloudifyEvent.getContext().getExecutionId());
+                pwme.setWorkflowId(eventAlienWorkflowStarted.getWorkflowName());
+                pwme.setSubworkflow(eventAlienWorkflowStarted.getSubworkflow());
+                alienEvent = pwme;
+            } catch (IOException e) {
+                return null;
+            }
+            break;
+        case EventType.A4C_WORKFLOW_EVENT:
+            wfCloudifyEvent = cloudifyEvent.getMessage().getText();
+            objectMapper = new ObjectMapper();
+            objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
+            try {
+                EventAlienWorkflow eventAlienPersistent = objectMapper.readValue(wfCloudifyEvent, EventAlienWorkflow.class);
+                PaaSWorkflowStepMonitorEvent e = new PaaSWorkflowStepMonitorEvent();
+                e.setNodeId(cloudifyEvent.getContext().getNodeName());
+                e.setInstanceId(cloudifyEvent.getContext().getNodeId());
+                e.setStepId(eventAlienPersistent.getStepId());
+                e.setStage(eventAlienPersistent.getStage());
+                String workflowId = cloudifyEvent.getContext().getWorkflowId();
+                e.setExecutionId(cloudifyEvent.getContext().getExecutionId());
+                if (workflowId.startsWith(Workflow.A4C_PREFIX)) {
+                    workflowId = workflowId.substring(Workflow.A4C_PREFIX.length());
+                }
+                e.setWorkflowId(cloudifyEvent.getContext().getWorkflowId());
+                alienEvent = e;
+            } catch (IOException e) {
                 return null;
             }
             break;

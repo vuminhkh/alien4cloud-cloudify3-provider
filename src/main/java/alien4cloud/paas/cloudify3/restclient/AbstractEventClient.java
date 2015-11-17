@@ -59,8 +59,8 @@ public abstract class AbstractEventClient extends AbstractClient {
         QueryBuilder eventsQuery = createEventsQuery(executionId, fromDate);
         String eventsQueryText = new String(eventsQuery.buildAsBytes().toBytes());
         Map<String, Object> query = JsonUtil.toMap(eventsQueryText);
-        if (log.isDebugEnabled()) {
-            log.debug("Start get events for execution {} with offset {}, batch size {} and query {}", executionId, from, batchSize, eventsQueryText);
+        if (log.isTraceEnabled()) {
+            log.trace("Start get events for execution {} with offset {}, batch size {} and query {}", executionId, from, batchSize, eventsQueryText);
         }
         request.put("query", query);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
