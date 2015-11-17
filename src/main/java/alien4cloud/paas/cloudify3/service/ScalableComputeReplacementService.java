@@ -30,6 +30,7 @@ import alien4cloud.model.deployment.Deployment;
 import alien4cloud.model.deployment.DeploymentTopology;
 import alien4cloud.model.orchestrators.locations.Location;
 import alien4cloud.model.topology.NodeTemplate;
+import alien4cloud.model.topology.RelationshipTemplate;
 import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.PaaSNodeTemplate;
@@ -37,7 +38,9 @@ import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopology;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
+import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
+import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
 import alien4cloud.utils.TypeMap;
 
@@ -257,11 +260,9 @@ public class ScalableComputeReplacementService {
     private void transfertNodeTargetRelationships(PaaSTopologyDeploymentContext deploymentContext, PaaSNodeTemplate newTargetNode,
             PaaSNodeTemplate oldTargetNode, String mainPropertyListName, int indexInList, TypeMap cache) {
         for (Entry<String, NodeTemplate> nodeTemplateEntry : deploymentContext.getDeploymentTopology().getNodeTemplates().entrySet()) {
-            // if (nodeTemplateEntry.getKey().equals(newTargetNode.getId())) {
-            // // this node is not concerned
-            // continue;
-            // }
             PaaSNodeTemplate paaSNodeTemplate = deploymentContext.getPaaSTopology().getAllNodes().get(nodeTemplateEntry.getKey());
+            Map<String, IndexedRelationshipType> relationshipRetargeted = Maps.newHashMap();
+            boolean hasHostedOn = false;
             for (PaaSRelationshipTemplate paaSRelationshipTemplate : paaSNodeTemplate.getRelationshipTemplates()) {
                 if (paaSRelationshipTemplate.getRelationshipTemplate().getTarget().equals(oldTargetNode.getId())) {
                     if (nodeTemplateEntry.getKey().equals(newTargetNode.getId())) {
@@ -272,9 +273,11 @@ public class ScalableComputeReplacementService {
                         // this relationship targets the initial storage node
                         // let's make it target the scalable compute node
                         paaSRelationshipTemplate.getRelationshipTemplate().setTarget(newTargetNode.getId());
-                        // TODO: here we also should explore the relationship's type interface in order to adapt get_attribute TARGET
                         IndexedRelationshipType relationshipType = paaSRelationshipTemplate.getIndexedToscaElement();
+                        // just remember the fact that this relationhip is retargeted
+                        relationshipRetargeted.put(paaSRelationshipTemplate.getId(), relationshipType);
                         boolean typeAsChanged = false;
+                        // here we also explore the relationship's type interface in order to adapt get_attribute TARGET
                         Map<String, Interface> interfaces = relationshipType.getInterfaces();
                         for (Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
                             for (Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
@@ -288,7 +291,7 @@ public class ScalableComputeReplacementService {
                                                 // ok we have a get_attribute on a TARGET, we have to change this
                                                 String attributeName = functionPropertyValue.getElementNameToFetch();
                                                 // we want to transform the function into a one fetching nested properties
-                                                transformFunction(functionPropertyValue, mainPropertyListName, String.valueOf(indexInList), attributeName);
+                                                transformFunction(functionPropertyValue, mainPropertyListName, oldTargetNode.getId(), attributeName);
                                                 typeAsChanged = true;
                                             }
                                         }
@@ -301,8 +304,35 @@ public class ScalableComputeReplacementService {
                             cache.put(relationshipType.getElementId(), relationshipType);
                         }
                     }
+                } else if (paaSRelationshipTemplate.getRelationshipTemplate().getTarget().equals(newTargetNode.getId())
+                        && ToscaUtils.isFromType(NormativeRelationshipConstants.HOSTED_ON, paaSRelationshipTemplate.getIndexedToscaElement())) {
+                    // a hostedOn relationship wires the current node with the substituing node
+                    hasHostedOn = true;
                 }
             }
+            // now remove relation ships between the node and the substituing node that are not the retargeted one
+            if (!relationshipRetargeted.isEmpty()) {
+                Set<String> keysToRemove = Sets.newHashSet();
+                for (Entry<String, RelationshipTemplate> relationshipEntry : paaSNodeTemplate.getNodeTemplate().getRelationships().entrySet()) {
+                    if (!relationshipRetargeted.containsKey(relationshipEntry.getKey())
+                            && relationshipEntry.getValue().getTarget().equals(newTargetNode.getId())) {
+                        keysToRemove.add(relationshipEntry.getKey());
+                    }
+                }
+                for (String keyToRemove : keysToRemove) {
+                    paaSNodeTemplate.getNodeTemplate().getRelationships().remove(keyToRemove);
+                }
+                if (hasHostedOn) {
+                    // one hostedOn relation has been removed, we artificially make one of the relation derived from hostedOn
+                    IndexedRelationshipType relationshipType = relationshipRetargeted.entrySet().iterator().next().getValue();
+                    List<String> derivedFrom = Lists.newArrayList();
+                    derivedFrom.add(NormativeRelationshipConstants.HOSTED_ON);
+                    relationshipType.setDerivedFrom(derivedFrom);
+                    // ensure the modified type will be used later
+                    cache.put(relationshipType.getElementId(), relationshipType);
+                }
+            }
+
         }
     }
 
@@ -330,3 +360,4 @@ public class ScalableComputeReplacementService {
     }
 
 }
+
