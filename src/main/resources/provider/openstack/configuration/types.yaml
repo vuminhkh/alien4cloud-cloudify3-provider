@@ -102,6 +102,7 @@ node_types:
   alien.nodes.openstack.Image:
     abstract: true
     derived_from: tosca.nodes.Root
+    description: Configuration types that is used to auto-generate Compute node by crossing options with the Flavor configuration type.
     properties:
       id:
         type: string
@@ -112,12 +113,23 @@ node_types:
   alien.nodes.openstack.Flavor:
     abstract: true
     derived_from: tosca.nodes.Root
+    description: Configuration types that is used to auto-generate Compute node by crossing options with the Image configuration type.
     properties:
       id:
         type: string
     capabilities:
       host:
         type: tosca.capabilities.Container
+
+  alien.cloudify.openstack.nodes.AvailabilityZone:
+    abstract: true
+    derived_from: tosca.nodes.Root
+    description: Defines an availability zone that will be available to be used for H.A. policies defined in the topology.
+    properties:
+      id:
+        type: string
+        default: ''
+        required: true
 
   alien.nodes.openstack.Compute:
     derived_from: tosca.nodes.Compute
