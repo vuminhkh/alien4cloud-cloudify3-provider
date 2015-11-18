@@ -18,7 +18,7 @@ public class StandardWorkflow {
     private Map<String, AbstractStep> orphanSteps;
 
     /**
-     * Links that concerns several hosts.
+     * from Orphan links.
      */
     private List<WorkflowStepLink> links;
 

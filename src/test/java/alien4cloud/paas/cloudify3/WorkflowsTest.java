@@ -34,8 +34,8 @@ public class WorkflowsTest {
      *    | - a -- a1 -- a2 -- a3
      *            /
      * | - b --  b1
-     *            \
-     *             b2
+     * |          \
+     * |           b2
      *               \
      *            | - orphan1
      *                   |
@@ -76,7 +76,7 @@ public class WorkflowsTest {
         CloudifyDeploymentBuilderService builder = new CloudifyDeploymentBuilderService();
 
         Workflows builtWorkflow = builder.buildWorkflowsForDeployment(wfs);
-        Map<String, HostWorkflow> installHostWFs = builtWorkflow.getInstallWorkflowSteps();
+        Map<String, HostWorkflow> installHostWFs = builtWorkflow.getInstallHostWorkflows();
         assertNotEmpty(installHostWFs);
         Assert.assertEquals(installWf.getHosts().size(), installHostWFs.size());
         assertHostWorkflow(installHostWFs, host1, 4, 3, 0);

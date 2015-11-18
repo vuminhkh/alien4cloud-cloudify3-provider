@@ -73,8 +73,8 @@ public class CloudifyDeploymentBuilderService {
         cloudifyDeployment.setAllNodes(deploymentContext.getPaaSTopology().getAllNodes());
         cloudifyDeployment.setProviderDeploymentProperties(deploymentContext.getDeploymentTopology().getProviderDeploymentProperties());
         // TODO use the next commented line when velocity side is ready for ALIEN-1268 (scale / unscale workflow)
-        cloudifyDeployment.setWorkflows(deploymentContext.getDeploymentTopology().getWorkflows());
-        // cloudifyDeployment.setWorkflows(buildWorkflowsForDeployment(deploymentContext.getDeploymentTopology().getWorkflows()));
+        // cloudifyDeployment.setWorkflows(deploymentContext.getDeploymentTopology().getWorkflows());
+        cloudifyDeployment.setWorkflows(buildWorkflowsForDeployment(deploymentContext.getDeploymentTopology().getWorkflows()));
 
         // load the mappings for the native types.
         cloudifyDeployment.setPropertyMappings(PropertiesMappingUtil.loadPropertyMappings(cloudifyDeployment.getNativeTypes()));
@@ -86,8 +86,8 @@ public class CloudifyDeploymentBuilderService {
     public Workflows buildWorkflowsForDeployment(Map<String, Workflow> workflowsMap) {
         Workflows workflows = new Workflows();
         workflows.setWorkflows(workflowsMap);
-        fillWorkflowSteps(Workflow.INSTALL_WF, workflowsMap, workflows.getInstallWorkflowSteps());
-        fillWorkflowSteps(Workflow.UNINSTALL_WF, workflowsMap, workflows.getUninstallWorkflowSteps());
+        fillWorkflowSteps(Workflow.INSTALL_WF, workflowsMap, workflows.getInstallHostWorkflows());
+        fillWorkflowSteps(Workflow.UNINSTALL_WF, workflowsMap, workflows.getUninstallHostWorkflows());
         fillOrphans(Workflow.INSTALL_WF, workflowsMap, workflows.getStandardWorkflows());
         fillOrphans(Workflow.UNINSTALL_WF, workflowsMap, workflows.getStandardWorkflows());
         return workflows;

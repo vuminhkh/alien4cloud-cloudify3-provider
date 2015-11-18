@@ -50,9 +50,9 @@ public class WorkflowGenerationUtil extends AbstractGenerationUtil {
     public List<WorkflowStepLink> getExternalLinkns(Workflows workflows, String workflowName) {
         switch (workflowName) {
         case Workflow.INSTALL_WF:
-            return getExternalLinks(workflows.getInstallWorkflowSteps());
+            return getExternalLinks(workflows.getInstallHostWorkflows());
         case Workflow.UNINSTALL_WF:
-            return getExternalLinks(workflows.getUninstallWorkflowSteps());
+            return getExternalLinks(workflows.getUninstallHostWorkflows());
         default:
             return null;
         }
@@ -66,6 +66,13 @@ public class WorkflowGenerationUtil extends AbstractGenerationUtil {
             }
         }
         return links;
+    }
+
+    /**
+     * Just format the string to make it usable as a method name.
+     */
+    public String getPythonNormalizedString(String input) {
+        return input.replaceAll("-", "_").replaceAll(" ", "_").toLowerCase();
     }
 
 }
