@@ -52,6 +52,10 @@ public class OpenStackAvailabilityZonePlacementPolicyService {
             return;
         }
 
+        if (deploymentContext.getDeploymentTopology().getGroups() == null) {
+            return;
+        }
+
         // for every group defined
         for (NodeGroup nodeGroup : deploymentContext.getDeploymentTopology().getGroups().values()) {
             // process policy

@@ -1,6 +1,6 @@
 # This files contains the matching rules that Alien 4 Cloud is going to apply to the nodes of an openstack location.
 matching_configurations:
-  alien.nodes.openstack.Compute:
+  alien.cloudify.aws.nodes.Compute:
     capabilities:
       - host:
           properties:
