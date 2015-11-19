@@ -27,7 +27,6 @@ import com.google.common.collect.Maps;
 public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     public static final String MAPPED_TO_KEY = "_a4c_c3_derived_from";
-
     public NativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
             PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
@@ -215,7 +214,7 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
      * @return The value of the _a4c_persistent_resource_id tag or null if the tag is not present in the list.
      */
     public String getPersistentResourceId(List<Tag> tags) {
-        return TagUtil.getTagValue(tags, "_a4c_persistent_resource_id");
+        return TagUtil.getTagValue(tags, CustomTags.PERSISTENT_RESOURCE_TAG);
     }
 
 }
