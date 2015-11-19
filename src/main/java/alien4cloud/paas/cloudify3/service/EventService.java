@@ -58,7 +58,6 @@ public class EventService {
     @Resource
     private StatusService statusService;
 
-
     // TODO : May manage in a better manner this kind of state
     private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newConcurrentMap();
 
@@ -138,6 +137,15 @@ public class EventService {
         deploymentStatusMonitorEvent.setDeploymentStatus(deploymentStatus);
         deploymentStatusMonitorEvent.setDeploymentId(deploymentId);
         internalProviderEventsQueue.add(deploymentStatusMonitorEvent);
+    }
+
+    /**
+     * Register an event to be added to the queue to dispatch it to Alien 4 Cloud.
+     * 
+     * @param event The event to be dispatched.
+     */
+    public synchronized void registerEvent(AbstractMonitorEvent event) {
+        internalProviderEventsQueue.add(event);
     }
 
     private ListenableFuture<AbstractMonitorEvent[]> processInternalQueue(int batchSize) {
@@ -316,8 +324,8 @@ public class EventService {
         alienEvent.setDate(DatatypeConverter.parseDateTime(cloudifyEvent.getTimestamp()).getTimeInMillis());
         String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(cloudifyEvent.getContext().getDeploymentId());
         if (alienDeploymentId == null) {
-            if (log.isDebugEnabled()) {
-                log.debug("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
+            if (log.isWarnEnabled()) {
+                log.warn("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
                         cloudifyEvent);
             }
             return null;
