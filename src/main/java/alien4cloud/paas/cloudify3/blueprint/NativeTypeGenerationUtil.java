@@ -208,10 +208,10 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
     }
 
     /**
-     * Get the value of the _a4c_persistent_resource_id tag.
+     * Get the value of the _a4c_persistent_resources tag.
      *
      * @param tags The list of tags in which to search.
-     * @return The value of the _a4c_persistent_resource_id tag or null if the tag is not present in the list.
+     * @return The value of the _a4c_persistent_resources tag or null if the tag is not present in the list.
      */
     public String getPersistentResourceId(List<Tag> tags) {
         return TagUtil.getTagValue(tags, CustomTags.PERSISTENT_RESOURCE_TAG);

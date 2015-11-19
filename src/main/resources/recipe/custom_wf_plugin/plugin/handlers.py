@@ -100,8 +100,8 @@ def _set_send_node_evt_on_failed_unlink_handlers(instance, tasks_with_targets):
         )
 
 
-def build_persistent_event_task(instance):
-    persistent_property = instance.node.properties.get('_a4c_persistent_resource_id', None)
+def build_persistent_event_tasks(instance):
+    persistent_property = instance.node.properties.get('_a4c_persistent_resources', None)
     if persistent_property != None:
         # send event to send resource id to alien
         tasks = []
