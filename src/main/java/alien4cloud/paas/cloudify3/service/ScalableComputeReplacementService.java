@@ -34,10 +34,12 @@ import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.RelationshipTemplate;
 import alien4cloud.paas.cloudify3.blueprint.CustomTags;
 import alien4cloud.paas.cloudify3.model.Event;
+import alien4cloud.paas.cloudify3.model.EventAlienPersistent;
 import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.restclient.NodeClient;
 import alien4cloud.paas.function.FunctionEvaluator;
 import alien4cloud.paas.model.AbstractMonitorEvent;
+import alien4cloud.paas.model.PaaSInstancePersistentResourceMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
@@ -434,6 +436,7 @@ public class ScalableComputeReplacementService {
      * here we are looking for the _a4c_substitute_for property of the node
      * if it contains something, this means that this node is substituting others
      * we generate 'fake' events for these ghosts nodes
+     *
      * @param alienEvents
      * @param alienEvent
      * @param cloudifyEvent
@@ -474,6 +477,35 @@ public class ScalableComputeReplacementService {
             }
         }
         return substitutePropertyAsList;
+    }
+
+    public void processPersistentResourceEvent(EventAlienPersistent eventAlienPersistent, PaaSInstancePersistentResourceMonitorEvent alienEvent,
+            Event cloudifyEvent) {
+        Node node = getNode(cloudifyEvent.getContext().getDeploymentId(), alienEvent.getNodeTemplateId());
+        if (node != null && isFromType(node, SCALABLE_COMPUTE_TYPE)) {
+            // the persistentResourcePath fo ex should be of type: volumes.BlockStorage.resourceId
+            String persistentResourcePath = eventAlienPersistent.getPersistentResourceId();
+            String[] paths = persistentResourcePath.split("\\.");
+            if (paths.length >= 2 && StringUtils.startsWithAny(paths[0], SCALABLE_COMPUTE_VOLUMES_PROPERTY, SCALABLE_COMPUTE_FIPS_PROPERTY)) {
+                // change the id of the related template, so that the resource will be saved in the good one
+                // paths[1] is 'BlockStorage', the name of the substituted node
+                // TODO: check maybe that it indeed exists in the substituted for the node? (getSubstituteForPropertyAsList)
+                alienEvent.setNodeTemplateId(paths[1]);
+            }
+        }
+    }
+
+    private Node getNode(String deploymentId, String nodeTemplateId) {
+        Node[] nodes = nodeClient.list(deploymentId, nodeTemplateId);
+        if (nodes.length > 0) {
+            // since we provide the nodeId we are supposed to have only one node
+            return nodes[0];
+        }
+        return null;
+    }
+
+    private boolean isFromType(Node node, String type) {
+        return Objects.equals(node.getType(), type) || CollectionUtils.containsAll(node.getTypeHierarchy(), Sets.newHashSet(type));
     }
 
 }

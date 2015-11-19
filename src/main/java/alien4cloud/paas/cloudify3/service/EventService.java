@@ -31,6 +31,7 @@ import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.model.PaaSWorkflowMonitorEvent;
 import alien4cloud.paas.model.PaaSWorkflowStepMonitorEvent;
+import alien4cloud.utils.MapUtil;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
@@ -250,9 +251,14 @@ public class EventService {
                 // query API
                 // TODO make that Async
                 NodeInstance instance = nodeInstanceClient.read(cloudifyEvent.getContext().getNodeId());
-                String attributeValue = (String) instance.getRuntimeProperties().get(eventAlienPersistent.getPersistentResourceId());
+                String attributeValue = (String) MapUtil.get(instance.getRuntimeProperties(), eventAlienPersistent.getPersistentResourceId());
                 alienEvent = new PaaSInstancePersistentResourceMonitorEvent(cloudifyEvent.getContext().getNodeName(), cloudifyEvent.getContext().getNodeId(),
                         eventAlienPersistent.getPersistentAlienAttribute(), attributeValue);
+
+                // [[ Scaling issue workarround
+                scalableComputeReplacementService.processPersistentResourceEvent(eventAlienPersistent, (PaaSInstancePersistentResourceMonitorEvent) alienEvent,
+                        cloudifyEvent);
+                // Scaling issue workarround ]]
             } catch (Exception e) {
                 return null;
             }
@@ -310,4 +316,5 @@ public class EventService {
         alienEvent.setDeploymentId(alienDeploymentId);
         return alienEvent;
     }
+
 }
