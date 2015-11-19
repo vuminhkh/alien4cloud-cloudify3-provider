@@ -20,7 +20,7 @@
 #end
 #if($getPersistentResourceId)
       _a4c_persistent_resource_id:
-        default: "${getPersistentResourceId}"
+        default: $getPersistentResourceId
 #end
 ##end
 #end
