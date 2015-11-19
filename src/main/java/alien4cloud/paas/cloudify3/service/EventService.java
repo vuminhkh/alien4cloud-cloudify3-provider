@@ -18,7 +18,6 @@ import alien4cloud.paas.cloudify3.model.EventAlienPersistent;
 import alien4cloud.paas.cloudify3.model.EventAlienWorkflow;
 import alien4cloud.paas.cloudify3.model.EventAlienWorkflowStarted;
 import alien4cloud.paas.cloudify3.model.EventType;
-import alien4cloud.paas.cloudify3.model.Node;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
@@ -57,6 +56,9 @@ public class EventService {
     private NodeClient nodeClient;
     @Resource
     private StatusService statusService;
+
+    @Resource
+    private ScalableComputeReplacementService scalableComputeReplacementService;
 
     // TODO : May manage in a better manner this kind of state
     private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newConcurrentMap();
@@ -141,7 +143,7 @@ public class EventService {
 
     /**
      * Register an event to be added to the queue to dispatch it to Alien 4 Cloud.
-     * 
+     *
      * @param event The event to be dispatched.
      */
     public synchronized void registerEvent(AbstractMonitorEvent event) {
@@ -190,32 +192,7 @@ public class EventService {
                 }
                 alienEvents.add(alienEvent);
                 // [[ Scaling issue workarround
-                // Code for scaling workaround : here we are looking for the _a4c_substitute_for property of the node
-                // if it contains something, this means that this node is substituting others
-                // we generate 'fake' events for these ghosts nodes
-                if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
-                    PaaSInstanceStateMonitorEvent paaSInstanceStateMonitorEvent = (PaaSInstanceStateMonitorEvent) alienEvent;
-                    Node[] nodes = nodeClient.list(cloudifyEvent.getContext().getDeploymentId(), paaSInstanceStateMonitorEvent.getNodeTemplateId());
-                    if (nodes.length > 0) {
-                        // since we provide the nodeId we are supposed to have only one node
-                        Node node = nodes[0];
-                        List substitutePropertyAsList = ScalableComputeReplacementService.getSubstituteForPropertyAsList(node);
-                        if (substitutePropertyAsList != null) {
-                            for (Object substitutePropertyItem : substitutePropertyAsList) {
-                                PaaSInstanceStateMonitorEvent substituted = new PaaSInstanceStateMonitorEvent();
-                                substituted.setDate(paaSInstanceStateMonitorEvent.getDate());
-                                substituted.setDeploymentId(paaSInstanceStateMonitorEvent.getDeploymentId());
-                                substituted.setInstanceState(paaSInstanceStateMonitorEvent.getInstanceState());
-                                substituted.setInstanceStatus(paaSInstanceStateMonitorEvent.getInstanceStatus());
-                                // we use the original instance ID
-                                substituted.setInstanceId(paaSInstanceStateMonitorEvent.getInstanceId());
-                                // but the name of the node that have been substituted
-                                substituted.setNodeTemplateId(substitutePropertyItem.toString());
-                                alienEvents.add(substituted);
-                            }
-                        }
-                    }
-                }
+                scalableComputeReplacementService.processEventForSubstitutes(alienEvents, alienEvent, cloudifyEvent);
                 // Scaling issue workarround ]]
             } else {
                 if (log.isDebugEnabled()) {

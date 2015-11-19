@@ -33,8 +33,12 @@ import alien4cloud.model.orchestrators.locations.Location;
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.RelationshipTemplate;
 import alien4cloud.paas.cloudify3.blueprint.CustomTags;
+import alien4cloud.paas.cloudify3.model.Event;
 import alien4cloud.paas.cloudify3.model.Node;
+import alien4cloud.paas.cloudify3.restclient.NodeClient;
 import alien4cloud.paas.function.FunctionEvaluator;
+import alien4cloud.paas.model.AbstractMonitorEvent;
+import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopology;
@@ -85,6 +89,8 @@ public class ScalableComputeReplacementService {
 
     @Inject
     private TopologyTreeBuilderService topologyTreeBuilderService;
+    @Inject
+    private NodeClient nodeClient;
 
     public PaaSTopologyDeploymentContext transformTopology(PaaSTopologyDeploymentContext deploymentContext) {
         // any type that is modified is cached in this map in order to be reused later while regenerating the deployment ctx
@@ -422,6 +428,41 @@ public class ScalableComputeReplacementService {
 
     private void addProperty(Map<String, Object> map, String propertyName, Object propertyValue) {
         map.put(propertyName, propertyValue);
+    }
+
+    /**
+     * here we are looking for the _a4c_substitute_for property of the node
+     * if it contains something, this means that this node is substituting others
+     * we generate 'fake' events for these ghosts nodes
+     * @param alienEvents
+     * @param alienEvent
+     * @param cloudifyEvent
+     * @param eventService TODO
+     */
+    public void processEventForSubstitutes(final List<AbstractMonitorEvent> alienEvents, AbstractMonitorEvent alienEvent, Event cloudifyEvent) {
+        if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
+            PaaSInstanceStateMonitorEvent paaSInstanceStateMonitorEvent = (PaaSInstanceStateMonitorEvent) alienEvent;
+            Node[] nodes = nodeClient.list(cloudifyEvent.getContext().getDeploymentId(), paaSInstanceStateMonitorEvent.getNodeTemplateId());
+            if (nodes.length > 0) {
+                // since we provide the nodeId we are supposed to have only one node
+                Node node = nodes[0];
+                List substitutePropertyAsList = getSubstituteForPropertyAsList(node);
+                if (substitutePropertyAsList != null) {
+                    for (Object substitutePropertyItem : substitutePropertyAsList) {
+                        PaaSInstanceStateMonitorEvent substituted = new PaaSInstanceStateMonitorEvent();
+                        substituted.setDate(paaSInstanceStateMonitorEvent.getDate());
+                        substituted.setDeploymentId(paaSInstanceStateMonitorEvent.getDeploymentId());
+                        substituted.setInstanceState(paaSInstanceStateMonitorEvent.getInstanceState());
+                        substituted.setInstanceStatus(paaSInstanceStateMonitorEvent.getInstanceStatus());
+                        // we use the original instance ID
+                        substituted.setInstanceId(paaSInstanceStateMonitorEvent.getInstanceId());
+                        // but the name of the node that have been substituted
+                        substituted.setNodeTemplateId(substitutePropertyItem.toString());
+                        alienEvents.add(substituted);
+                    }
+                }
+            }
+        }
     }
 
     public static List getSubstituteForPropertyAsList(Node node) {
