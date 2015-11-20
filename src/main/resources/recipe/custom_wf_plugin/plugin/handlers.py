@@ -105,15 +105,15 @@ def build_persistent_event_tasks(instance):
     if persistent_property != None:
         # send event to send resource id to alien
         tasks = []
+        @task_config(send_task_events=False)
+        def send_event_task(message):
+            _send_event(instance, 'workflow_node', 'a4c_persistent_event', message, None, None, None)
+
         for key, value in persistent_property.iteritems():
             persistent_cloudify_attribute = key
             persistent_alien_attribute = value
-            persist_msg = build_pre_event(PersistentResourceEvent(persistent_cloudify_attribute, persistent_alien_attribute))
-
-            @task_config(send_task_events=False)
-            def send_event_task():
-                _send_event(instance, 'workflow_node', 'a4c_persistent_event', persist_msg, None, None, None)
-            tasks.append(instance.ctx.local_task(local_task=send_event_task, node=instance, info=persist_msg))
+            kwargs={'message':build_pre_event(PersistentResourceEvent(persistent_cloudify_attribute, persistent_alien_attribute))}
+            tasks.append(instance.ctx.local_task(local_task=send_event_task, node=instance, info=kwargs.message, kwargs=kwargs))
         return tasks
     else:
         return None
