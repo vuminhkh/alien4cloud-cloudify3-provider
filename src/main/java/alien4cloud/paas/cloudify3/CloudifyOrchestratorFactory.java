@@ -16,7 +16,8 @@ import alien4cloud.model.orchestrators.locations.LocationSupport;
 import alien4cloud.orchestrators.plugin.IOrchestratorPluginFactory;
 import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
-import alien4cloud.paas.cloudify3.configuration.Imports;
+import alien4cloud.paas.cloudify3.configuration.LocationConfiguration;
+import alien4cloud.paas.cloudify3.configuration.LocationConfigurations;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -42,12 +43,19 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
     @Override
     public CloudConfiguration getDefaultConfiguration() {
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
-        Imports imports = new Imports();
-        imports.setAmazon(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
+        cloudConfiguration.setUrl("http://yourManagerIP");
+        LocationConfigurations locationConfigurations = new LocationConfigurations();
+        LocationConfiguration amazon = new LocationConfiguration();
+        amazon.setImports(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
                 "http://www.getcloudify.org/spec/aws-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
-        imports.setOpenstack(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
+        amazon.setDsl("cloudify_dsl_1_2");
+        LocationConfiguration openstack = new LocationConfiguration();
+        openstack.setImports(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
                 "http://www.getcloudify.org/spec/openstack-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
-        cloudConfiguration.setImports(imports);
+        openstack.setDsl("cloudify_dsl_1_2");
+        locationConfigurations.setAmazon(amazon);
+        locationConfigurations.setOpenstack(openstack);
+        cloudConfiguration.setLocations(locationConfigurations);
         return cloudConfiguration;
     }
 

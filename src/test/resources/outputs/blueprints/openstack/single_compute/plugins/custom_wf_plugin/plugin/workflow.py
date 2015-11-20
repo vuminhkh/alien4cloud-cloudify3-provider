@@ -29,6 +29,12 @@ import json
 #         self.host_id = host_id
 #         self.activity = json.dumps(activity.__dict__)
 
+class WfStartEvent(object):
+
+    def __init__(self, workflow_name, subworkflow=None):
+        self.workflow_name = workflow_name
+        self.subworkflow = subworkflow
+
 
 class WfEvent(object):
 

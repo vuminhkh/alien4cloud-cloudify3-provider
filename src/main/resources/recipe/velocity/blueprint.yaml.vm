@@ -6,10 +6,10 @@ This template is used to generate cloudify 3 recipe from alien model
 - $deployment --> contains Alien's deployment and types
 - $util --> contains utility methods
 *#
-tosca_definitions_version: $mapping.dslVersion
+tosca_definitions_version: $cloud.getConfigurationLocation($deployment.locationType).getDsl()
 
 imports:
-#foreach($import in $cloud.getImportsByLocation($deployment.locationType))
+#foreach($import in $cloud.getConfigurationLocation($deployment.locationType).getImports())
   - $import
 #end
 

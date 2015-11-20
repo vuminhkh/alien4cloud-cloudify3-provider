@@ -8,10 +8,10 @@ import alien4cloud.ui.form.annotation.FormProperties;
 
 @Getter
 @Setter
-@FormProperties({ "openstack", "amazon" })
-public class Imports {
+@FormProperties({ "dsl", "imports" })
+public class LocationConfiguration {
 
-    private List<String> openstack;
+    private String dsl;
 
-    private List<String> amazon;
+    private List<String> imports;
 }

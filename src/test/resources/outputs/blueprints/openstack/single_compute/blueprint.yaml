@@ -1,5 +1,5 @@
 
-tosca_definitions_version: cloudify_dsl_1_1
+tosca_definitions_version: cloudify_dsl_1_2
 
 imports:
   - http://www.getcloudify.org/spec/cloudify/3.2.1/types.yaml
@@ -9,12 +9,6 @@ node_types:
   alien.nodes.openstack.Compute:
     derived_from: cloudify.openstack.nodes.Server
     properties:
-      _a4c_att_ip_address:
-        default:
-          function: get_attribute
-          parameters:
-            - SELF
-            - ip
       _a4c_att_public_ip_address:
         default:
           function: get_attribute
@@ -22,6 +16,12 @@ node_types:
             - TARGET
             - cloudify.openstack.server_connected_to_floating_ip
             - floating_ip_address
+      _a4c_att_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - ip
 
 
 
@@ -35,16 +35,12 @@ node_templates:
       flavor: 2
 
 
-
 plugins:
   custom_wf_plugin:
     executor: central_deployment_agent
     source: custom_wf_plugin
-  windows_host_plugin:
-    source: windows-host-plugin
-    executor: host_agent
-
 
 workflows:
-  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
   a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
+  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_scale: custom_wf_plugin.plugin.workflows.a4c_scale

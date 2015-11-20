@@ -1,38 +1,35 @@
 package alien4cloud.paas.cloudify3.configuration;
 
-import java.util.List;
-
 import javax.validation.constraints.NotNull;
 
 import lombok.Getter;
 import lombok.Setter;
+import alien4cloud.exception.NotFoundException;
 import alien4cloud.ui.form.annotation.FormProperties;
 import alien4cloud.ui.form.annotation.FormPropertyConstraint;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.collect.Lists;
 
 @Getter
 @Setter
-@FormProperties({ "url", "imports" })
+@FormProperties({ "url", "locations" })
 public class CloudConfiguration {
 
     @FormPropertyConstraint(pattern = "http\\:.+(?:\\d+)")
     @NotNull
-    private String url = "http://yourManagerIP:8100";
+    private String url;
 
     @NotNull
-    private Imports imports;
+    private LocationConfigurations locations;
 
     @JsonIgnore
-    public List<String> getImportsByLocation(String locationName) {
+    public LocationConfiguration getConfigurationLocation(String locationName) {
         switch (locationName) {
         case "amazon":
-            return imports.getAmazon();
+            return locations.getAmazon();
         case "openstack":
-            return imports.getOpenstack();
+            return locations.getOpenstack();
         }
-        return Lists.newArrayList();
+        throw new NotFoundException("Location " + locationName + " not found");
     }
-
 }
