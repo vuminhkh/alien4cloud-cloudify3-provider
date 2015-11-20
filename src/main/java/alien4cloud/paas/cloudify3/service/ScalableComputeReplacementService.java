@@ -83,6 +83,7 @@ public class ScalableComputeReplacementService {
     private static final String PUBLIC_NETWORK_TYPE = "alien.nodes.openstack.PublicNetwork";
     private static final String DELETABLE_PROPERTY = "deletable";
     private static final String SCALABLE_COMPUTE_TYPE = "alien.nodes.openstack.ScalableCompute";
+    private static final String COMPUTE_TYPE = "alien.nodes.openstack.Compute";
     private static final String SCALABLE_COMPUTE_VOLUMES_PROPERTY = "volumes";
     private static final String SCALABLE_COMPUTE_FIPS_PROPERTY = "floatingips";
     private static final String SUBSTITUE_FOR_PROPERTY = "_a4c_substitute_for";
@@ -97,6 +98,12 @@ public class ScalableComputeReplacementService {
     public PaaSTopologyDeploymentContext transformTopology(PaaSTopologyDeploymentContext deploymentContext) {
         // any type that is modified is cached in this map in order to be reused later while regenerating the deployment ctx
         TypeMap cache = new TypeMap();
+        // actually we known that we have only 1 location
+        Location location = deploymentContext.getLocations().entrySet().iterator().next().getValue();
+        if (!location.getInfrastructureType().equals("openstack")) {
+            // for the moment, only the openstack location support is managed
+            return deploymentContext;
+        }
         Set<PaaSNodeTemplate> computesToReplaceSet = getComputesToReplaceSet(deploymentContext);
         if (computesToReplaceSet.isEmpty()) {
             // nothing to do concerning this topology
@@ -139,7 +146,10 @@ public class ScalableComputeReplacementService {
         Set<PaaSNodeTemplate> computesToReplaceSet = Sets.newHashSet();
         List<PaaSNodeTemplate> computes = deploymentContext.getPaaSTopology().getComputes();
         for (PaaSNodeTemplate compute : computes) {
-            if (compute.getScalingPolicy() != null && compute.getScalingPolicy().getMaxInstances() > 1) {
+            // we substitute only if the compute is of type alien.nodes.openstack.Compute
+            // but not if the type is alien.nodes.openstack.WindowsCompute (that inherits from alien.nodes.openstack.Compute)
+            if (compute.getScalingPolicy() != null && compute.getScalingPolicy().getMaxInstances() > 1
+                    && compute.getIndexedToscaElement().getElementId().equals(COMPUTE_TYPE)) {
                 if (compute.getStorageNodes() != null && !compute.getStorageNodes().isEmpty()) {
                     // the compute has volumes, we have to manage it
                     computesToReplaceSet.add(compute);
