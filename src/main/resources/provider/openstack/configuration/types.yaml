@@ -137,7 +137,7 @@ data_types:
 
     tags:
       _a4c_c3_prop_map: >
-        {"size": {"path": "volume.size", "unit": "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id"}
+        {"size": {"path": "volume.size", "unit": "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id", "device": "device_name"}
 
   alien.data.openstack.EmbededFloatingIpProperties:
     properties:
