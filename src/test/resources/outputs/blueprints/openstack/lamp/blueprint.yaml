@@ -63,7 +63,7 @@ node_templates:
     relationships:
       - target: InternalNetwork
         type: cloudify.relationships.connected_to
-      - target: InternalNetwork_subnet
+      - target: _a4c_InternalNetwork_subnet
         type: cloudify.relationships.depends_on
   Server:
     type: alien.nodes.openstack.Compute
@@ -73,7 +73,7 @@ node_templates:
     relationships:
       - target: InternalNetwork
         type: cloudify.relationships.connected_to
-      - target: InternalNetwork_subnet
+      - target: _a4c_InternalNetwork_subnet
         type: cloudify.relationships.depends_on
       - target: _a4c_floating_ip_Server_on_NetPub
         type: cloudify.openstack.server_connected_to_floating_ip
@@ -163,3 +163,4 @@ plugins:
 workflows:
   a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
   a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
+  a4c_scale: custom_wf_plugin.plugin.workflows.a4c_scale

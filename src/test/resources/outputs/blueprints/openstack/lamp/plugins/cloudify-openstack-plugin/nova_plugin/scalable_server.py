@@ -466,6 +466,9 @@ def set_floatingip_runtime_properties(resource_name, id, type, ip, external, del
 def create_floatingip(neutron_client, resource_name, property):
     external = property[USE_EXTERNAL_RESOURCE_PROPERTY]\
         if USE_EXTERNAL_RESOURCE_PROPERTY in property else False
+    # for scalable external volumes
+    external = external if (ctx.workflow_id != 'scale') else False
+    
     deletable = property['deletable']\
         if 'deletable' in property else False
 
@@ -670,6 +673,9 @@ def set_volume_runtime_properties(resource_name, id, type, name, external, devic
 def create_volume(cinder_client, resource_name, property):
     external = property[USE_EXTERNAL_RESOURCE_PROPERTY]\
         if USE_EXTERNAL_RESOURCE_PROPERTY in property else False
+    # for scalable external volumes
+    external = external if (ctx.workflow_id != 'scale') else False
+
     device = property[volume.DEVICE_NAME_PROPERTY]\
         if volume.DEVICE_NAME_PROPERTY in property else 'auto'
     deletable = property['deletable']\
@@ -703,7 +709,7 @@ def create_volume(cinder_client, resource_name, property):
         )
         return
 
-    name = property['resource_id'] if 'resource_id' in property else ''
+    name = property['resource_name'] if 'resource_name' in property else ''
     volume_dict = {'display_name': name}
     if 'volume' in property:
         volume_dict.update(property['volume'])

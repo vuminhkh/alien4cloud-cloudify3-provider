@@ -45,30 +45,30 @@ node_templates:
       cloudify.interfaces.worker_installer:
         install:
           inputs:
-            cloudify_agent: &CLOUDIFY_AGENT
+            cloudify_agent: &CLOUDIFY_AGENT_compute
               service:
                 successful_consecutive_status_queries_count: 10
                 status_transition_sleep_interval: 5
                 start_timeout: 240
                 stop_timeout: 240
-              user: Admin
+              user: "Admin"
               password: { get_attribute: [SELF, password] }
         start:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_compute
         stop:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_compute
         uninstall:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_compute
         restart:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_compute
       cloudify.interfaces.plugin_installer:
         install:
           inputs:
-            cloudify_agent: *CLOUDIFY_AGENT
+            cloudify_agent: *CLOUDIFY_AGENT_compute
   _a4c_key_pair_for_compute:
     type: cloudify.openstack.nodes.KeyPair
     properties:
@@ -85,3 +85,4 @@ plugins:
 workflows:
   a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
   a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
+  a4c_scale: custom_wf_plugin.plugin.workflows.a4c_scale

@@ -24,13 +24,15 @@ node_types:
             - TARGET
             - cloudify.openstack.server_connected_to_floating_ip
             - floating_ip_address
+      _a4c_persistent_resources:
+        default: {"volumes.BlockStorage.external_id":"volume_id"}
 
   alien.nodes.LinuxFileSystem:
     derived_from: cloudify.nodes.SoftwareComponent
 
 relationships:
   alien.relationships.LinuxPartition:
-    derived_from: cloudify.relationships.depends_on
+    derived_from: cloudify.relationships.contained_in
 
 node_templates:
 
@@ -69,8 +71,6 @@ node_templates:
         configure: wrapper/FileSystem/tosca.interfaces.node.lifecycle.Standard/configure/artifacts/alien-extended-storage-types/scripts/_a4c_mkfs.py
     relationships:
       - target: Compute
-        type: cloudify.relationships.contained_in
-      - target: Compute
         type: alien.relationships.LinuxPartition
         source_interfaces:
           cloudify.interfaces.relationship_lifecycle:
@@ -84,3 +84,4 @@ plugins:
 workflows:
   a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
   a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
+  a4c_scale: custom_wf_plugin.plugin.workflows.a4c_scale

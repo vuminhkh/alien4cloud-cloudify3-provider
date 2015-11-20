@@ -46,8 +46,8 @@ node_types:
           parameters:
             - SELF
             - device_name
-      _a4c_persistent_resource_id:
-        default: "external_id=volume_id"
+      _a4c_persistent_resources:
+        default: {"external_id":"volume_id"}
 
   alien.nodes.LinuxFileSystem:
     derived_from: cloudify.nodes.SoftwareComponent
@@ -112,3 +112,4 @@ plugins:
 workflows:
   a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
   a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
+  a4c_scale: custom_wf_plugin.plugin.workflows.a4c_scale
