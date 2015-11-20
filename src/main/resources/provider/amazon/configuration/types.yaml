@@ -102,6 +102,8 @@ node_types:
         default: "standard"
         constrainsts:
           - valid_values: [ "standard", "io1", "gp2" ]
+    attributes:
+      device: { get_attribute: [SELF, device] }
     tags:
       _a4c_c3_derived_from: cloudify.aws.nodes.Volume
       _a4c_c3_prop_map: >
