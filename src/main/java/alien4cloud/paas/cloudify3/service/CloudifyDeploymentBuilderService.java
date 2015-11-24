@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -66,20 +67,33 @@ public class CloudifyDeploymentBuilderService {
         cloudifyDeployment.setLocationType(getLocationType(deploymentContext));
         cloudifyDeployment.setComputes(deploymentContext.getPaaSTopology().getComputes());
         cloudifyDeployment.setVolumes(deploymentContext.getPaaSTopology().getVolumes());
+        cloudifyDeployment.setMonitor(getAndremoveMonitorNode(deploymentContext.getPaaSTopology().getNonNatives()));
         cloudifyDeployment.setNonNatives(deploymentContext.getPaaSTopology().getNonNatives());
         cloudifyDeployment.setNativeTypes(nativeTypes);
         cloudifyDeployment.setNativeTypesHierarchy(nativeTypesDerivedFrom);
 
         cloudifyDeployment.setAllNodes(deploymentContext.getPaaSTopology().getAllNodes());
         cloudifyDeployment.setProviderDeploymentProperties(deploymentContext.getDeploymentTopology().getProviderDeploymentProperties());
-        // TODO use the next commented line when velocity side is ready for ALIEN-1268 (scale / unscale workflow)
-        // cloudifyDeployment.setWorkflows(deploymentContext.getDeploymentTopology().getWorkflows());
         cloudifyDeployment.setWorkflows(buildWorkflowsForDeployment(deploymentContext.getDeploymentTopology().getWorkflows()));
 
         // load the mappings for the native types.
         cloudifyDeployment.setPropertyMappings(PropertiesMappingUtil.loadPropertyMappings(cloudifyDeployment.getNativeTypes()));
 
         return cloudifyDeployment;
+    }
+
+    private PaaSNodeTemplate getAndremoveMonitorNode(List<PaaSNodeTemplate> nonNatives) {
+        if (CollectionUtils.isNotEmpty(nonNatives)) {
+            Iterator<PaaSNodeTemplate> iterator = nonNatives.iterator();
+            while (iterator.hasNext()) {
+                PaaSNodeTemplate template = iterator.next();
+                if (ToscaUtils.isFromType(MonitorService.MONITOR_TYPE, template.getIndexedToscaElement())) {
+                    iterator.remove();
+                    return template;
+                }
+            }
+        }
+        return null;
     }
 
     // TODO: shouldn't we put this in utils intead??
