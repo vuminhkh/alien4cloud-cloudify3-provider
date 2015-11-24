@@ -7,7 +7,6 @@ import java.util.Map;
 import javax.annotation.Resource;
 import javax.inject.Inject;
 
-import alien4cloud.paas.cloudify3.service.*;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang.NotImplementedException;
@@ -22,6 +21,13 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.error.SingleLocationRequiredException;
 import alien4cloud.paas.cloudify3.location.ITypeAwareLocationConfigurator;
+import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
+import alien4cloud.paas.cloudify3.service.CustomWorkflowService;
+import alien4cloud.paas.cloudify3.service.DeploymentService;
+import alien4cloud.paas.cloudify3.service.EventService;
+import alien4cloud.paas.cloudify3.service.MonitorService;
+import alien4cloud.paas.cloudify3.service.OpenStackAvailabilityZonePlacementPolicyService;
+import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
 import alien4cloud.paas.exception.OperationExecutionException;
@@ -73,6 +79,9 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     @Resource
     private MappingConfigurationHolder mappingConfigurationHolder;
 
+    @Resource
+    private MonitorService monitorService;
+
     /**
      * ********************************************************************************************************************
      * *****************************************************Deployment*****************************************************
@@ -82,8 +91,12 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     @Override
     public void deploy(PaaSTopologyDeploymentContext deploymentContext, final IPaaSCallback callback) {
         try {
+            // pre-process to add monitoring stuff
+            deploymentContext = monitorService.process(deploymentContext);
+
             // pre-process the topology to add availability zones.
             osAzPPolicyService.process(deploymentContext);
+
             CloudifyDeployment deployment = cloudifyDeploymentBuilderService.buildCloudifyDeployment(deploymentContext);
             FutureUtil.associateFutureToPaaSCallback(deploymentService.deploy(deployment), callback);
         } catch (SingleLocationRequiredException e) {
@@ -134,8 +147,7 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     }
 
     @Override
-    public void getInstancesInformation(PaaSTopologyDeploymentContext deploymentContext,
-            IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
+    public void getInstancesInformation(PaaSTopologyDeploymentContext deploymentContext, IPaaSCallback<Map<String, Map<String, InstanceInformation>>> callback) {
         statusService.getInstancesInformation(deploymentContext, callback);
     }
 
@@ -167,8 +179,7 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     }
 
     @Override
-    public void launchWorkflow(PaaSDeploymentContext deploymentContext, String workflowName, Map<String, Object> workflowParameters,
-            IPaaSCallback<?> callback) {
+    public void launchWorkflow(PaaSDeploymentContext deploymentContext, String workflowName, Map<String, Object> workflowParameters, IPaaSCallback<?> callback) {
         FutureUtil.associateFutureToPaaSCallback(
                 customWorkflowService.launchWorkflow(deploymentContext.getDeploymentPaaSId(), workflowName, workflowParameters), callback);
     }

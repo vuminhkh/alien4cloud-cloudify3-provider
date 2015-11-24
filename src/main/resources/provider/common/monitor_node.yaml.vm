@@ -1,0 +1,11 @@
+#parse("provider/common/non_native_nodes.yaml.vm")
+#if($deployment.monitor)
+#nonNativeNode($deployment.monitor)
+      - target: ${mapping.generatedNodePrefix}_monitor_container
+        type: cloudify.relationships.contained_in
+
+  ${mapping.generatedNodePrefix}_monitor_container:
+    type: cloudify.nodes.Compute
+    properties:
+      install_agent: false
+#end

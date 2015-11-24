@@ -131,10 +131,34 @@ node_types:
         default: ''
         required: true
 
+  alien.cloudify.nodes.Monitor:
+       derived_from: tosca.nodes.SoftwareComponent
+       properties:
+          nodes_to_monitor:
+            type: list
+            entry_schema:
+              type: string
+       interfaces:
+          cloudify.interfaces.lifecycle:
+             start:
+                inputs:
+                  NODES_TO_MONITOR: { get_property: [SELF, nodes_to_monitor] }
+                implementation: scripts/policy-start.sh
+                executor: central_deployment_agent
+             stop:
+                implementation: scripts/policy-stop.sh
+                executor: central_deployment_agent
+
+#################################################
+#                   COMPUTES
+###################################################
+
   alien.nodes.openstack.Compute:
     derived_from: tosca.nodes.Compute
     tags:
       _a4c_c3_derived_from: cloudify.openstack.nodes.Server
+      _a4c_c3_prop_map: >
+        {"user": "cloudify_agent.user"}
     properties:
       server:
         type: map
@@ -165,6 +189,11 @@ node_types:
       openstack_config:
         type: alien.data.OpenstackConfig
         required: false
+      user:
+        type: string
+        required: true
+        default: Admin
+        description: The user to log in to the created Compute VM.
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
@@ -189,15 +218,14 @@ node_types:
         description: |
           Path to the private key of the keypair defined in key_pair property on the manager's machine (or manager's docker container).
           Default is set to the agent private key path
-      user:
-        type: string
-        required: true
-        default: Admin
-        description: The user to connect to the created VM in case the user/password has been created in the image.
       password:
         type: string
         required: false
         description: The password to connect to the created VM in case the user/password has been created in the image.
+
+#################################################
+#                   NETWORKS
+###################################################
 # TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
   alien.nodes.PublicNetwork:
     abstract: true
@@ -247,6 +275,10 @@ node_types:
       openstack_config:
         type: alien.data.OpenstackConfig
         required: false
+
+#################################################
+#                   VOLUMES
+###################################################
 
   alien.cloudify.openstack.nodes.DeletableVolume:
     derived_from: tosca.nodes.BlockStorage
