@@ -1,14 +1,13 @@
-#set( $nodesToMonitor = $util.compute.getNodesToMonitor($deployment.computes) )
-#if($util.collectionHasElement($nodesToMonitor))
+#if($util.collectionHasElement($deployment.nodesToMonitor))
   ${mapping.generatedNodePrefix}_monitor:
-    type: cloudify.nodes.SoftwareComponent
+    type: alien.cloudify.nodes.monitor
     properties:
       nodes_to_monitor:
-#foreach($nodeToMonitor in $nodesToMonitor)
+#foreach($nodeToMonitor in $deployment.nodesToMonitor)
         - $nodeToMonitor.id
 #end
     relationships:
-#foreach($nodeToMonitor in $nodesToMonitor)
+#foreach($nodeToMonitor in $deployment.nodesToMonitor)
       - target: $nodeToMonitor.id
         type: cloudify.relationships.depends_on
 #end

@@ -35,6 +35,7 @@ import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 @Component("cloudify-deployment-builder-service")
 @Slf4j
@@ -73,6 +74,8 @@ public class CloudifyDeploymentBuilderService {
         cloudifyDeployment.setAllNodes(deploymentContext.getPaaSTopology().getAllNodes());
         cloudifyDeployment.setProviderDeploymentProperties(deploymentContext.getDeploymentTopology().getProviderDeploymentProperties());
         cloudifyDeployment.setWorkflows(buildWorkflowsForDeployment(deploymentContext.getDeploymentTopology().getWorkflows()));
+
+        cloudifyDeployment.setNodesToMonitor(getNodesToMonitor(cloudifyDeployment.getComputes()));
 
         // load the mappings for the native types.
         cloudifyDeployment.setPropertyMappings(PropertiesMappingUtil.loadPropertyMappings(cloudifyDeployment.getNativeTypes()));
@@ -330,5 +333,17 @@ public class CloudifyDeploymentBuilderService {
         if (artifacts != null && !artifacts.isEmpty()) {
             targetMap.put(key, artifacts);
         }
+    }
+
+    public Set<PaaSNodeTemplate> getNodesToMonitor(List<PaaSNodeTemplate> computes) {
+        Set<PaaSNodeTemplate> nodesToMonitor = Sets.newHashSet();
+        for (PaaSNodeTemplate compute : computes) {
+            // we monitor only if the compute is not a windows type
+            // TODO better way to find that this is not a windows compute, taking in accound the location
+            if (!compute.getIndexedToscaElement().getElementId().contains("WindowsCompute")) {
+                nodesToMonitor.add(compute);
+            }
+        }
+        return nodesToMonitor;
     }
 }

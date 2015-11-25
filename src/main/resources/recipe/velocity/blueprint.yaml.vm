@@ -13,6 +13,9 @@ imports:
 #foreach($import in $cloud.getImportsByLocation($deployment.locationType))
   - $import
 #end
+#if($util.collectionHasElement($deployment.nodesToMonitor))
+  - http://www.getcloudify.org/spec/diamond-plugin/1.2.1/plugin.yaml
+#end
 
 node_types:
 #parse("types.yaml.vm")
@@ -23,6 +26,7 @@ node_types:
     derived_from: $util.nonNative.getDerivedFromType($nonNativeType.derivedFrom)
 #end
 #end
+#parse("provider/common/monitor_type.yaml.vm")
 
 #if($util.collectionHasElement($deployment.nonNativesRelationshipTypes))
 relationships:
