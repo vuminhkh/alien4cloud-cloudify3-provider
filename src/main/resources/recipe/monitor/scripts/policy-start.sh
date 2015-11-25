@@ -1,7 +1,7 @@
 #! /bin/bash
 #exit
 pip install influxdb
-if [ $? -gt 0 ]; then 
+if [ $? -gt 0 ]; then
   ctx logger info "Aborting ... "
   exit
 fi
@@ -15,10 +15,12 @@ NTM=$(echo ${NTM} | sed "s/u'/'/g")
 DPLID=$(ctx deployment id)
 ctx logger info "deployment_id = ${DPLID}"
 
-LOC=$(ctx download-resource scripts/policy.py)
+LOC=$(ctx download-resource monitor/scripts/policy.py)
 
-rm /root/policycron
+CRON_FILE=/tmp/policycron_${DPLID}
+
+rm CRON_FILE
 
 COMMAND="/root/cloudify.${DPLID}/env/bin/python ${LOC} \"${NTM}\" ${DPLID} > /root/logfile"
-echo "*/1 * * * * $COMMAND" >> /root/policycron
-crontab /root/policycron
+echo "*/1 * * * * $COMMAND" >> CRON_FILE
+crontab CRON_FILE

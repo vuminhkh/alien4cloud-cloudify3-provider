@@ -62,14 +62,14 @@ def find_contained_nodes(client,depl_id,instance):
 
 
 def main(argv):
-    of = open('/root/pid_file', 'w')
+    depl_id=argv[2]
+    of = open('/tmp/pid_file_'+depl_id, 'w')
     of.write('%i' % getpid())
     of.close()
 
     for i in range(len(argv)):
        print ("argv={0}\n".format(argv[i]))
     nodes_to_monitor=json.loads(argv[1].replace("'", '"'))
-    depl_id=argv[2]
     check_liveness(nodes_to_monitor, depl_id)
 
 if __name__ == '__main__':
