@@ -35,13 +35,13 @@ relationships:
 #end
 
 node_templates:
-
 #parse("provider/${deployment.locationType}/compute_node.yaml.vm")
 #parse("provider/${deployment.locationType}/network_node.yaml.vm")
 #parse("provider/${deployment.locationType}/volume_node.yaml.vm")
-#parse("provider/common/monitor_node.yaml.vm")
 
 #nonNativeNodes($deployment.nonNatives)
+
+#parse("provider/common/monitor_node.yaml.vm")
 
 plugins:
   custom_wf_plugin:

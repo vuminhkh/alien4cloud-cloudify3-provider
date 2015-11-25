@@ -131,24 +131,6 @@ node_types:
         default: ''
         required: true
 
-  alien.cloudify.nodes.Monitor:
-       derived_from: tosca.nodes.SoftwareComponent
-       properties:
-          nodes_to_monitor:
-            type: list
-            entry_schema:
-              type: string
-       interfaces:
-          cloudify.interfaces.lifecycle:
-             start:
-                inputs:
-                  NODES_TO_MONITOR: { get_property: [SELF, nodes_to_monitor] }
-                implementation: scripts/policy-start.sh
-                executor: central_deployment_agent
-             stop:
-                implementation: scripts/policy-stop.sh
-                executor: central_deployment_agent
-
 #################################################
 #                   COMPUTES
 ###################################################

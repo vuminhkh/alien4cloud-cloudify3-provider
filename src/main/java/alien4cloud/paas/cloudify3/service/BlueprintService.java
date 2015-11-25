@@ -15,6 +15,7 @@ import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
@@ -93,7 +94,7 @@ public class BlueprintService {
 
     /**
      * Delete a blueprint on the file system.
-     * 
+     *
      * @param deploymentPaaSId
      *            Alien's paas deployment id used to identify the blueprint.
      */
@@ -172,8 +173,8 @@ public class BlueprintService {
                     for (Map.Entry<String, Interface> inter : relationshipInterfaces.entrySet()) {
                         Map<String, Operation> operations = inter.getValue().getOperations();
                         for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
-                            Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(),
-                                    relationship.getRelationshipTemplate().getTarget());
+                            Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(), relationship
+                                    .getRelationshipTemplate().getTarget());
                             Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts = Maps.newHashMap();
                             if (MapUtils.isNotEmpty(relationship.getIndexedToscaElement().getArtifacts())) {
                                 relationshipArtifacts.put(keyRelationship, relationship.getIndexedToscaElement().getArtifacts());
@@ -205,8 +206,7 @@ public class BlueprintService {
         // custom workflows section
         Path wfPluginDir = generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin");
         Files.createDirectories(wfPluginDir);
-        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/setup.py"),
-                generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/setup.py"));
+        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/setup.py"), generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/setup.py"));
         Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/__init__.py"),
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/__init__.py"));
         Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/handlers.py"),
@@ -219,6 +219,12 @@ public class BlueprintService {
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/workflows.py"), context);
         FileUtil.zip(generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin"),
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin.zip"));
+
+        // monitor
+        if (CollectionUtils.isNotEmpty(util.getCompute().getNodesToMonitor(alienDeployment.getComputes()))) {
+            FileUtil.copy(pluginRecipeResourcesPath.resolve("monitor"), generatedBlueprintDirectoryPath.resolve("monitor"), StandardCopyOption.REPLACE_EXISTING);
+        }
+
         // Generate the blueprint at the end
         VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
@@ -232,10 +238,10 @@ public class BlueprintService {
                 propertyEvaluatorService, allNodes);
         Map<String, Object> operationContext = Maps.newHashMap(context);
         operationContext.put("operation", operationWrapper);
-        VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"),
-                generatedBlueprintDirectoryPath
-                        .resolve(util.getNonNative().getArtifactWrapperPath(owner, interfaceName, operationName, operation.getImplementationArtifact())),
-                operationContext);
+        VelocityUtil.generate(
+                pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"),
+                generatedBlueprintDirectoryPath.resolve(util.getNonNative().getArtifactWrapperPath(owner, interfaceName, operationName,
+                        operation.getImplementationArtifact())), operationContext);
         return operationWrapper;
     }
 

@@ -1,8 +1,27 @@
-#parse("provider/common/non_native_nodes.yaml.vm")
-#if($deployment.monitor)
-#nonNativeNode($deployment.monitor)
+#set( $nodesToMonitor = $util.compute.getNodesToMonitor($deployment.computes) )
+#if($util.collectionHasElement($nodesToMonitor))
+  ${mapping.generatedNodePrefix}_monitor:
+    type: cloudify.nodes.SoftwareComponent
+    properties:
+      nodes_to_monitor:
+#foreach($nodeToMonitor in $nodesToMonitor)
+        - $nodeToMonitor.id
+#end
+    relationships:
+#foreach($nodeToMonitor in $nodesToMonitor)
+      - target: $nodeToMonitor.id
+        type: cloudify.relationships.depends_on
+#end
       - target: ${mapping.generatedNodePrefix}_monitor_container
         type: cloudify.relationships.contained_in
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        start:
+          implementation: monitor/scripts/policy-start.sh
+          executor: central_deployment_agent
+        stop:
+          implementation: monitor/scripts/policy-stop.sh
+          executor: central_deployment_agent
 
   ${mapping.generatedNodePrefix}_monitor_container:
     type: cloudify.nodes.Compute

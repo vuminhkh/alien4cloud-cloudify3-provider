@@ -25,7 +25,6 @@ import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.CustomWorkflowService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
-import alien4cloud.paas.cloudify3.service.MonitorService;
 import alien4cloud.paas.cloudify3.service.OpenStackAvailabilityZonePlacementPolicyService;
 import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
@@ -79,9 +78,6 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     @Resource
     private MappingConfigurationHolder mappingConfigurationHolder;
 
-    @Resource
-    private MonitorService monitorService;
-
     /**
      * ********************************************************************************************************************
      * *****************************************************Deployment*****************************************************
@@ -91,8 +87,6 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     @Override
     public void deploy(PaaSTopologyDeploymentContext deploymentContext, final IPaaSCallback callback) {
         try {
-            // pre-process to add monitoring stuff
-            deploymentContext = monitorService.process(deploymentContext);
 
             // pre-process the topology to add availability zones.
             osAzPPolicyService.process(deploymentContext);
