@@ -1,11 +1,4 @@
     interfaces:
-
-      ###########################################################
-      # install a diamond monitoring agent on the server.
-      #
-      # (see https://github.com/BrightcoveOS/Diamond)
-      ###########################################################
-
       cloudify.interfaces.monitoring_agent:
         install:
           implementation: diamond.diamond_agent.tasks.install
@@ -16,12 +9,6 @@
         start: diamond.diamond_agent.tasks.start
         stop: diamond.diamond_agent.tasks.stop
         uninstall: diamond.diamond_agent.tasks.uninstall
-
-      ###########################################################
-      # Adding some collectors. These collectors are necessary
-      # for the Cloudify UI to display the deafult metrics.
-      ###########################################################
-
       cloudify.interfaces.monitoring:
         start:
           implementation: diamond.diamond_agent.tasks.add_collectors

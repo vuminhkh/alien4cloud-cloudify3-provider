@@ -51,7 +51,6 @@ public class CloudifyDeployment {
 
     private List<IndexedNodeType> nativeTypes;
 
-    private PaaSNodeTemplate monitor;
     /**
      * Derived from types for native types
      */
