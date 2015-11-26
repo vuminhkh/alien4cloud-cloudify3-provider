@@ -36,7 +36,7 @@ public abstract class AbstractLocationConfigurator implements ITypeAwareLocation
 
     public List<String> getAllResourcesTypes() {
         List<String> resourcesTypes = Lists.newArrayList();
-        for (PluginArchive pluginArchive : this.archives) {
+        for (PluginArchive pluginArchive : this.pluginArchives()) {
             for (String nodeType : pluginArchive.getArchive().getNodeTypes().keySet()) {
                 resourcesTypes.add(nodeType);
             }
