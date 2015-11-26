@@ -18,9 +18,9 @@ public class Workflow extends AbstractCloudifyModel {
 
     public static final String A4C_PREFIX = "a4c_";
 
-    public static final String INSTALL = "install";
+    public static final String INSTALL = A4C_PREFIX + "install";
 
-    public static final String UNINSTALL = "uninstall";
+    public static final String UNINSTALL = A4C_PREFIX + "uninstall";
 
     public static final String EXECUTE_OPERATION = "execute_operation";
 
