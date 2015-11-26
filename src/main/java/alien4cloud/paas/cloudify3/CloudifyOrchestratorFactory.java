@@ -25,9 +25,9 @@ import com.google.common.collect.Maps;
 @Slf4j
 public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<CloudifyOrchestrator, CloudConfiguration> {
 
-    private static final String CFY_VERSION = "3.2.1";
+    private static final String CFY_VERSION = "3.3rc1";
 
-    private static final String CFY_SCRIPT_VERSION = "1.2.1";
+    private static final String CFY_SCRIPT_VERSION = "1.3rc1";
 
     @Resource
     private ApplicationContext factoryContext;
