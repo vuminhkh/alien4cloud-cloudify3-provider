@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Component;
 import alien4cloud.model.deployment.matching.MatchingConfiguration;
 import alien4cloud.model.orchestrators.locations.LocationResourceTemplate;
 import alien4cloud.orchestrators.plugin.ILocationResourceAccessor;
-import alien4cloud.orchestrators.plugin.model.PluginArchive;
 
 import com.google.common.collect.Sets;
 
@@ -30,10 +28,11 @@ public class AmazonLocationConfigurator extends AbstractLocationConfigurator {
     private static final String IMAGE_ID_PROP = "image_id";
     private static final String FLAVOR_ID_PROP = "instance_type";
 
-    @PostConstruct
-    public void postConstruct() {
-        parseLocationArchives("provider/amazon/configuration");
+    @Override
+    protected String[] getLocationArchivePaths() {
+        return new String[] { "provider/amazon/configuration" };
     }
+
     @Override
     public List<String> getResourcesTypes() {
         return getAllResourcesTypes();

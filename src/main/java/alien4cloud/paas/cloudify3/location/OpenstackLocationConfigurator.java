@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +30,9 @@ public class OpenstackLocationConfigurator extends AbstractLocationConfigurator 
     private static final String IMAGE_ID_PROP = "image";
     private static final String FLAVOR_ID_PROP = "flavor";
 
-    @PostConstruct
-    public void postConstruct() {
-        parseLocationArchives("provider/openstack/configuration");
+    @Override
+    protected String[] getLocationArchivePaths() {
+        return new String[] { "provider/openstack/configuration" };
     }
 
     @Override
@@ -45,8 +44,8 @@ public class OpenstackLocationConfigurator extends AbstractLocationConfigurator 
     public List<LocationResourceTemplate> instances(ILocationResourceAccessor resourceAccessor) {
         List<LocationResourceTemplate> instances = resourceGenerator.generateComputes(COMPUTE_TYPE, IMAGE_TYPE, FLAVOR_TYPE, IMAGE_ID_PROP, FLAVOR_ID_PROP,
                 resourceAccessor);
-        instances.addAll(
-                resourceGenerator.generateComputes(WINDOWS_COMPUTE_TYPE, WINDOWS_IMAGE_TYPE, FLAVOR_TYPE, IMAGE_ID_PROP, FLAVOR_ID_PROP, resourceAccessor));
+        instances.addAll(resourceGenerator.generateComputes(WINDOWS_COMPUTE_TYPE, WINDOWS_IMAGE_TYPE, FLAVOR_TYPE, IMAGE_ID_PROP, FLAVOR_ID_PROP,
+                resourceAccessor));
         return instances;
     }
 

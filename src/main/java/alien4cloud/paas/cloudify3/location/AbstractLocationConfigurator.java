@@ -27,7 +27,7 @@ public abstract class AbstractLocationConfigurator implements ITypeAwareLocation
 
     protected List<PluginArchive> archives;
 
-    public void parseLocationArchives(String... paths) {
+    private void parseLocationArchives(String[] paths) {
         this.archives = Lists.newArrayList();
         for (String path : paths) {
             this.archives.add(archiveService.parsePluginArchives(path));
@@ -56,8 +56,13 @@ public abstract class AbstractLocationConfigurator implements ITypeAwareLocation
     }
 
     @Override
-    public List<PluginArchive> pluginArchives() {
+    public synchronized List<PluginArchive> pluginArchives() {
+        if (this.archives == null) {
+            parseLocationArchives(getLocationArchivePaths());
+        }
         return this.archives;
     }
+
+    protected abstract String[] getLocationArchivePaths();
 
 }
