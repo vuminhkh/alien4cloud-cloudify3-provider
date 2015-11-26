@@ -30,20 +30,21 @@ public class ExecutionClient extends AbstractClient {
         return EXECUTIONS_PATH;
     }
 
-    public ListenableFuture<Execution[]> asyncList(String deploymentId) {
+    public ListenableFuture<Execution[]> asyncList(String deploymentId, boolean includeSystemWorkflow) {
         if (log.isDebugEnabled()) {
             log.debug("List execution");
         }
         if (deploymentId != null && deploymentId.length() > 0) {
-            return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl("deployment_id"), Execution[].class, deploymentId));
+            return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl("deployment_id", "include_system_workflows"), Execution[].class,
+                    deploymentId, includeSystemWorkflow));
         } else {
             return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl(), Execution[].class));
         }
     }
 
     @SneakyThrows
-    public Execution[] list(String deploymentId) {
-        return asyncList(deploymentId).get();
+    public Execution[] list(String deploymentId, boolean includeSystemWorkflow) {
+        return asyncList(deploymentId, includeSystemWorkflow).get();
     }
 
     public ListenableFuture<Execution> asyncStart(String deploymentId, String workflowId, Map<String, ?> parameters, boolean allowCustomParameters,
@@ -79,8 +80,8 @@ public class ExecutionClient extends AbstractClient {
         }
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        return FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getSuffixedUrl("/{id}"), HttpMethod.POST, new HttpEntity<>(request, headers),
-                Execution.class, id));
+        return FutureUtil.unwrapRestResponse(
+                getRestTemplate().exchange(getSuffixedUrl("/{id}"), HttpMethod.POST, new HttpEntity<>(request, headers), Execution.class, id));
     }
 
     @SneakyThrows

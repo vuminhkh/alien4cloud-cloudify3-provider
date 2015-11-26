@@ -15,7 +15,7 @@ import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.ScalarPropertyValue;
 import alien4cloud.paas.cloudify3.blueprint.BlueprintGenerationUtil;
 import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
-import alien4cloud.paas.cloudify3.model.Execution;
+import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
@@ -61,14 +61,14 @@ public class CustomWorkflowService extends RuntimeService {
     private PropertyEvaluatorService propertyEvaluatorService;
 
     private Map<String, Object> buildWorkflowParameters(CloudifyDeployment deployment, BlueprintGenerationUtil util,
-                                                        NodeOperationExecRequest nodeOperationExecRequest, PaaSNodeTemplate node, Operation operation) {
+            NodeOperationExecRequest nodeOperationExecRequest, PaaSNodeTemplate node, Operation operation) {
         Map<String, Object> workflowParameters = Maps.newHashMap();
         workflowParameters.put("operation", nodeOperationExecRequest.getInterfaceName() + "." + nodeOperationExecRequest.getOperationName());
         if (StringUtils.isNotBlank(nodeOperationExecRequest.getInstanceId())) {
-            workflowParameters.put("node_instance_ids", new String[]{nodeOperationExecRequest.getInstanceId()});
+            workflowParameters.put("node_instance_ids", new String[] { nodeOperationExecRequest.getInstanceId() });
         }
         if (StringUtils.isNotBlank(nodeOperationExecRequest.getNodeTemplateName())) {
-            workflowParameters.put("node_ids", new String[]{nodeOperationExecRequest.getNodeTemplateName()});
+            workflowParameters.put("node_ids", new String[] { nodeOperationExecRequest.getNodeTemplateName() });
         }
         if (MapUtils.isNotEmpty(operation.getInputParameters())) {
             Map<String, Object> inputs = Maps.newHashMap();
@@ -87,7 +87,8 @@ public class CustomWorkflowService extends RuntimeService {
                     if (ToscaFunctionConstants.GET_PROPERTY.equals(function.getFunction())) {
                         parameterValue = FunctionEvaluator.evaluateGetPropertyFunction(function, node, deployment.getAllNodes());
                     } else if (ToscaFunctionConstants.GET_ATTRIBUTE.equals(function.getFunction())) {
-                        String resolvedKeyword = FunctionEvaluator.getPaaSTemplatesFromKeyword(node, function.getTemplateName(), deployment.getAllNodes()).iterator().next().getId();
+                        String resolvedKeyword = FunctionEvaluator.getPaaSTemplatesFromKeyword(node, function.getTemplateName(), deployment.getAllNodes())
+                                .iterator().next().getId();
                         try {
                             Map<String, String> attributes = MapUtil.toString(runtimePropertiesService
                                     .evaluate(deployment.getDeploymentPaaSId(), resolvedKeyword, function.getElementNameToFetch()).get());
@@ -118,7 +119,7 @@ public class CustomWorkflowService extends RuntimeService {
     }
 
     public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment,
-                                                                  final NodeOperationExecRequest nodeOperationExecRequest) {
+            final NodeOperationExecRequest nodeOperationExecRequest) {
         BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(), deployment,
                 blueprintService.resolveBlueprintPath(deployment.getDeploymentPaaSId()), propertyEvaluatorService);
         if (MapUtils.isEmpty(deployment.getAllNodes()) || !deployment.getAllNodes().containsKey(nodeOperationExecRequest.getNodeTemplateName())) {
@@ -138,11 +139,11 @@ public class CustomWorkflowService extends RuntimeService {
         // Here we are safe, the node, the interface and the operation exists
         Operation operation = interfaceOperations.get(nodeOperationExecRequest.getOperationName());
 
-        ListenableFuture<Execution> operationExecutionFuture = waitForExecutionFinish(executionDAO.asyncStart(deployment.getDeploymentPaaSId(),
+        ListenableFuture<Deployment> operationExecutionFuture = waitForExecutionFinish(executionDAO.asyncStart(deployment.getDeploymentPaaSId(),
                 Workflow.EXECUTE_OPERATION, buildWorkflowParameters(deployment, util, nodeOperationExecRequest, node, operation), true, false));
-        AsyncFunction<Execution, Map<String, String>> getOperationResultFunction = new AsyncFunction<Execution, Map<String, String>>() {
+        AsyncFunction<Deployment, Map<String, String>> getOperationResultFunction = new AsyncFunction<Deployment, Map<String, String>>() {
             @Override
-            public ListenableFuture<Map<String, String>> apply(Execution input) throws Exception {
+            public ListenableFuture<Map<String, String>> apply(Deployment input) throws Exception {
                 ListenableFuture<NodeInstance[]> allInstances = nodeInstanceDAO.asyncList(deployment.getDeploymentPaaSId());
                 Function<NodeInstance[], Map<String, String>> nodeInstanceToResultFunction = new Function<NodeInstance[], Map<String, String>>() {
                     @Override

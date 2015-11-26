@@ -2,10 +2,11 @@ tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
 
 template_name: openstack-types
 template_author: Alien4cloud
-template_version: 1.0.0-SNAPSHOT
+template_version: 1.1.0-SNAPSHOT
 
 imports:
   - tosca-normative-types:1.0.0.wd06-SNAPSHOT
+  - cloudify3-common-types:1.1.0-SNAPSHOT
 
 data_types:
   alien.data.OpenstackConfig:
@@ -165,6 +166,9 @@ node_types:
       openstack_config:
         type: alien.data.OpenstackConfig
         required: false
+      cloudify_agent:
+        type: cloudify.datatypes.AgentConfig
+        required: false
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
@@ -174,7 +178,7 @@ node_types:
     tags:
       _a4c_c3_derived_from: cloudify.openstack.nodes.WindowsServer
       _a4c_c3_prop_map: >
-        {"key_pair": null, "private_key_path": null, "user": null, "password": null}
+        {"key_pair": null, "private_key_path": null}
     properties:
       key_pair:
         type: string
@@ -189,23 +193,9 @@ node_types:
         description: |
           Path to the private key of the keypair defined in key_pair property on the manager's machine (or manager's docker container).
           Default is set to the agent private key path
-      user:
-        type: string
+      cloudify_agent:
+        type: cloudify.datatypes.WindowsAgentConfig
         required: true
-        default: Admin
-        description: The user to connect to the created VM in case the user/password has been created in the image.
-      password:
-        type: string
-        required: false
-        description: The password to connect to the created VM in case the user/password has been created in the image.
-# TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
-  alien.nodes.PublicNetwork:
-    abstract: true
-    derived_from: tosca.nodes.Network
-
-  alien.nodes.PrivateNetwork:
-    abstract: true
-    derived_from: tosca.nodes.Network
 
   alien.nodes.openstack.PublicNetwork:
     derived_from: alien.nodes.PublicNetwork

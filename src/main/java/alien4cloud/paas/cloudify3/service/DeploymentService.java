@@ -68,7 +68,7 @@ public class DeploymentService extends RuntimeService {
      *            The deployment information based on the a4c topology.
      * @return A future linked to the install workflow completed execution.
      */
-    public ListenableFuture<Execution> deploy(final CloudifyDeployment alienDeployment) {
+    public ListenableFuture<Deployment> deploy(final CloudifyDeployment alienDeployment) {
         DeploymentStatus currentStatus = statusService.getStatus(alienDeployment.getDeploymentPaaSId());
         if (!DeploymentStatus.UNDEPLOYED.equals(currentStatus)) {
             return Futures.immediateFailedFuture(new PaaSAlreadyDeployedException("Deployment " + alienDeployment.getDeploymentPaaSId()
@@ -102,7 +102,7 @@ public class DeploymentService extends RuntimeService {
 
         // Trigger the install workflow and then wait until the install workflow is completed
         ListenableFuture<Execution> installingExecution = Futures.transform(createdDeployment, installExecutionFunction());
-        ListenableFuture<Execution> installedExecution = waitForExecutionFinish(installingExecution);
+        ListenableFuture<Deployment> installedExecution = waitForExecutionFinish(installingExecution);
 
         // Add a callback to handled failures and provide alien with the correct events.
         addFailureCallback(installedExecution, "Deployment", alienDeployment.getDeploymentPaaSId(), alienDeployment.getDeploymentId(),
@@ -166,7 +166,7 @@ public class DeploymentService extends RuntimeService {
         // Cancel all running executions for this deployment.
         ListenableFuture<NodeInstance[]> cancelRunningExecutionsFuture = cancelAllRunningExecutions(deploymentContext.getDeploymentPaaSId());
         // Once all executions are cancelled we start the un-deployment workflow.
-        ListenableFuture<Execution> uninstalled = Futures.transform(cancelRunningExecutionsFuture, uninstallFunction(deploymentContext));
+        ListenableFuture<Deployment> uninstalled = Futures.transform(cancelRunningExecutionsFuture, uninstallFunction(deploymentContext));
         // Delete the deployment from cloudify.
         ListenableFuture<?> deletedDeployment = Futures.transform(uninstalled, deleteDeploymentFunction(deploymentContext));
         // Delete the blueprint from cloudify.
@@ -179,14 +179,14 @@ public class DeploymentService extends RuntimeService {
         return undeploymentFuture;
     }
 
-    private AsyncFunction<NodeInstance[], Execution> uninstallFunction(final PaaSDeploymentContext deploymentContext) {
-        return new AsyncFunction<NodeInstance[], Execution>() {
+    private AsyncFunction<NodeInstance[], Deployment> uninstallFunction(final PaaSDeploymentContext deploymentContext) {
+        return new AsyncFunction<NodeInstance[], Deployment>() {
             @Override
-            public ListenableFuture<Execution> apply(NodeInstance[] livingNodes) throws Exception {
+            public ListenableFuture<Deployment> apply(NodeInstance[] livingNodes) throws Exception {
                 if (livingNodes != null && livingNodes.length > 0) {
                     // trigger the uninstall workflow only if there is some node instances.
                     ListenableFuture<Execution> triggeredUninstallWorkflow = executionClient.asyncStart(deploymentContext.getDeploymentPaaSId(),
-                            Workflow.UNINSTALL, null, false, true);
+                            Workflow.UNINSTALL, null, false, false);
                     // ensure that the workflow execution is finished.
                     return waitForExecutionFinish(triggeredUninstallWorkflow);
                 } else {
@@ -231,9 +231,9 @@ public class DeploymentService extends RuntimeService {
 
     private void addFailureCallback(ListenableFuture future, final String operationName, final String deploymentPaaSId, final String deploymentId,
             final DeploymentStatus status) {
-        Futures.addCallback(future, new FutureCallback<Execution>() {
+        Futures.addCallback(future, new FutureCallback() {
             @Override
-            public void onSuccess(Execution result) {
+            public void onSuccess(Object result) {
                 log.info(operationName + " of deployment {} with alien's deployment id {} has been executed asynchronously", deploymentPaaSId, deploymentId);
             }
 

@@ -1,14 +1,11 @@
   cloudify.aws.nodes.WindowsInstance:
-    derived_from: cloudify.aws.nodes.Instance
+    derived_from: alien.cloudify.aws.nodes.Compute
     properties:
       use_password:
         default: true
-    interfaces:
-      cloudify.interfaces.worker_installer:
-        install: windows_agent_installer.windows_agent_installer.tasks.install
-        start: windows_agent_installer.windows_agent_installer.tasks.start
-        stop: windows_agent_installer.windows_agent_installer.tasks.stop
-        uninstall: windows_agent_installer.windows_agent_installer.tasks.uninstall
-        restart: windows_agent_installer.windows_agent_installer.tasks.restart
-      cloudify.interfaces.plugin_installer:
-        install: windows_plugin_installer.windows_plugin_installer.tasks.install
+      os_family:
+        default: windows
+      agent_config:
+        type: cloudify.datatypes.AgentConfig
+        default:
+          port: 5985
