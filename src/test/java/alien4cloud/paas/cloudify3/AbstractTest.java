@@ -1,6 +1,7 @@
 package alien4cloud.paas.cloudify3;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.List;
 
 import javax.annotation.Resource;
@@ -42,6 +43,9 @@ public class AbstractTest {
     @Value("${cloudify3.imageId}")
     private String imageId;
 
+    @Value("${directories.alien}/${directories.csar_repository}")
+    private String repositoryCsarDirectory;
+
     @Resource
     private CloudConfigurationHolder cloudConfigurationHolder;
 
@@ -58,6 +62,8 @@ public class AbstractTest {
     @Resource
     private ArchiveIndexer archiveIndexer;
 
+    protected boolean online = false;
+
     @BeforeClass
     public static void cleanup() throws IOException {
         FileUtil.delete(CSARUtil.ARTIFACTS_DIRECTORY);
@@ -70,15 +76,22 @@ public class AbstractTest {
         } else {
             return;
         }
+        FileUtil.delete(Paths.get(repositoryCsarDirectory));
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
-        String cloudifyURL = System.getenv("CLOUDIFY_URL");
-        if (cloudifyURL == null) {
-            cloudifyURL = Context.getInstance().getCloudify3ManagerUrl();
+        if (online) {
+            String cloudifyURL = System.getenv("CLOUDIFY_URL");
+            if (cloudifyURL == null) {
+                cloudifyURL = Context.getInstance().getCloudify3ManagerUrl();
+            }
+            cloudConfiguration.setUrl(cloudifyURL);
         }
-        cloudConfiguration.setUrl(cloudifyURL);
-        CloudConfiguration defaultConfiguration = new CloudifyOrchestratorFactory().getDefaultConfiguration();
-        cloudConfiguration.setLocations(defaultConfiguration.getLocations());
-        cloudConfigurationHolder.setConfiguration(cloudConfiguration);
+        try {
+            cloudConfigurationHolder.setConfiguration(cloudConfiguration);
+        } catch (Exception e) {
+            if (online) {
+                throw e;
+            }
+        }
         csarUtil.uploadAll();
         // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded
         List<ParsingError> parsingErrors = Lists.newArrayList();
