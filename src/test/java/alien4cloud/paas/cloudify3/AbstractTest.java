@@ -81,8 +81,6 @@ public class AbstractTest {
         cloudConfigurationHolder.setConfiguration(cloudConfiguration);
         csarUtil.uploadAll();
         // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded
-        openstackLocationConfigurator.postConstruct();
-        amazonLocationConfigurator.postConstruct();
         List<ParsingError> parsingErrors = Lists.newArrayList();
         for (PluginArchive pluginArchive : openstackLocationConfigurator.pluginArchives()) {
             // index the archive in alien catalog
