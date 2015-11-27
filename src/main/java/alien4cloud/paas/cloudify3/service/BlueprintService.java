@@ -221,7 +221,7 @@ public class BlueprintService {
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin.zip"));
 
         // monitor
-        if (CollectionUtils.isNotEmpty(util.getCompute().getNodesToMonitor(alienDeployment.getComputes()))) {
+        if (CollectionUtils.isNotEmpty(alienDeployment.getNodesToMonitor())) {
             FileUtil.copy(pluginRecipeResourcesPath.resolve("monitor"), generatedBlueprintDirectoryPath.resolve("monitor"), StandardCopyOption.REPLACE_EXISTING);
         }
 

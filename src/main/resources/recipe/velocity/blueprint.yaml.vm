@@ -8,10 +8,14 @@ This template is used to generate cloudify 3 recipe from alien model
 *#
 #parse("provider/common/non_native_nodes.yaml.vm")
 tosca_definitions_version: $cloud.getConfigurationLocation($deployment.locationType).getDsl()
+#parse("provider/common/non_native_nodes.yaml.vm")
 
 imports:
 #foreach($import in $cloud.getConfigurationLocation($deployment.locationType).getImports())
   - $import
+#end
+#if($util.collectionHasElement($deployment.nodesToMonitor))
+  - http://www.getcloudify.org/spec/diamond-plugin/1.2.1/plugin.yaml
 #end
 
 node_types:
@@ -23,6 +27,7 @@ node_types:
     derived_from: $util.nonNative.getDerivedFromType($nonNativeType.derivedFrom)
 #end
 #end
+#parse("provider/common/monitor_type.yaml.vm")
 
 #if($util.collectionHasElement($deployment.nonNativesRelationshipTypes))
 relationships:

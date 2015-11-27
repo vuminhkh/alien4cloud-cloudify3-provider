@@ -1,0 +1,7 @@
+#if($util.collectionHasElement($deployment.nodesToMonitor))
+  alien.cloudify.nodes.monitor:
+    derived_from: cloudify.nodes.SoftwareComponent
+    properties:
+      nodes_to_monitor:
+        default: []
+#end

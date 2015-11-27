@@ -175,7 +175,7 @@ node_types:
       user:
         type: string
         required: true
-        default: Admin
+        default: ubuntu
         description: The user to log in to the created Compute VM.
     attributes:
       ip_address: { get_attribute: [SELF, ip] }

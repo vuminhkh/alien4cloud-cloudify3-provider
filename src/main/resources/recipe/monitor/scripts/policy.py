@@ -18,7 +18,7 @@ import datetime
 def check_liveness(nodes_to_monitor,depl_id):
   c = CloudifyClient('localhost')
   c_influx = InfluxDBClient(host='localhost', port=8086, database='cloudify')
-  f=open('/root/logfile_'+str(depl_id),'w')
+  f=open('/tmp/logfile_cron_excec_'+str(depl_id),'w')
   f.write('in check_liveness\n')
   f.write('nodes_to_monitor: {0}\n'.format(nodes_to_monitor))
   c = CloudifyClient('localhost')
@@ -30,11 +30,14 @@ def check_liveness(nodes_to_monitor,depl_id):
       for instance in instances:
           q_string='SELECT MEAN(value) FROM /' + depl_id + '\.' + node_name + '\.' + instance.id + '\.cpu_total_system/ GROUP BY time(10s) '\
                    'WHERE  time > now() - 40s'
-          f.write('query string is{0}\n'.format(q_string))
+          f.write('query string is {0}\n'.format(q_string))
           try:
              result=c_influx.query(q_string)
              f.write('result is {0} \n'.format(result))
              if not result:
+               # executions = c.executions.list(depl_id)
+               # if not executions
+               # c.executions.start(depl_id, healwf, params)
                c.node_instances.update(instance.id,'deleted')
                find_contained_nodes(c,depl_id,instance)
           except InfluxDBClientError as ee:
