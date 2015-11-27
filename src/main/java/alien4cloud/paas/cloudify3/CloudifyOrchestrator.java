@@ -2,8 +2,10 @@ package alien4cloud.paas.cloudify3;
 
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.inject.Inject;
 
@@ -15,10 +17,10 @@ import org.springframework.stereotype.Component;
 
 import alien4cloud.orchestrators.plugin.ILocationConfiguratorPlugin;
 import alien4cloud.orchestrators.plugin.IOrchestratorPlugin;
+import alien4cloud.orchestrators.plugin.model.PluginArchive;
 import alien4cloud.paas.IPaaSCallback;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
-import alien4cloud.paas.cloudify3.configuration.MappingConfigurationHolder;
 import alien4cloud.paas.cloudify3.error.SingleLocationRequiredException;
 import alien4cloud.paas.cloudify3.location.ITypeAwareLocationConfigurator;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
@@ -26,6 +28,7 @@ import alien4cloud.paas.cloudify3.service.CustomWorkflowService;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.OpenStackAvailabilityZonePlacementPolicyService;
+import alien4cloud.paas.cloudify3.service.PluginArchiveService;
 import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
@@ -38,6 +41,7 @@ import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -75,8 +79,21 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     @Inject
     private OpenStackAvailabilityZonePlacementPolicyService osAzPPolicyService;
 
-    @Resource
-    private MappingConfigurationHolder mappingConfigurationHolder;
+    @Inject
+    private PluginArchiveService archiveService;
+
+    private List<PluginArchive> archives;
+
+    @PostConstruct
+    public void postConstruct() {
+        archives = Lists.newArrayList();
+        archives.add(archiveService.parsePluginArchives("provider/common/configuration"));
+    }
+
+    @Override
+    public List<PluginArchive> getPluginArchives() {
+        return archives;
+    }
 
     /**
      * ********************************************************************************************************************

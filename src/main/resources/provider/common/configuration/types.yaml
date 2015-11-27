@@ -1,0 +1,76 @@
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+
+template_name: cloudify3-common-types
+template_author: Alien4cloud
+template_version: 1.1.0-SNAPSHOT
+
+imports:
+  - tosca-normative-types:1.0.0.wd06-SNAPSHOT
+
+data_types:
+  cloudify.datatypes.AgentConfig:
+    derived_from: tosca.datatypes.Root
+    properties:
+      install_method:
+        type: string
+        required: true
+        default: remote
+      user:
+        type: string
+        required: false
+      key:
+        type: string
+        required: false
+      password:
+        type: string
+        required: false
+        description: The user to connect to the created VM in case the user/password has been created in the image.
+      port:
+        type: integer
+        required: true
+        default: 22
+      process_management:
+        type: map
+        entry_schema:
+          type: string
+      min_workers:
+        type: integer
+        required: false
+      max_workers:
+        type: integer
+        required: false
+      disable_requiretty:
+        type: boolean
+        required: false
+      env:
+        required: false
+        type: map
+        entry_schema:
+          type: string
+      extra:
+        required: false
+        type: map
+        entry_schema:
+          type: string
+
+  cloudify.datatypes.WindowsAgentConfig:
+    derived_from: cloudify.datatypes.AgentConfig
+    properties:
+      user:
+        type: string
+        required: true
+        default: Admin
+      port:
+        type: integer
+        required: true
+        default: 5985
+
+node_types:
+
+  alien.nodes.PublicNetwork:
+    abstract: true
+    derived_from: tosca.nodes.Network
+
+  alien.nodes.PrivateNetwork:
+    abstract: true
+    derived_from: tosca.nodes.Network

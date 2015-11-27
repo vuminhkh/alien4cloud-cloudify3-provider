@@ -8,6 +8,7 @@
 #if($computeHardSetPassword)
       use_password: false
 #end
+
 #if(${compute.scalingPolicy})
     instances:
 #if(${compute.scalingPolicy.initialInstances})

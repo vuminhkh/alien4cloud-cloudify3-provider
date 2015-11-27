@@ -35,15 +35,12 @@ public abstract class RuntimeService {
     @Resource
     protected ExecutionClient executionClient;
 
+    @Resource
+    protected DeploymentClient deploymentClient;
+
     protected ListeningScheduledExecutorService scheduledExecutorService = MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(1));
 
-    /**
-     * This methods uses Futures.transform to recursively check that the execution provided as a parameter is completed (by calling cloudify rest api) before returning it.
-     *
-     * @param futureExecution The future execution that has been triggered but may not be completed.
-     * @return The future execution that is now completed.
-     */
-    protected ListenableFuture<Execution> waitForExecutionFinish(final ListenableFuture<Execution> futureExecution) {
+    private ListenableFuture<Execution> internalWaitForExecutionFinish(final ListenableFuture<Execution> futureExecution) {
         AsyncFunction<Execution, Execution> waitFunc = new AsyncFunction<Execution, Execution>() {
             @Override
             public ListenableFuture<Execution> apply(final Execution execution) throws Exception {
@@ -54,12 +51,12 @@ public abstract class RuntimeService {
                     // If it's not finished, schedule another poll in 2 seconds
                     ListenableFuture<Execution> newFutureExecution = Futures
                             .dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<Execution>>() {
-                                @Override
-                                public ListenableFuture<Execution> call() throws Exception {
-                                    return executionClient.asyncRead(execution.getId());
-                                }
-                            }, 2, TimeUnit.SECONDS));
-                    return waitForExecutionFinish(newFutureExecution);
+                        @Override
+                        public ListenableFuture<Execution> call() throws Exception {
+                            return executionClient.asyncRead(execution.getId());
+                        }
+                    }, 2, TimeUnit.SECONDS));
+                    return internalWaitForExecutionFinish(newFutureExecution);
                 }
             }
         };
@@ -67,7 +64,26 @@ public abstract class RuntimeService {
     }
 
     /**
-     * Return a function that waits recursively until the deployment is created in cloudify (All pending executions to create the deployment are indeed completed).
+     * This methods uses Futures.transform to recursively check that the execution provided as a parameter is completed (by calling cloudify rest api) before
+     * returning it.
+     *
+     * @param futureExecution The future execution that has been triggered but may not be completed.
+     * @return The future execution that is now completed.
+     */
+    protected ListenableFuture<Deployment> waitForExecutionFinish(final ListenableFuture<Execution> futureExecution) {
+        ListenableFuture<Execution> finishedExecution = internalWaitForExecutionFinish(futureExecution);
+        final AsyncFunction<Execution, Deployment> waitSystemWorkflow = new AsyncFunction<Execution, Deployment>() {
+            @Override
+            public ListenableFuture<Deployment> apply(Execution execution) throws Exception {
+                return waitForDeploymentExecutionsFinish(deploymentClient.asyncRead(execution.getDeploymentId()));
+            }
+        };
+        return Futures.transform(finishedExecution, waitSystemWorkflow);
+    }
+
+    /**
+     * Return a function that waits recursively until the deployment is created in cloudify (All pending executions to create the deployment are indeed
+     * completed).
      *
      * @return An AsyncFunction that will return the Deployment only after all pending executions to create the deployment are completed.
      */
@@ -79,7 +95,7 @@ public abstract class RuntimeService {
             @Override
             public ListenableFuture<Deployment> apply(final Deployment deployment) throws Exception {
                 final ListenableFuture<Execution[]> futureExecutions = waitForDeploymentExecutionsFinish(deployment.getId(),
-                        executionClient.asyncList(deployment.getId()));
+                        executionClient.asyncList(deployment.getId(), true));
                 Function<Execution[], Deployment> adaptFunc = new Function<Execution[], Deployment>() {
                     @Override
                     public Deployment apply(Execution[] input) {
@@ -120,11 +136,11 @@ public abstract class RuntimeService {
                     // If it's not finished, schedule another poll in 2 seconds
                     ListenableFuture<Execution[]> newFutureExecutions = Futures
                             .dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<Execution[]>>() {
-                                @Override
-                                public ListenableFuture<Execution[]> call() throws Exception {
-                                    return executionClient.asyncList(deploymentId);
-                                }
-                            }, 2, TimeUnit.SECONDS));
+                        @Override
+                        public ListenableFuture<Execution[]> call() throws Exception {
+                            return executionClient.asyncList(deploymentId, true);
+                        }
+                    }, 2, TimeUnit.SECONDS));
                     return waitForDeploymentExecutionsFinish(deploymentId, newFutureExecutions);
                 }
             }
@@ -133,7 +149,7 @@ public abstract class RuntimeService {
     }
 
     protected ListenableFuture<NodeInstance[]> cancelAllRunningExecutions(final String deploymentPaaSId) {
-        ListenableFuture<Execution[]> currentExecutions = executionClient.asyncList(deploymentPaaSId);
+        ListenableFuture<Execution[]> currentExecutions = executionClient.asyncList(deploymentPaaSId, true);
         AsyncFunction<Execution[], ?> abortCurrentExecutionsFunction = new AsyncFunction<Execution[], List<Execution>>() {
 
             @Override
