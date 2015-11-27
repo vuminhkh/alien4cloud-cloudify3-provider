@@ -18,9 +18,9 @@ import datetime
 def check_liveness(nodes_to_monitor,depl_id):
   c = CloudifyClient('localhost')
   c_influx = InfluxDBClient(host='localhost', port=8086, database='cloudify')
-  f=open('/tmp/logfile_cron_excec_'+str(depl_id),'w')
-  f.write('in check_liveness\n')
-  f.write('nodes_to_monitor: {0}\n'.format(nodes_to_monitor))
+  #f=open('/tmp/logfile_cron_excec_'+str(depl_id),'w')
+  print ('in check_liveness\n')
+  print ('nodes_to_monitor: {0}\n'.format(nodes_to_monitor))
   c = CloudifyClient('localhost')
 
   # compare influx data (monitoring) to cloudify desired state
@@ -30,37 +30,39 @@ def check_liveness(nodes_to_monitor,depl_id):
       for instance in instances:
           q_string='SELECT MEAN(value) FROM /' + depl_id + '\.' + node_name + '\.' + instance.id + '\.cpu_total_system/ GROUP BY time(10s) '\
                    'WHERE  time > now() - 40s'
-          f.write('query string is {0}\n'.format(q_string))
+          print ('query string is {0}\n'.format(q_string))
           try:
              result=c_influx.query(q_string)
-             f.write('result is {0} \n'.format(result))
+             print ('result is {0} \n'.format(result))
              if not result:
-               # executions = c.executions.list(depl_id)
-               # if not executions
-               # c.executions.start(depl_id, healwf, params)
-               c.node_instances.update(instance.id,'deleted')
-               find_contained_nodes(c,depl_id,instance)
+               executions=c.executions.list(depl_id)
+               print ("executions is {0}".format(executions))
+               if not executions:
+                 params = {'node_instance_id': instance.id}
+                 c.executions.start(depl_id, 'a4c_heal', params)
+                  #c.node_instances.update(instance.id,'deleted')
+               #find_contained_nodes(c,depl_id,instance)
           except InfluxDBClientError as ee:
-             f.write('DBClienterror {0}\n'.format(str(ee)))
-             f.write('instance id is {0}\n'.format(instance))
+             print ('DBClienterror {0}\n'.format(str(ee)))
+             print ('instance id is {0}\n'.format(instance))
           except Exception as e:
-             f.write(str(e))
+             print (str(e))
 
 
-def find_contained_nodes(client,depl_id,instance):
-
-  dep_inst_list = client.node_instances.list(depl_id)
-  for inst in dep_inst_list:
-    try:
-      if inst.relationships:
-        for relationship in inst.relationships:
-          target = relationship['target_name']
-          type = relationship['type']
-          if ('contained_in' in str(type)) and (target == instance.node_id):
-            client.node_instances.update(inst.id,'deleted')
-            find_contained_nodes(client,depl_id,inst)
-    except Exception as e:
-      print(str(e))
+# def find_contained_nodes(client,depl_id,instance):
+#
+#   dep_inst_list = client.node_instances.list(depl_id)
+#   for inst in dep_inst_list:
+#     try:
+#       if inst.relationships:
+#         for relationship in inst.relationships:
+#           target = relationship['target_name']
+#           type = relationship['type']
+#           if ('contained_in' in str(type)) and (target == instance.node_id):
+#             client.node_instances.update(inst.id,'deleted')
+#             find_contained_nodes(client,depl_id,inst)
+#     except Exception as e:
+#       print(str(e))
 
 
 
