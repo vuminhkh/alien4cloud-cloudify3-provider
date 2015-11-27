@@ -56,4 +56,28 @@ workflows:
 #foreach($wfEntry in ${deployment.workflows.workflows.entrySet()})
   a4c_${wfEntry.key}: custom_wf_plugin.plugin.workflows.a4c_${wfEntry.key}
 #end
-  a4c_scale: custom_wf_plugin.plugin.workflows.a4c_scale
+  a4c_scale:
+    mapping: custom_wf_plugin.plugin.workflows.a4c_scale
+    parameters:
+      node_id:
+        description: Which node (not node instance) to scale
+      delta:
+        description: >
+            How many nodes should be added/removed.
+            A positive number denotes increase of instances.
+            A negative number denotes decrease of instances.
+        default: 1
+      scale_compute:
+        description: >
+            If node is contained (transitively) within a compute node
+            and this property is 'true', operate on compute node instead
+            of 'node_id'
+        default: true
+  a4c_heal:
+    mapping: custom_wf_plugin.plugin.workflows.a4c_heal
+    parameters:
+      node_instance_id:
+        description: Which node instance has failed
+      diagnose_value:
+        description: Diagnosed reason of failure
+        default: Not provided
