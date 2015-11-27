@@ -95,6 +95,10 @@ public class AbstractTest {
         csarUtil.uploadAll();
         // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded
         List<ParsingError> parsingErrors = Lists.newArrayList();
+        for (PluginArchive pluginArchive : new CloudifyOrchestrator().pluginArchives()) {
+            // index the archive in alien catalog
+            archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
+        }
         for (PluginArchive pluginArchive : openstackLocationConfigurator.pluginArchives()) {
             // index the archive in alien catalog
             archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
