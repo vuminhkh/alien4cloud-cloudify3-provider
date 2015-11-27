@@ -202,13 +202,18 @@ def a4c_heal(
     node_id = failing_node_host.node_id
     subgraph_node_instances = failing_node_host.get_contained_subgraph()
     added_and_related = _get_all_nodes(ctx)
-    graph = ctx.graph_mode()
-    ctx.internal.send_workflow_event(event_type='a4c_workflow_started',
-                                             message=build_pre_event(WfStartEvent('heal', 'uninstall')))
-    custom_context = CustomContext(ctx, subgraph_node_instances, added_and_related)
-    uninstall_host(ctx, graph, custom_context, node_id)
-    graph.execute()
-    graph = ctx.graph_mode()
+    try:
+      graph = ctx.graph_mode()
+      ctx.internal.send_workflow_event(event_type='a4c_workflow_started',
+                                               message=build_pre_event(WfStartEvent('heal', 'uninstall')))
+      custom_context = CustomContext(ctx, subgraph_node_instances, added_and_related)
+      uninstall_host(ctx, graph, custom_context, node_id)
+      graph.execute()
+    except:
+      ctx.logger.error('Uninstall while healing failed.')
+    graph = ctx.internal.task_graph
+    for task in graph.tasks_iter():
+      graph.remove_task(task)
     ctx.internal.send_workflow_event(event_type='a4c_workflow_started',
                                              message=build_pre_event(WfStartEvent('heal', 'install')))
     custom_context = CustomContext(ctx, subgraph_node_instances, added_and_related)
