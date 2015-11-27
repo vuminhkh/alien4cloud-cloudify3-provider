@@ -36,11 +36,18 @@ def check_liveness(nodes_to_monitor,depl_id):
              print ('result is {0} \n'.format(result))
              if not result:
                executions=c.executions.list(depl_id)
-               print ("executions is {0}".format(executions))
-               if not executions:
+               has_pending_execution = False
+               if executions and len(executions)>0:
+                 for execution in executions:
+                   print("Execution {0} : {1}".format(execution.id, execution.status))
+                   if execution.status not in execution.END_STATES:
+                     has_pending_execution = True
+               if not has_pending_execution:
+                 print ('Setting status to error for instance {0}'.format(instance.id))
+                 c.node_instances.update(instance.id,'error')
                  params = {'node_instance_id': instance.id}
+                 print ('Calling Auto-healing workflow for instance {0}'.format(instance.id))  
                  c.executions.start(depl_id, 'a4c_heal', params)
-                  #c.node_instances.update(instance.id,'deleted')
                #find_contained_nodes(c,depl_id,instance)
           except InfluxDBClientError as ee:
              print ('DBClienterror {0}\n'.format(str(ee)))
