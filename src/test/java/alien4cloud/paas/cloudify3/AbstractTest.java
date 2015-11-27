@@ -84,6 +84,10 @@ public class AbstractTest {
         openstackLocationConfigurator.postConstruct();
         amazonLocationConfigurator.postConstruct();
         List<ParsingError> parsingErrors = Lists.newArrayList();
+        for (PluginArchive pluginArchive : new CloudifyOrchestrator().pluginArchives()) {
+            // index the archive in alien catalog
+            archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
+        }
         for (PluginArchive pluginArchive : openstackLocationConfigurator.pluginArchives()) {
             // index the archive in alien catalog
             archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);

@@ -5,7 +5,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.inject.Inject;
 
@@ -84,15 +83,19 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
 
     private List<PluginArchive> archives;
 
-    @PostConstruct
-    public void postConstruct() {
-        archives = Lists.newArrayList();
-        archives.add(archiveService.parsePluginArchives("provider/common/configuration"));
+    public synchronized void parseOrchestratorArchive() {
+        if (archives == null) {
+            archives = Lists.newArrayList();
+            archives.add(archiveService.parsePluginArchives("provider/common/configuration"));
+        }
     }
 
     @Override
-    public List<PluginArchive> getPluginArchives() {
-        return archives;
+    public synchronized List<PluginArchive> pluginArchives() {
+        if (this.archives == null) {
+            parseOrchestratorArchive();
+        }
+        return this.archives;
     }
 
     /**
