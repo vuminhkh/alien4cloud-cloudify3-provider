@@ -8,13 +8,12 @@ imports:
   - tosca-normative-types:1.0.0.wd06-SNAPSHOT
 
 data_types:
-  cloudify.datatypes.AgentConfig:
+  alien.datatypes.AgentConfig:
     derived_from: tosca.datatypes.Root
     properties:
       install_method:
         type: string
         required: true
-        default: remote
       user:
         type: string
         required: false
@@ -27,10 +26,10 @@ data_types:
         description: The user to connect to the created VM in case the user/password has been created in the image.
       port:
         type: integer
-        required: true
-        default: 22
+        required: false
       process_management:
         type: map
+        required: false
         entry_schema:
           type: string
       min_workers:
@@ -43,27 +42,15 @@ data_types:
         type: boolean
         required: false
       env:
-        required: false
         type: map
+        required: false
         entry_schema:
           type: string
       extra:
-        required: false
         type: map
+        required: false
         entry_schema:
           type: string
-
-  cloudify.datatypes.WindowsAgentConfig:
-    derived_from: cloudify.datatypes.AgentConfig
-    properties:
-      user:
-        type: string
-        required: true
-        default: Admin
-      port:
-        type: integer
-        required: true
-        default: 5985
 
 node_types:
 

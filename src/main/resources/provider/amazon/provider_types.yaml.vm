@@ -1,5 +1,5 @@
   cloudify.aws.nodes.WindowsInstance:
-    derived_from: alien.cloudify.aws.nodes.Compute
+    derived_from: cloudify.aws.nodes.Instance
     properties:
       use_password:
         default: true
