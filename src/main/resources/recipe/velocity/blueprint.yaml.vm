@@ -15,7 +15,7 @@ imports:
   - $import
 #end
 #if($util.collectionHasElement($deployment.nodesToMonitor))
-  - http://www.getcloudify.org/spec/diamond-plugin/1.2.1/plugin.yaml
+  - http://www.getcloudify.org/spec/diamond-plugin/1.3rc1/plugin.yaml
 #end
 
 node_types:

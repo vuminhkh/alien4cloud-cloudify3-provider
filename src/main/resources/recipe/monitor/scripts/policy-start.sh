@@ -21,7 +21,7 @@ CRON_FILE=/tmp/policycron_${DPLID}
 
 rm $CRON_FILE
 
-COMMAND="/root/cloudify.${DPLID}/env/bin/python ${LOC} \"${NTM}\" ${DPLID} > /tmp/logfile_cron_${DPLID}"
+COMMAND="/root/${DPLID}/env/bin/python ${LOC} \"${NTM}\" ${DPLID} >> /tmp/logfile_cron_${DPLID}"
 echo "*/1 * * * * $COMMAND" >> $CRON_FILE
 crontab $CRON_FILE
 
