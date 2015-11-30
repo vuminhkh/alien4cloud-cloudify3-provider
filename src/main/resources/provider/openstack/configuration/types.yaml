@@ -209,10 +209,6 @@ node_types:
 #################################################
 #                   NETWORKS
 ###################################################
-# TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
-  alien.nodes.PublicNetwork:
-    abstract: true
-    derived_from: tosca.nodes.Network
 
   alien.nodes.openstack.PublicNetwork:
     derived_from: alien.nodes.PublicNetwork

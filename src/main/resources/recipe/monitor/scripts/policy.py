@@ -18,7 +18,6 @@ import datetime
 def check_liveness(nodes_to_monitor,depl_id):
   c = CloudifyClient('localhost')
   c_influx = InfluxDBClient(host='localhost', port=8086, database='cloudify')
-  #f=open('/tmp/logfile_cron_excec_'+str(depl_id),'w')
   print ('in check_liveness\n')
   print ('nodes_to_monitor: {0}\n'.format(nodes_to_monitor))
   c = CloudifyClient('localhost')
@@ -39,16 +38,18 @@ def check_liveness(nodes_to_monitor,depl_id):
                has_pending_execution = False
                if executions and len(executions)>0:
                  for execution in executions:
-                   print("Execution {0} : {1}".format(execution.id, execution.status))
+                #    print("Execution {0} : {1}".format(execution.id, execution.status))
                    if execution.status not in execution.END_STATES:
                      has_pending_execution = True
+
                if not has_pending_execution:
-                 print ('Setting status to error for instance {0}'.format(instance.id))
-                 c.node_instances.update(instance.id,'error')
+                 print ('Setting state to error for instance {0} and its children'.format(instance.id))
+                 update_nodes_tree_state(c, depl_id, instance, 'error')
                  params = {'node_instance_id': instance.id}
-                 print ('Calling Auto-healing workflow for instance {0}'.format(instance.id))  
+                 print ('Calling Auto-healing workflow for container instance {0}'.format(instance.id))
                  c.executions.start(depl_id, 'a4c_heal', params)
-               #find_contained_nodes(c,depl_id,instance)
+               else:
+                 print ('pendding executions on the deployment...waiting for their end before calling heal workfllow...')
           except InfluxDBClientError as ee:
              print ('DBClienterror {0}\n'.format(str(ee)))
              print ('instance id is {0}\n'.format(instance))
@@ -56,31 +57,32 @@ def check_liveness(nodes_to_monitor,depl_id):
              print (str(e))
 
 
-# def find_contained_nodes(client,depl_id,instance):
-#
-#   dep_inst_list = client.node_instances.list(depl_id)
-#   for inst in dep_inst_list:
-#     try:
-#       if inst.relationships:
-#         for relationship in inst.relationships:
-#           target = relationship['target_name']
-#           type = relationship['type']
-#           if ('contained_in' in str(type)) and (target == instance.node_id):
-#             client.node_instances.update(inst.id,'deleted')
-#             find_contained_nodes(client,depl_id,inst)
-#     except Exception as e:
-#       print(str(e))
+def update_nodes_tree_state(client,depl_id,instance,state):
+  print ('updating instance {0} state to {1}'.format(instance.id, state))
+  client.node_instances.update(instance.id, state)
+  dep_inst_list = client.node_instances.list(depl_id)
+  for inst in dep_inst_list:
+    try:
+      if inst.relationships:
+        for relationship in inst.relationships:
+          target = relationship['target_name']
+          type = relationship['type']
+          if ('contained_in' in str(type)) and (target == instance.node_id):
+            update_nodes_tree_state(client,depl_id,inst,state)
+    except Exception as e:
+      print(str(e))
 
 
 
 def main(argv):
+    for i in range(len(argv)):
+       print ("argv={0}\n".format(argv[i]))
     depl_id=argv[2]
-    of = open('/tmp/pid_file_'+depl_id, 'w')
+    monitoring_dir=argv[3]
+    of = open(monitoring_dir+'/pid_file', 'w')
     of.write('%i' % getpid())
     of.close()
 
-    for i in range(len(argv)):
-       print ("argv={0}\n".format(argv[i]))
     nodes_to_monitor=json.loads(argv[1].replace("'", '"'))
     check_liveness(nodes_to_monitor, depl_id)
 

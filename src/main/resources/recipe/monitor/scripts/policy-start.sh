@@ -6,7 +6,6 @@ if [ $? -gt 0 ]; then
   exit
 fi
 
-
 ctx logger info "Retrieving nodes_to_monitor and deployment_id"
 
 NTM="$(ctx node properties nodes_to_monitor)"
@@ -14,15 +13,19 @@ ctx logger info "nodes_to_monitor = ${NTM}"
 NTM=$(echo ${NTM} | sed "s/u'/'/g")
 DPLID=$(ctx deployment id)
 ctx logger info "deployment_id = ${DPLID}"
-
+MONITORING_DIR="$BASE_DIR/${DPLID}"
 LOC=$(ctx download-resource monitor/scripts/policy.py)
 
-CRON_FILE=/tmp/policycron_${DPLID}
+mkdir -p $MONITORING_DIR
+
+CRON_FILE=$MONITORING_DIR/policycron
 
 rm $CRON_FILE
+rm $MONITORING_DIR/log
 
-COMMAND="/root/${DPLID}/env/bin/python ${LOC} \"${NTM}\" ${DPLID} >> /tmp/logfile_cron_${DPLID}"
+COMMAND="/root/${DPLID}/env/bin/python ${LOC} \"${NTM}\" ${DPLID} $MONITORING_DIR >> $MONITORING_DIR/log"
 echo "*/1 * * * * $COMMAND" >> $CRON_FILE
-crontab $CRON_FILE
 
-ctx logger info "qui:`whoami` - ou:`hostname` - crontab: `crontab -l` - ls: `ls /tmp`"
+(crontab -l ; cat $CRON_FILE) 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
+
+ctx logger info "monitoring cron job added for deployment ${DPLID}, nodes ${NTM}"
