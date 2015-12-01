@@ -45,8 +45,8 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
         Imports imports = new Imports();
         imports.setAmazon(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
                 "http://www.getcloudify.org/spec/aws-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
-        imports.setOpenstack(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
-                "http://www.getcloudify.org/spec/openstack-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
+        imports.setOpenstack(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/3.2/types.yaml",
+                "openstack-plugin.yaml"));
         cloudConfiguration.setImports(imports);
         return cloudConfiguration;
     }
