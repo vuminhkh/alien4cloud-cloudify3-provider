@@ -18,6 +18,7 @@
         start:
           inputs:
             BASE_DIR: "/tmp/_a4c_monitoring"
+            MONITORING_INTERVAL: $util.common.getMonitoringInterval()
           implementation: monitor/scripts/policy-start.sh
           executor: central_deployment_agent
         stop:

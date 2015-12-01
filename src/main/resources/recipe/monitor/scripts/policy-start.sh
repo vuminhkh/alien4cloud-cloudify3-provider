@@ -13,6 +13,7 @@ ctx logger info "nodes_to_monitor = ${NTM}"
 NTM=$(echo ${NTM} | sed "s/u'/'/g")
 DPLID=$(ctx deployment id)
 ctx logger info "deployment_id = ${DPLID}"
+ctx logger info "checking interval: ${MONITORING_INTERVAL}"
 MONITORING_DIR="$BASE_DIR/${DPLID}"
 LOC=$(ctx download-resource monitor/scripts/policy.py)
 
@@ -24,7 +25,7 @@ rm $CRON_FILE
 rm $MONITORING_DIR/log
 
 COMMAND="/root/${DPLID}/env/bin/python ${LOC} \"${NTM}\" ${DPLID} $MONITORING_DIR >> $MONITORING_DIR/log"
-echo "*/1 * * * * $COMMAND" >> $CRON_FILE
+echo "*/$MONITORING_INTERVAL * * * * $COMMAND" >> $CRON_FILE
 
 (crontab -l ; cat $CRON_FILE) 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
 

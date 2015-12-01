@@ -72,6 +72,8 @@ public class BlueprintService {
 
     @Resource
     private PropertyEvaluatorService propertyEvaluatorService;
+    @Resource
+    private DeploymentPropertiesService deploymentPropertiesService;
 
     @Resource
     private ManagedPlugin pluginContext;
@@ -123,7 +125,7 @@ public class BlueprintService {
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
         BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(), alienDeployment,
-                generatedBlueprintDirectoryPath, propertyEvaluatorService);
+                generatedBlueprintDirectoryPath, propertyEvaluatorService, deploymentPropertiesService);
 
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();

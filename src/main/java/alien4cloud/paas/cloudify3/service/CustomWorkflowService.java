@@ -60,6 +60,9 @@ public class CustomWorkflowService extends RuntimeService {
     @Resource
     private PropertyEvaluatorService propertyEvaluatorService;
 
+    @Resource
+    private DeploymentPropertiesService deploymentPropertiesService;
+
     private Map<String, Object> buildWorkflowParameters(CloudifyDeployment deployment, BlueprintGenerationUtil util,
             NodeOperationExecRequest nodeOperationExecRequest, PaaSNodeTemplate node, Operation operation) {
         Map<String, Object> workflowParameters = Maps.newHashMap();
@@ -90,8 +93,8 @@ public class CustomWorkflowService extends RuntimeService {
                         String resolvedKeyword = FunctionEvaluator.getPaaSTemplatesFromKeyword(node, function.getTemplateName(), deployment.getAllNodes())
                                 .iterator().next().getId();
                         try {
-                            Map<String, String> attributes = MapUtil.toString(runtimePropertiesService
-                                    .evaluate(deployment.getDeploymentPaaSId(), resolvedKeyword, function.getElementNameToFetch()).get());
+                            Map<String, String> attributes = MapUtil.toString(runtimePropertiesService.evaluate(deployment.getDeploymentPaaSId(),
+                                    resolvedKeyword, function.getElementNameToFetch()).get());
                             if (MapUtils.isEmpty(attributes)) {
                                 throw new OperationExecutionException("Node " + node.getId() + " do not have any instance at this moment");
                             } else if (attributes.size() > 1) {
@@ -118,23 +121,22 @@ public class CustomWorkflowService extends RuntimeService {
         return workflowParameters;
     }
 
-    public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment,
-            final NodeOperationExecRequest nodeOperationExecRequest) {
+    public ListenableFuture<Map<String, String>> executeOperation(final CloudifyDeployment deployment, final NodeOperationExecRequest nodeOperationExecRequest) {
         BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(), deployment,
-                blueprintService.resolveBlueprintPath(deployment.getDeploymentPaaSId()), propertyEvaluatorService);
+                blueprintService.resolveBlueprintPath(deployment.getDeploymentPaaSId()), propertyEvaluatorService, deploymentPropertiesService);
         if (MapUtils.isEmpty(deployment.getAllNodes()) || !deployment.getAllNodes().containsKey(nodeOperationExecRequest.getNodeTemplateName())) {
             throw new OperationExecutionException("Node " + nodeOperationExecRequest.getNodeTemplateName() + " do not exist in the deployment");
         }
         PaaSNodeTemplate node = deployment.getAllNodes().get(nodeOperationExecRequest.getNodeTemplateName());
         Map<String, Interface> nodeInterfaces = util.getNonNative().getNodeInterfaces(node);
         if (MapUtils.isEmpty(nodeInterfaces) || !nodeInterfaces.containsKey(nodeOperationExecRequest.getInterfaceName())) {
-            throw new OperationExecutionException(
-                    "Interface " + nodeOperationExecRequest.getInterfaceName() + " do not exist for node " + nodeOperationExecRequest.getNodeTemplateName());
+            throw new OperationExecutionException("Interface " + nodeOperationExecRequest.getInterfaceName() + " do not exist for node "
+                    + nodeOperationExecRequest.getNodeTemplateName());
         }
         Map<String, Operation> interfaceOperations = nodeInterfaces.get(nodeOperationExecRequest.getInterfaceName()).getOperations();
         if (MapUtils.isEmpty(interfaceOperations) || !interfaceOperations.containsKey(nodeOperationExecRequest.getOperationName())) {
-            throw new OperationExecutionException(
-                    "Operation " + nodeOperationExecRequest.getOperationName() + " do not exist for interface " + nodeOperationExecRequest.getInterfaceName());
+            throw new OperationExecutionException("Operation " + nodeOperationExecRequest.getOperationName() + " do not exist for interface "
+                    + nodeOperationExecRequest.getInterfaceName());
         }
         // Here we are safe, the node, the interface and the operation exists
         Operation operation = interfaceOperations.get(nodeOperationExecRequest.getOperationName());
