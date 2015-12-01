@@ -18,6 +18,8 @@ public class Execution extends AbstractCloudifyModel {
 
     private String id;
 
+    private Boolean isSystemWorkflow = false;
+
     private String blueprintId;
 
     private String workflowId;

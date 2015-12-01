@@ -4,6 +4,7 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ public class CloudConfigurationHolder {
     private CloudConfiguration configuration;
 
     @Resource
+    @Setter
     private VersionClient versionClient;
 
     private List<ICloudConfigurationChangeListener> listeners = Lists.newArrayList();

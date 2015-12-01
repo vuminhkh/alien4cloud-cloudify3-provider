@@ -49,13 +49,13 @@ public abstract class RuntimeService {
                     return futureExecution;
                 } else {
                     // If it's not finished, schedule another poll in 2 seconds
-                    ListenableFuture<Execution> newFutureExecution = Futures
-                            .dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<Execution>>() {
-                        @Override
-                        public ListenableFuture<Execution> call() throws Exception {
-                            return executionClient.asyncRead(execution.getId());
-                        }
-                    }, 2, TimeUnit.SECONDS));
+                    ListenableFuture<Execution> newFutureExecution = Futures.dereference(scheduledExecutorService.schedule(
+                            new Callable<ListenableFuture<Execution>>() {
+                                @Override
+                                public ListenableFuture<Execution> call() throws Exception {
+                                    return executionClient.asyncRead(execution.getId());
+                                }
+                            }, 2, TimeUnit.SECONDS));
                     return internalWaitForExecutionFinish(newFutureExecution);
                 }
             }
@@ -134,13 +134,13 @@ public abstract class RuntimeService {
                     return futureExecutions;
                 } else {
                     // If it's not finished, schedule another poll in 2 seconds
-                    ListenableFuture<Execution[]> newFutureExecutions = Futures
-                            .dereference(scheduledExecutorService.schedule(new Callable<ListenableFuture<Execution[]>>() {
-                        @Override
-                        public ListenableFuture<Execution[]> call() throws Exception {
-                            return executionClient.asyncList(deploymentId, true);
-                        }
-                    }, 2, TimeUnit.SECONDS));
+                    ListenableFuture<Execution[]> newFutureExecutions = Futures.dereference(scheduledExecutorService.schedule(
+                            new Callable<ListenableFuture<Execution[]>>() {
+                                @Override
+                                public ListenableFuture<Execution[]> call() throws Exception {
+                                    return executionClient.asyncList(deploymentId, true);
+                                }
+                            }, 2, TimeUnit.SECONDS));
                     return waitForDeploymentExecutionsFinish(deploymentId, newFutureExecutions);
                 }
             }
@@ -150,14 +150,20 @@ public abstract class RuntimeService {
 
     protected ListenableFuture<NodeInstance[]> cancelAllRunningExecutions(final String deploymentPaaSId) {
         ListenableFuture<Execution[]> currentExecutions = executionClient.asyncList(deploymentPaaSId, true);
-        AsyncFunction<Execution[], ?> abortCurrentExecutionsFunction = new AsyncFunction<Execution[], List<Execution>>() {
+        AsyncFunction<Execution[], ?> abortCurrentExecutionsFunction = new AsyncFunction<Execution[], List<Object>>() {
 
             @Override
-            public ListenableFuture<List<Execution>> apply(Execution[] executions) throws Exception {
-                List<ListenableFuture<Execution>> abortExecutions = Lists.newArrayList();
+            public ListenableFuture<List<Object>> apply(Execution[] executions) throws Exception {
+                List<ListenableFuture<?>> abortExecutions = Lists.newArrayList();
                 for (Execution execution : executions) {
                     if (!ExecutionStatus.isTerminated(execution.getStatus())) {
-                        abortExecutions.add(executionClient.asyncCancel(execution.getId(), true));
+                        if (!execution.getIsSystemWorkflow()) {
+                            log.info("Cancel running user workflow execution " + execution.getWorkflowId());
+                            abortExecutions.add(executionClient.asyncCancel(execution.getId(), true));
+                        } else {
+                            log.info("Wait for system execution finished " + execution.getWorkflowId());
+                            abortExecutions.add(waitForExecutionFinish(Futures.immediateFuture(execution)));
+                        }
                     }
                 }
                 return Futures.allAsList(abortExecutions);
