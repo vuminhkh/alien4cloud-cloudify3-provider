@@ -28,7 +28,7 @@ public class DeploymentEventClient extends AbstractEventClient {
         if (timestamp != null) {
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(timestamp);
-            eventsQuery.must(QueryBuilders.rangeQuery("@timestamp").gt(DatatypeConverter.printDateTime(calendar)));
+            eventsQuery.must(QueryBuilders.rangeQuery("@timestamp").gte(DatatypeConverter.printDateTime(calendar)));
         }
         eventsQuery.must(QueryBuilders.matchQuery("type", "cloudify_event"));
 
