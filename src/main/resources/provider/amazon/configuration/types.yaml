@@ -48,7 +48,7 @@ node_types:
         type: string
         default: ''
       cloudify_agent:
-        type: cloudify.datatypes.AgentConfig
+        type: alien.datatypes.AgentConfig
         required: false
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
@@ -59,8 +59,22 @@ node_types:
     tags:
       _a4c_c3_derived_from: cloudify.aws.nodes.WindowsInstance
       _a4c_c3_prop_map: >
-        {"key_pair": null, "private_key_path": null}
+        {"user": "cloudify_agent.user", "password": "cloudify_agent.password", "port": "cloudify_agent.port", "key_pair": null, "private_key_path": null}
     properties:
+      user:
+        type: string
+        required: true
+        default: Admin
+        description: The user to connect to the created VM in case the user/password has been created in the image.
+      password:
+        type: string
+        required: false
+        description: The password to connect to the created VM in case the user/password has been created in the image.
+      port:
+        type: integer
+        required: true
+        description: The port which will be used by the agent to connect to the machine.
+        default: 5985
       key_pair:
         type: string
         required: true
@@ -74,9 +88,6 @@ node_types:
         description: |
           Path to the private key of the keypair defined in key_pair property on the manager's machine (or manager's docker container).
           Default is set to the agent private key path
-      cloudify_agent:
-        type: cloudify.datatypes.WindowsAgentConfig
-        required: true
 
   alien.nodes.aws.PublicNetwork:
     derived_from: alien.nodes.PublicNetwork

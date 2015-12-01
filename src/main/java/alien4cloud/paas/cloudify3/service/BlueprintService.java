@@ -84,13 +84,20 @@ public class BlueprintService {
 
     @PostConstruct
     public void postConstruct() throws IOException {
-        FileUtil.copy(pluginContext.getPluginPath().resolve("recipe"), pluginRecipeResourcesPath, StandardCopyOption.REPLACE_EXISTING);
-        List<Path> providerTemplates = FileUtil.listFiles(pluginContext.getPluginPath().resolve("provider"), ".+\\.yaml\\.vm");
-        for (Path providerTemplate : providerTemplates) {
-            String relativizedPath = FileUtil.relativizePath(pluginContext.getPluginPath(), providerTemplate);
-            Path providerTemplateTargetPath = this.pluginRecipeResourcesPath.resolve("velocity").resolve(relativizedPath);
-            Files.createDirectories(providerTemplateTargetPath.getParent());
-            Files.copy(providerTemplate, providerTemplateTargetPath, StandardCopyOption.REPLACE_EXISTING);
+        synchronized (BlueprintService.class) {
+            this.pluginRecipeResourcesPath = this.pluginContext.getPluginPath().resolve("recipe");
+            if (Files.exists(this.pluginRecipeResourcesPath.resolve("velocity").resolve("provider"))) {
+                return;
+            }
+            log.info("Copy provider templates to velocity main template's folder");
+            // This is a workaround to copy provider templates to velocity folder as relative path do not work with velocity
+            List<Path> providerTemplates = FileUtil.listFiles(pluginContext.getPluginPath().resolve("provider"), ".+\\.yaml\\.vm");
+            for (Path providerTemplate : providerTemplates) {
+                String relativizedPath = FileUtil.relativizePath(pluginContext.getPluginPath(), providerTemplate);
+                Path providerTemplateTargetPath = this.pluginRecipeResourcesPath.resolve("velocity").resolve(relativizedPath);
+                Files.createDirectories(providerTemplateTargetPath.getParent());
+                Files.copy(providerTemplate, providerTemplateTargetPath, StandardCopyOption.REPLACE_EXISTING);
+            }
         }
     }
 
@@ -327,7 +334,5 @@ public class BlueprintService {
         Path cloudifyPath = Paths.get(path).toAbsolutePath();
         recipeDirectoryPath = cloudifyPath.resolve("recipes");
         Files.createDirectories(recipeDirectoryPath);
-        pluginRecipeResourcesPath = cloudifyPath.resolve("resources").resolve("recipe");
-        Files.createDirectories(pluginRecipeResourcesPath);
     }
 }

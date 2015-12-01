@@ -9,6 +9,46 @@ imports:
   - cloudify3-common-types:1.1.0-SNAPSHOT
 
 data_types:
+
+  alien.data.openstack.nova.v2.CreateServerArgs:
+    derived_from: tosca.datatypes.Root
+    properties:
+      userdata:
+        type: string
+        required: false
+      name:
+        type: string
+        required: false
+      security_groups:
+        type: list
+        required: false
+        entry_schema:
+          type: string
+      availability_zone:
+        type: string
+        required: false
+      key_name:
+        type: string
+        required: false
+      block_device_mapping:
+        type: map
+        required: false
+        entry_schema:
+          type: string
+      nics:
+        type: list
+        required: false
+        entry_schema:
+          type: string
+      tenant_id:
+        type: string
+        required: false
+      meta:
+        type: map
+        required: false
+        entry_schema:
+          type: string
+
   alien.data.OpenstackConfig:
     derived_from: tosca.datatypes.Root
     properties:
@@ -144,9 +184,7 @@ node_types:
         {"user": "cloudify_agent.user"}
     properties:
       server:
-        type: map
-        entry_schema:
-          type: string
+        type: alien.data.openstack.nova.v2.CreateServerArgs
         required: false
         description: "Openstack compute creation arguments, see http://developer.openstack.org/api-ref-compute-v2.html for more details"
       use_external_resource:
@@ -177,6 +215,9 @@ node_types:
         required: true
         default: ubuntu
         description: The user to log in to the created Compute VM.
+      cloudify_agent:
+        type: alien.datatypes.AgentConfig
+        required: false
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
@@ -186,8 +227,17 @@ node_types:
     tags:
       _a4c_c3_derived_from: cloudify.openstack.nodes.WindowsServer
       _a4c_c3_prop_map: >
-        {"key_pair": null, "private_key_path": null}
+        {"user": "cloudify_agent.user", "password": "cloudify_agent.password", "port": "cloudify_agent.port", "key_pair": null, "private_key_path": null}
     properties:
+      password:
+        type: string
+        required: false
+        description: The password to connect to the created VM in case the user/password has been created in the image.
+      port:
+        type: integer
+        required: true
+        description: The port which will be used by the agent to connect to the machine.
+        default: 5985
       key_pair:
         type: string
         required: true
@@ -201,14 +251,6 @@ node_types:
         description: |
           Path to the private key of the keypair defined in key_pair property on the manager's machine (or manager's docker container).
           Default is set to the agent private key path
-      password:
-        type: string
-        required: false
-        description: The password to connect to the created VM in case the user/password has been created in the image.
-
-#################################################
-#                   NETWORKS
-###################################################
 
   alien.nodes.openstack.PublicNetwork:
     derived_from: alien.nodes.PublicNetwork
