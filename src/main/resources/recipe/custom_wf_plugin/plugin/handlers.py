@@ -113,7 +113,7 @@ def build_persistent_event_tasks(instance):
             persistent_cloudify_attribute = key
             persistent_alien_attribute = value
             kwargs={'message':build_pre_event(PersistentResourceEvent(persistent_cloudify_attribute, persistent_alien_attribute))}
-            tasks.append(instance.ctx.local_task(local_task=send_event_task, node=instance, info=kwargs.message, kwargs=kwargs))
+            tasks.append(instance.ctx.local_task(local_task=send_event_task, node=instance, info=kwargs.get('message', ''), kwargs=kwargs))
         return tasks
     else:
         return None
