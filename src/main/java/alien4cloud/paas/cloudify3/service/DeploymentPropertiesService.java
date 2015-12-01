@@ -6,7 +6,6 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Component;
 
 import alien4cloud.model.components.PropertyConstraint;
 import alien4cloud.model.components.PropertyDefinition;
@@ -16,7 +15,6 @@ import alien4cloud.utils.MapUtil;
 
 import com.google.common.collect.Maps;
 
-@Component
 public class DeploymentPropertiesService {
 
     public static String MONITORING_INTERVAL_INMINUTE = "monitoring_interval_inSecond";
