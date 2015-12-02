@@ -28,6 +28,7 @@ import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.OpenStackAvailabilityZonePlacementPolicyService;
 import alien4cloud.paas.cloudify3.service.PluginArchiveService;
+import alien4cloud.paas.cloudify3.service.ScalableComputeReplacementService;
 import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
@@ -98,6 +99,9 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
         return this.archives;
     }
 
+    @Resource
+    private ScalableComputeReplacementService scalableComputeReplacementService;
+
     /**
      * ********************************************************************************************************************
      * *****************************************************Deployment*****************************************************
@@ -106,6 +110,7 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
 
     @Override
     public void deploy(PaaSTopologyDeploymentContext deploymentContext, final IPaaSCallback callback) {
+        deploymentContext = scalableComputeReplacementService.transformTopology(deploymentContext);
         try {
 
             // pre-process the topology to add availability zones.

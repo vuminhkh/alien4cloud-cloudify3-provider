@@ -22,6 +22,7 @@ import alien4cloud.paas.cloudify3.model.EventType;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
+import alien4cloud.paas.cloudify3.restclient.NodeClient;
 import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
@@ -31,6 +32,7 @@ import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.model.PaaSWorkflowMonitorEvent;
 import alien4cloud.paas.model.PaaSWorkflowStepMonitorEvent;
+import alien4cloud.utils.MapUtil;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
@@ -54,6 +56,8 @@ public class EventService {
     @Resource
     private NodeInstanceClient nodeInstanceClient;
     @Resource
+    private NodeClient nodeClient;
+    @Resource
     private StatusService statusService;
     /**
      * Hold last event ids
@@ -61,6 +65,9 @@ public class EventService {
     private Set<String> lastEvents = Sets.newConcurrentHashSet();
     private long lastMinTimestamp;
     private long lastMaxTimestamp;
+
+    @Resource
+    private ScalableComputeReplacementService scalableComputeReplacementService;
 
     // TODO : May manage in a better manner this kind of state
     private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newConcurrentMap();
@@ -165,7 +172,7 @@ public class EventService {
 
     /**
      * Register an event to be added to the queue to dispatch it to Alien 4 Cloud.
-     * 
+     *
      * @param event The event to be dispatched.
      */
     public synchronized void registerEvent(AbstractMonitorEvent event) {
@@ -213,6 +220,9 @@ public class EventService {
                     log.debug("Received event {}", cloudifyEvent);
                 }
                 alienEvents.add(alienEvent);
+                // [[ Scaling issue workarround
+                scalableComputeReplacementService.processEventForSubstitutes(alienEvents, alienEvent, cloudifyEvent);
+                // Scaling issue workarround ]]
             } else {
                 if (log.isDebugEnabled()) {
                     log.debug("Filtered event {}", cloudifyEvent);
@@ -269,10 +279,15 @@ public class EventService {
                 // query API
                 // TODO make that Async
                 NodeInstance instance = nodeInstanceClient.read(cloudifyEvent.getContext().getNodeId());
-                String attributeValue = (String) instance.getRuntimeProperties().get(eventAlienPersistent.getPersistentResourceId());
+                String attributeValue = (String) MapUtil.get(instance.getRuntimeProperties(), eventAlienPersistent.getPersistentResourceId());
                 alienEvent = new PaaSInstancePersistentResourceMonitorEvent(cloudifyEvent.getContext().getNodeName(), cloudifyEvent.getContext().getNodeId(),
                         eventAlienPersistent.getPersistentAlienAttribute(), attributeValue);
-            } catch (IOException e) {
+
+                // [[ Scaling issue workarround
+                scalableComputeReplacementService.processPersistentResourceEvent(eventAlienPersistent, (PaaSInstancePersistentResourceMonitorEvent) alienEvent,
+                        cloudifyEvent);
+                // Scaling issue workarround ]]
+            } catch (Exception e) {
                 return null;
             }
             break;
@@ -319,8 +334,8 @@ public class EventService {
         alienEvent.setDate(DatatypeConverter.parseDateTime(cloudifyEvent.getTimestamp()).getTimeInMillis());
         String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(cloudifyEvent.getContext().getDeploymentId());
         if (alienDeploymentId == null) {
-            if (log.isWarnEnabled()) {
-                log.warn("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
+            if (log.isDebugEnabled()) {
+                log.debug("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
                         cloudifyEvent);
             }
             return null;
@@ -328,4 +343,5 @@ public class EventService {
         alienEvent.setDeploymentId(alienDeploymentId);
         return alienEvent;
     }
+
 }

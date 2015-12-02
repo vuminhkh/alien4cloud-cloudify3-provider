@@ -7,7 +7,7 @@
 #macro(providerResourceNode $typeName $template)
   ${template.id}:
     type: $typeName
-    properties: ${util.natives.formatProperties(3, $template.nodeTemplate.properties)}
+    properties: ${util.natives.formatProperties(3, $template.nodeTemplate.properties, $deployment.propertyMappings, $template.nodeTemplate.type)}
 #if(${template.scalingPolicy})
     instances:
 #if(${template.scalingPolicy.initialInstances})

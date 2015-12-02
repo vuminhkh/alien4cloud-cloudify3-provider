@@ -54,6 +54,20 @@ def process_attribute_mapping(entity, attribute_name, data_retriever_function):
     return ""
 
 
+def get_nested_attribute(entity, attribute_names):
+    deep_properties = entity.instance.runtime_properties
+    for attribute_name in attribute_names:
+        if deep_properties is None:
+            return ""
+        else:
+            deep_properties = deep_properties.get(attribute_name, None)
+    return deep_properties
+
+
+def _all_instances_get_nested_attribute(entity, attribute_names):
+    return None
+
+
 def get_attribute(entity, attribute_name):
     if has_attribute_mapping(entity, attribute_name):
         # First check if any mapping exist for attribute
@@ -237,7 +251,7 @@ def execute(script_path, process, outputNames):
     if outputNames is not None:
         outputNameList = outputNames.split(';')
         for outputName in outputNameList:
-            ctx.logger.info('Ouput name: {0} value : {1}'.format(outputName, parsed_output['outputs'][outputName]))
+            ctx.logger.info('Ouput name: {0} value : {1}'.format(outputName, parsed_output['outputs'].get(outputName, None)))
 
     if return_code != 0:
         error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,
