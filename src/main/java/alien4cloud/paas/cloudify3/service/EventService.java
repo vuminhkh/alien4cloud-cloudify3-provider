@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Resource;
 import javax.xml.bind.DatatypeConverter;
@@ -12,16 +13,31 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.paas.cloudify3.model.*;
+import alien4cloud.paas.cloudify3.model.CloudifyLifeCycle;
+import alien4cloud.paas.cloudify3.model.Event;
+import alien4cloud.paas.cloudify3.model.EventAlienPersistent;
+import alien4cloud.paas.cloudify3.model.EventAlienWorkflow;
+import alien4cloud.paas.cloudify3.model.EventAlienWorkflowStarted;
+import alien4cloud.paas.cloudify3.model.EventType;
+import alien4cloud.paas.cloudify3.model.NodeInstance;
+import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
 import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
-import alien4cloud.paas.model.*;
+import alien4cloud.paas.model.AbstractMonitorEvent;
+import alien4cloud.paas.model.DeploymentStatus;
+import alien4cloud.paas.model.PaaSDeploymentStatusMonitorEvent;
+import alien4cloud.paas.model.PaaSInstancePersistentResourceMonitorEvent;
+import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
+import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+import alien4cloud.paas.model.PaaSWorkflowMonitorEvent;
+import alien4cloud.paas.model.PaaSWorkflowStepMonitorEvent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -39,6 +55,12 @@ public class EventService {
     private NodeInstanceClient nodeInstanceClient;
     @Resource
     private StatusService statusService;
+    /**
+     * Hold last event ids
+     */
+    private Set<String> lastEvents = Sets.newConcurrentHashSet();
+    private long lastMinTimestamp;
+    private long lastMaxTimestamp;
 
     // TODO : May manage in a better manner this kind of state
     private Map<String, String> paaSDeploymentIdToAlienDeploymentIdMapping = Maps.newConcurrentMap();
@@ -58,7 +80,6 @@ public class EventService {
     private List<AbstractMonitorEvent> internalProviderEventsQueue = Lists.newLinkedList();
 
     public synchronized ListenableFuture<AbstractMonitorEvent[]> getEventsSince(Date lastTimestamp, int batchSize) {
-
         // Process internal events
         final ListenableFuture<AbstractMonitorEvent[]> internalEvents = processInternalQueue(batchSize);
         if (internalEvents != null) {
@@ -66,12 +87,33 @@ public class EventService {
             return internalEvents;
         }
         // Try to get events from cloudify
-        ListenableFuture<Event[]> eventsFuture = eventClient.asyncGetBatch(null, lastTimestamp, 0, batchSize);
+        ListenableFuture<Event[]> eventsFuture;
+        // If the last timestamp requested is equals to the last max timestamp of received events.
+        // We request with batch size which is from last events count.
+        if (lastMinTimestamp == lastMaxTimestamp) {
+            eventsFuture = eventClient.asyncGetBatch(null, lastTimestamp, lastEvents.size(), batchSize);
+        } else {
+            eventsFuture = eventClient.asyncGetBatch(null, lastTimestamp, 0, batchSize);
+        }
         Function<Event[], AbstractMonitorEvent[]> cloudify3ToAlienEventsAdapter = new Function<Event[], AbstractMonitorEvent[]>() {
             @Override
             public AbstractMonitorEvent[] apply(Event[] cloudifyEvents) {
                 // Convert cloudify events to alien events
-                List<AbstractMonitorEvent> alienEvents = toAlienEvents(cloudifyEvents);
+                List<Event> eventsAfterFiltering = Lists.newArrayList();
+                for (Event cloudifyEvent : cloudifyEvents) {
+                    if (!lastEvents.contains(cloudifyEvent.getId())) {
+                        eventsAfterFiltering.add(cloudifyEvent);
+                    }
+                }
+                List<AbstractMonitorEvent> alienEvents = toAlienEvents(eventsAfterFiltering);
+                if (!alienEvents.isEmpty()) {
+                    lastMaxTimestamp = alienEvents.get(alienEvents.size() - 1).getDate();
+                    lastMinTimestamp = alienEvents.get(0).getDate();
+                    lastEvents.clear();
+                    for (Event event : eventsAfterFiltering) {
+                        lastEvents.add(event.getId());
+                    }
+                }
                 return alienEvents.toArray(new AbstractMonitorEvent[alienEvents.size()]);
             }
         };
@@ -162,7 +204,7 @@ public class EventService {
         }
     }
 
-    private List<AbstractMonitorEvent> toAlienEvents(Event[] cloudifyEvents) {
+    private List<AbstractMonitorEvent> toAlienEvents(List<Event> cloudifyEvents) {
         final List<AbstractMonitorEvent> alienEvents = Lists.newArrayList();
         for (Event cloudifyEvent : cloudifyEvents) {
             AbstractMonitorEvent alienEvent = toAlienEvent(cloudifyEvent);
@@ -240,7 +282,6 @@ public class EventService {
             objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
             try {
                 EventAlienWorkflowStarted eventAlienWorkflowStarted = objectMapper.readValue(wfCloudifyEvent, EventAlienWorkflowStarted.class);
-                PaaSWorkflowStepMonitorEvent e = new PaaSWorkflowStepMonitorEvent();
                 PaaSWorkflowMonitorEvent pwme = new PaaSWorkflowMonitorEvent();
                 pwme.setExecutionId(cloudifyEvent.getContext().getExecutionId());
                 pwme.setWorkflowId(eventAlienWorkflowStarted.getWorkflowName());
