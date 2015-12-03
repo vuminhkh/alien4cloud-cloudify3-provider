@@ -156,6 +156,11 @@ def host_pre_stop(host_node_instance):
                     host_node_instance.execute_operation(
                         'cloudify.interfaces.cloudify_agent.delete')
                 ]
+    for task in tasks:
+        if task.is_remote():
+            _set_send_node_event_on_error_handler(
+                task, host_node_instance,
+                'Ignoring task {0} failure'.format(task.name))
     return tasks
 
 
