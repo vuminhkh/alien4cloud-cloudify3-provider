@@ -8,6 +8,55 @@ imports:
   - tosca-normative-types:1.0.0.wd06-SNAPSHOT
 
 data_types:
+  alien.data.cloudify.LinuxAgent:
+    derived_from: tosca.datatypes.Root
+    properties:
+      user:
+        type: string
+        description: "no default value (globally configurable in bootstrap configuration)"
+      key:
+        type: string
+        description: "no default value (globally configurable in bootstrap configuration)"
+      port:
+        type: integer
+        default: 22
+        description: "default value (from bootstrap configuration)"
+      min_workers:
+        type: integer
+        default: 2
+        description: "default value (from bootstrap configuration)"
+      max_workers:
+        type: integer
+        default: 5
+        description: "default value (from bootstrap configuration)"
+      wait_started_timeout:
+        type: integer
+        default: 15
+      wait_started_interval:
+        type: integer
+        default: 1
+      disable_requiretty:
+        type: boolean
+        default: true
+      distro:
+        type: string
+        description: "automatically resolved at runtime"
+      distro_codename:
+        type: string
+        description: "automatically resolved at runtime"
+      celery_config_path:
+        type: string
+        description: "a resource provided with the manager by default"
+      celery_init_path:
+        type: string
+        description: "a resource provided with the manager by default"
+      disable_requiretty_script_path:
+        type: string
+        description: "a resource provided with the manager by default"
+      agent_package_path:
+        type: string
+        description: "a resource provided with the manager by default"
+
   alien.data.OpenstackConfig:
     derived_from: tosca.datatypes.Root
     properties:
@@ -58,6 +107,45 @@ data_types:
           - valid_values: [ 4, 6 ]
       cidr:
         type: string
+
+  alien.data.openstack.nova.v2.CreateServerArgs:
+    derived_from: tosca.datatypes.Root
+    properties:
+      userdata:
+        type: string
+        required: false
+      name:
+        type: string
+        required: false
+      security_groups:
+        type: list
+        required: false
+        entry_schema:
+          type: string
+      availability_zone:
+        type: string
+        required: false
+      key_name:
+        type: string
+        required: false
+      block_device_mapping:
+        type: map
+        required: false
+        entry_schema:
+          type: string
+      nics:
+        type: list
+        required: false
+        entry_schema:
+          type: string
+      tenant_id:
+        type: string
+        required: false
+      meta:
+        type: map
+        required: false
+        entry_schema:
+          type: string
 
   alien.data.openstack.cinder.v1.VolumeCreateArgs:
     properties:
@@ -137,9 +225,7 @@ node_types:
       _a4c_c3_derived_from: cloudify.openstack.nodes.Server
     properties:
       server:
-        type: map
-        entry_schema:
-          type: string
+        type: alien.data.openstack.nova.v2.CreateServerArgs
         required: false
         description: "Openstack compute creation arguments, see http://developer.openstack.org/api-ref-compute-v2.html for more details"
       use_external_resource:
@@ -168,6 +254,14 @@ node_types:
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
+
+  alien.nodes.openstack.LinuxCompute:
+    derived_from: alien.nodes.openstack.Compute
+    properties:
+      cloudify_agent:
+        type: alien.data.cloudify.LinuxAgent
+        required: false
+        description: "Configuration of the cloudify linux plugin parameters"
 
   alien.nodes.openstack.WindowsCompute:
     derived_from: alien.nodes.openstack.Compute
