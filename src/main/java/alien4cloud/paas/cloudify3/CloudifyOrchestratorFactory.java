@@ -18,7 +18,7 @@ import alien4cloud.paas.IPaaSProvider;
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.LocationConfiguration;
 import alien4cloud.paas.cloudify3.configuration.LocationConfigurations;
-import alien4cloud.paas.cloudify3.service.DeploymentPropertiesService;
+import alien4cloud.paas.cloudify3.service.OrchestratorDeploymentPropertiesService;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -34,7 +34,7 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
     private ApplicationContext factoryContext;
 
     @Resource
-    private DeploymentPropertiesService deploymentPropertiesService;
+    private OrchestratorDeploymentPropertiesService deploymentPropertiesService;
 
     private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections.synchronizedMap(Maps
             .<IPaaSProvider, AnnotationConfigApplicationContext> newIdentityHashMap());

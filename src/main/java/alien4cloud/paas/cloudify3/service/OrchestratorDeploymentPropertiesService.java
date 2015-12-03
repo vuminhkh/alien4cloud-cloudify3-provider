@@ -15,9 +15,9 @@ import alien4cloud.utils.MapUtil;
 
 import com.google.common.collect.Maps;
 
-public class DeploymentPropertiesService {
+public class OrchestratorDeploymentPropertiesService {
 
-    public static String MONITORING_INTERVAL_INMINUTE = "monitoring_interval_inSecond";
+    public static String MONITORING_INTERVAL_INMINUTE = "monitoring_interval_inMinute";
     // public static String LIVELINESS_TIMEOUT_INSECOND = "liveliness_timeout_inSecond";
     Map<String, PropertyDefinition> deploymentProperties;
 

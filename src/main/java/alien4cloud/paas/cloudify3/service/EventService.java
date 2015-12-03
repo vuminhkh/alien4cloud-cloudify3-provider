@@ -123,7 +123,7 @@ public class EventService {
 
     /**
      * Register an event to be added to the queue to dispatch it to Alien 4 Cloud.
-     * 
+     *
      * @param event The event to be dispatched.
      */
     public synchronized void registerEvent(AbstractMonitorEvent event) {
@@ -278,8 +278,8 @@ public class EventService {
         alienEvent.setDate(DatatypeConverter.parseDateTime(cloudifyEvent.getTimestamp()).getTimeInMillis());
         String alienDeploymentId = paaSDeploymentIdToAlienDeploymentIdMapping.get(cloudifyEvent.getContext().getDeploymentId());
         if (alienDeploymentId == null) {
-            if (log.isWarnEnabled()) {
-                log.warn("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
+            if (log.isDebugEnabled()) {
+                log.debug("Alien deployment id is not found for paaS deployment {}, must ignore this event {}", cloudifyEvent.getContext().getDeploymentId(),
                         cloudifyEvent);
             }
             return null;

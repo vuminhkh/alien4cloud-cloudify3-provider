@@ -61,7 +61,7 @@ public class CustomWorkflowService extends RuntimeService {
     private PropertyEvaluatorService propertyEvaluatorService;
 
     @Resource
-    private DeploymentPropertiesService deploymentPropertiesService;
+    private OrchestratorDeploymentPropertiesService deploymentPropertiesService;
 
     private Map<String, Object> buildWorkflowParameters(CloudifyDeployment deployment, BlueprintGenerationUtil util,
             NodeOperationExecRequest nodeOperationExecRequest, PaaSNodeTemplate node, Operation operation) {

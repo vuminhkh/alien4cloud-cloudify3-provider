@@ -73,7 +73,7 @@ public class BlueprintService {
     @Resource
     private PropertyEvaluatorService propertyEvaluatorService;
     @Resource
-    private DeploymentPropertiesService deploymentPropertiesService;
+    private OrchestratorDeploymentPropertiesService deploymentPropertiesService;
 
     @Resource
     private ManagedPlugin pluginContext;
