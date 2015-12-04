@@ -1,0 +1,23 @@
+#foreach($volumeTemplate in ${deployment.volumes})
+  ${volumeTemplate.id}:
+    type: ${volumeTemplate.nodeTemplate.type}
+#if(${volumeTemplate.nodeTemplate.type}=="alien.cloudify.aws.nodes.Volume")
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        delete: {}
+#end## if
+    properties: ${util.natives.formatProperties(3, $volumeTemplate.nodeTemplate.properties, $deployment.propertyMappings.get($volumeTemplate.nodeTemplate.type))}
+#if(${util.natives.hasPropertyValue($volumeTemplate.nodeTemplate.properties, "volume_id")})
+      use_external_resource: true
+#end## if
+#set( $relationshipTemplates = $util.nonNative.getSourceRelationships($volumeTemplate) )
+#if($util.collectionHasElement($relationshipTemplates))
+    relationships:
+#foreach($relationship in $relationshipTemplates)
+#if(${relationship.indexedToscaElement.elementId}=="tosca.relationships.AttachTo")
+      - target: $relationship.relationshipTemplate.target
+        type: cloudify.aws.relationships.volume_attached_to_instance
+#end## if
+#end## foreach($relationship in $relationshipTemplates)
+#end## if $util.collectionHasElement($relationshipTemplates)
+#end## foreach deployment.volumes
