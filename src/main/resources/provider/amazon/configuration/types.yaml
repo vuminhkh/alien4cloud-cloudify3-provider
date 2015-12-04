@@ -90,3 +90,29 @@ node_types:
       _a4c_c3_derived_from: cloudify.aws.nodes.ElasticIP
       _a4c_c3_floating_ip_prop_map: >
         {"cidr": null, "ip_version": null, "network_id": null, "gateway_ip": null, "network_name": null}
+
+  alien.cloudify.aws.nodes.DeletableVolume:
+    derived_from: tosca.nodes.BlockStorage
+    description: >
+      This represents a Block Storage (Volume) instance on AWS. Cloudify 3 can create this block and will delete it when the application is undeployed,
+      even if the volume id is provided.
+    properties:
+      volume_type:
+        type: string
+        default: "standard"
+        constrainsts:
+          - valid_values: [ "standard", "io1", "gp2" ]
+    attributes:
+      device: { get_attribute: [SELF, device] }
+    tags:
+      _a4c_c3_derived_from: cloudify.aws.nodes.Volume
+      _a4c_c3_prop_map: >
+        {"size": {"path": "size", "unit": "GiB"}, "volume_id": "resource_id"}
+
+  alien.cloudify.aws.nodes.Volume:
+    derived_from: alien.cloudify.aws.nodes.DeletableVolume
+    description: >
+      This represents a Block Storage (Volume) instance on AWS. Cloudify 3 can create this block but will not delete it when the application is undeployed.
+      In case the volume is created, it's id will be injected back into alien's deployment topology so next deployment reuse it.
+    tags:
+      _a4c_persistent_resource_id: "aws_resource_id=volume_id"
