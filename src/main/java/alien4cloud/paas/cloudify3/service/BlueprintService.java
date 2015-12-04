@@ -233,6 +233,13 @@ public class BlueprintService {
         if (CollectionUtils.isNotEmpty(alienDeployment.getNodesToMonitor())) {
             FileUtil.copy(pluginRecipeResourcesPath.resolve("monitor"), generatedBlueprintDirectoryPath.resolve("monitor"), StandardCopyOption.REPLACE_EXISTING);
         }
+        // custom openstack plugin (scalable compute workaround)
+        Files.copy(pluginRecipeResourcesPath.resolve("cloudify-openstack-plugin/openstack-plugin.yaml"),
+                generatedBlueprintDirectoryPath.resolve("openstack-plugin.yaml"));
+        FileUtil.unzip(pluginRecipeResourcesPath.resolve("cloudify-openstack-plugin/cloudify-openstack-plugin.zip"),
+                generatedBlueprintDirectoryPath.resolve("plugins"));
+        Files.copy(pluginRecipeResourcesPath.resolve("cloudify-openstack-plugin/cloudify-openstack-plugin.zip"),
+                generatedBlueprintDirectoryPath.resolve("plugins/cloudify-openstack-plugin.zip"));
 
         // Generate the blueprint at the end
         VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);

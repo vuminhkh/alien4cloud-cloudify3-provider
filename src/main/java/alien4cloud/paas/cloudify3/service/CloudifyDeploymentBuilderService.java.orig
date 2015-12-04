@@ -5,8 +5,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+<<<<<<< HEAD
 import javax.inject.Inject;
 
+import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
+=======
+>>>>>>> 0d62567da8514144263a6701759413219bdab5e8
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -29,17 +33,19 @@ import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
+<<<<<<< HEAD
+import alien4cloud.paas.wf.WorkflowsBuilderService;
+import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
+=======
 import alien4cloud.paas.wf.AbstractStep;
 import alien4cloud.paas.wf.NodeActivityStep;
 import alien4cloud.paas.wf.Workflow;
-import alien4cloud.paas.wf.WorkflowsBuilderService;
-import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
+>>>>>>> 0d62567da8514144263a6701759413219bdab5e8
 import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 @Component("cloudify-deployment-builder-service")
 @Slf4j
@@ -80,9 +86,9 @@ public class CloudifyDeploymentBuilderService {
 
         cloudifyDeployment.setAllNodes(deploymentContext.getPaaSTopology().getAllNodes());
         cloudifyDeployment.setProviderDeploymentProperties(deploymentContext.getDeploymentTopology().getProviderDeploymentProperties());
-        cloudifyDeployment.setWorkflows(buildWorkflowsForDeployment(deploymentContext.getDeploymentTopology().getWorkflows()));
-
-        cloudifyDeployment.setNodesToMonitor(getNodesToMonitor(cloudifyDeployment.getComputes()));
+        // TODO use the next commented line when velocity side is ready for ALIEN-1268 (scale / unscale workflow)
+        cloudifyDeployment.setWorkflows(deploymentContext.getDeploymentTopology().getWorkflows());
+        // cloudifyDeployment.setWorkflows(buildWorkflowsForDeployment(deploymentContext.getDeploymentTopology().getWorkflows()));
 
         // load the mappings for the native types.
         TopologyContext topologyContext = workflowBuilderService.buildTopologyContext(deploymentContext.getDeploymentTopology());
@@ -95,8 +101,8 @@ public class CloudifyDeploymentBuilderService {
     public Workflows buildWorkflowsForDeployment(Map<String, Workflow> workflowsMap) {
         Workflows workflows = new Workflows();
         workflows.setWorkflows(workflowsMap);
-        fillWorkflowSteps(Workflow.INSTALL_WF, workflowsMap, workflows.getInstallHostWorkflows());
-        fillWorkflowSteps(Workflow.UNINSTALL_WF, workflowsMap, workflows.getUninstallHostWorkflows());
+        fillWorkflowSteps(Workflow.INSTALL_WF, workflowsMap, workflows.getInstallWorkflowSteps());
+        fillWorkflowSteps(Workflow.UNINSTALL_WF, workflowsMap, workflows.getUninstallWorkflowSteps());
         fillOrphans(Workflow.INSTALL_WF, workflowsMap, workflows.getStandardWorkflows());
         fillOrphans(Workflow.UNINSTALL_WF, workflowsMap, workflows.getStandardWorkflows());
         return workflows;
@@ -341,17 +347,5 @@ public class CloudifyDeploymentBuilderService {
         if (artifacts != null && !artifacts.isEmpty()) {
             targetMap.put(key, artifacts);
         }
-    }
-
-    public Set<PaaSNodeTemplate> getNodesToMonitor(List<PaaSNodeTemplate> computes) {
-        Set<PaaSNodeTemplate> nodesToMonitor = Sets.newHashSet();
-        for (PaaSNodeTemplate compute : computes) {
-            // we monitor only if the compute is not a windows type
-            // TODO better way to find that this is not a windows compute, taking in accound the location
-            if (!compute.getIndexedToscaElement().getElementId().contains("WindowsCompute")) {
-                nodesToMonitor.add(compute);
-            }
-        }
-        return nodesToMonitor;
     }
 }

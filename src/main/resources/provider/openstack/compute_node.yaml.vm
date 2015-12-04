@@ -4,7 +4,7 @@
 #set($computeIsWindows = (${compute.nodeTemplate.type} == "alien.nodes.openstack.WindowsCompute"))
   ${compute.id}:
     type: ${compute.nodeTemplate.type}
-    properties: ${util.natives.formatProperties(3, $compute.nodeTemplate.properties, $deployment.propertyMappings.get($compute.nodeTemplate.type))}
+    properties: ${util.natives.formatProperties(3, $compute.nodeTemplate.properties, $deployment.propertyMappings, $compute.nodeTemplate.type)}
 #if($computeHardSetPassword)
       use_password: false
 #end

@@ -1,7 +1,7 @@
 from handlers import host_post_start
 from handlers import host_pre_stop
 from handlers import _set_send_node_event_on_error_handler
-from handlers import build_persistent_event_task
+from handlers import build_persistent_event_tasks
 from handlers import build_wf_event_task
 
 
@@ -180,9 +180,9 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
             msg = "postconf for {0}".format(instance.id)
             sequence.add(forkjoin_sequence(graph, postconfigure_tasks, instance, msg))
 
-        persistent_event_task = build_persistent_event_task(instance)
-        if persistent_event_task is not None:
-            sequence.add(persistent_event_task)
+        persistent_event_tasks = build_persistent_event_tasks(instance)
+        if persistent_event_tasks is not None:
+            sequence.add(*persistent_event_tasks)
 
 
     elif operation_fqname == 'cloudify.interfaces.lifecycle.stop':
