@@ -131,10 +131,10 @@ def get_instance_list(node_id):
         result += node_instance.id
     return result
 
-def get_host_node_name(node):
-    for relationship in node.relationships:
-        if 'cloudify.relationships.contained_in' in relationship.get('type_hierarchy'):
-            return relationship['target_name']
+def get_host_node_name(instance):
+    for relationship in instance.relationships:
+        if 'cloudify.relationships.contained_in' in relationship.type_hierarchy:
+            return relationship.target.node.id
     return None
 
 def __get_relationship(node, target_name, relationship_type):

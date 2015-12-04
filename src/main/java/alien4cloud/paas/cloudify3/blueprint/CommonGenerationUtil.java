@@ -2,6 +2,7 @@ package alien4cloud.paas.cloudify3.blueprint;
 
 import java.nio.file.Path;
 
+import alien4cloud.paas.cloudify3.CloudifyOrchestratorFactory;
 import alien4cloud.paas.cloudify3.configuration.MappingConfiguration;
 import alien4cloud.paas.cloudify3.service.OrchestratorDeploymentPropertiesService;
 import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
@@ -21,6 +22,10 @@ public class CommonGenerationUtil extends AbstractGenerationUtil {
     public String getMonitoringInterval() {
         return deploymentPropertiesService.getValueOrDefault(alienDeployment.getProviderDeploymentProperties(),
                 OrchestratorDeploymentPropertiesService.MONITORING_INTERVAL_INMINUTE);
+    }
+
+    public String getCfyScriptVersion() {
+        return CloudifyOrchestratorFactory.CFY_SCRIPT_VERSION;
     }
 
 }
