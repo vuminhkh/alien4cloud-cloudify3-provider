@@ -22,7 +22,7 @@ public class OpenstackLocationConfigurator extends AbstractLocationConfigurator 
     @Inject
     private ResourceGenerator resourceGenerator;
 
-    public static final String COMPUTE_TYPE = "alien.nodes.openstack.LinuxCompute";
+    public static final String COMPUTE_TYPE = "alien.nodes.openstack.Compute";
     public static final String WINDOWS_COMPUTE_TYPE = "alien.nodes.openstack.WindowsCompute";
     public static final String IMAGE_TYPE = "alien.nodes.openstack.Image";
     public static final String WINDOWS_IMAGE_TYPE = "alien.nodes.openstack.WindowsImage";
