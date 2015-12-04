@@ -1,4 +1,4 @@
-id: alien-cloudify-3-orchestrator-volume
+id: alien-cloudify-3-orchestrator
 name: Cloudify 3 Orchestrator Plugin
 version: ${project.version}
 description: >
