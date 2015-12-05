@@ -54,7 +54,8 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
                 "http://www.getcloudify.org/spec/aws-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
         amazon.setDsl("cloudify_dsl_1_2");
         LocationConfiguration openstack = new LocationConfiguration();
-        openstack.setImports(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml", "openstack-plugin.yaml"));
+        openstack.setImports(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
+                "http://www.getcloudify.org/spec/openstack-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
         openstack.setDsl("cloudify_dsl_1_2");
         locationConfigurations.setAmazon(amazon);
         locationConfigurations.setOpenstack(openstack);
