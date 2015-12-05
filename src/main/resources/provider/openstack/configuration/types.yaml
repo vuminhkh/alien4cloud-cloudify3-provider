@@ -317,6 +317,11 @@ node_types:
       _a4c_c3_prop_map: >
         {"user": "cloudify_agent.user", "password": "cloudify_agent.password", "port": "cloudify_agent.port", "key_pair": null, "private_key_path": null}
     properties:
+      user:
+        type: string
+        required: true
+        default: Admin
+        description: The user to log in to the created Compute VM.
       password:
         type: string
         required: false

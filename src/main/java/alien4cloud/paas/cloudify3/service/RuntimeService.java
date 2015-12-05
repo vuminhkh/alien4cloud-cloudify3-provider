@@ -159,7 +159,7 @@ public abstract class RuntimeService {
                     if (!ExecutionStatus.isTerminated(execution.getStatus())) {
                         if (!execution.getIsSystemWorkflow()) {
                             log.info("Cancel running user workflow execution " + execution.getWorkflowId());
-                            abortExecutions.add(executionClient.asyncCancel(execution.getId(), true));
+                            abortExecutions.add(waitForExecutionFinish(executionClient.asyncCancel(execution.getId(), true)));
                         } else {
                             log.info("Wait for system execution finished " + execution.getWorkflowId());
                             abortExecutions.add(waitForExecutionFinish(Futures.immediateFuture(execution)));
