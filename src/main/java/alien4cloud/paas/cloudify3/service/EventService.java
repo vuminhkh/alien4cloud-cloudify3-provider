@@ -22,7 +22,6 @@ import alien4cloud.paas.cloudify3.model.EventType;
 import alien4cloud.paas.cloudify3.model.NodeInstance;
 import alien4cloud.paas.cloudify3.model.Workflow;
 import alien4cloud.paas.cloudify3.restclient.DeploymentEventClient;
-import alien4cloud.paas.cloudify3.restclient.NodeClient;
 import alien4cloud.paas.cloudify3.restclient.NodeInstanceClient;
 import alien4cloud.paas.model.AbstractMonitorEvent;
 import alien4cloud.paas.model.DeploymentStatus;
@@ -56,15 +55,12 @@ public class EventService {
     @Resource
     private NodeInstanceClient nodeInstanceClient;
     @Resource
-    private NodeClient nodeClient;
-    @Resource
     private StatusService statusService;
     /**
      * Hold last event ids
      */
-    private Set<String> lastEvents = Sets.newConcurrentHashSet();
-    private long lastMinTimestamp;
-    private long lastMaxTimestamp;
+    private Set<String> lastEvents;
+    private long lastRequestedTimestamp;
 
     @Resource
     private ScalableComputeReplacementService scalableComputeReplacementService;
@@ -86,7 +82,15 @@ public class EventService {
      */
     private List<AbstractMonitorEvent> internalProviderEventsQueue = Lists.newLinkedList();
 
-    public synchronized ListenableFuture<AbstractMonitorEvent[]> getEventsSince(Date lastTimestamp, int batchSize) {
+    private static final long delay = 2 * 1000L;
+
+    public synchronized ListenableFuture<AbstractMonitorEvent[]> getEventsSince(final Date lastTimestamp, int batchSize) {
+        // TODO Workaround as cloudify 3 seems do not respect appearance order of event based on timestamp
+        if (lastEvents != null) {
+            lastTimestamp.setTime(lastTimestamp.getTime() - delay);
+        } else {
+            lastEvents = Sets.newConcurrentHashSet();
+        }
         // Process internal events
         final ListenableFuture<AbstractMonitorEvent[]> internalEvents = processInternalQueue(batchSize);
         if (internalEvents != null) {
@@ -95,13 +99,14 @@ public class EventService {
         }
         // Try to get events from cloudify
         ListenableFuture<Event[]> eventsFuture;
-        // If the last timestamp requested is equals to the last max timestamp of received events.
-        // We request with batch size which is from last events count.
-        if (lastMinTimestamp == lastMaxTimestamp) {
+        // If the request is on the same timestamp then iterate from the last event size
+        // TODO It's like a queue consumption and it's really ugly
+        if (lastRequestedTimestamp == lastTimestamp.getTime()) {
             eventsFuture = eventClient.asyncGetBatch(null, lastTimestamp, lastEvents.size(), batchSize);
         } else {
             eventsFuture = eventClient.asyncGetBatch(null, lastTimestamp, 0, batchSize);
         }
+        lastRequestedTimestamp = lastTimestamp.getTime();
         Function<Event[], AbstractMonitorEvent[]> cloudify3ToAlienEventsAdapter = new Function<Event[], AbstractMonitorEvent[]>() {
             @Override
             public AbstractMonitorEvent[] apply(Event[] cloudifyEvents) {
@@ -110,17 +115,18 @@ public class EventService {
                 for (Event cloudifyEvent : cloudifyEvents) {
                     if (!lastEvents.contains(cloudifyEvent.getId())) {
                         eventsAfterFiltering.add(cloudifyEvent);
+                    } else if (log.isDebugEnabled()) {
+                        log.debug("Filtering event " + cloudifyEvent.getId() + ", last events size " + lastEvents.size());
                     }
+                }
+                if (lastRequestedTimestamp != lastTimestamp.getTime()) {
+                    // Only clear last events if the last requested timestamp has changed
+                    lastEvents.clear();
+                }
+                for (Event cloudifyEvent : cloudifyEvents) {
+                    lastEvents.add(cloudifyEvent.getId());
                 }
                 List<AbstractMonitorEvent> alienEvents = toAlienEvents(eventsAfterFiltering);
-                if (!alienEvents.isEmpty()) {
-                    lastMaxTimestamp = alienEvents.get(alienEvents.size() - 1).getDate();
-                    lastMinTimestamp = alienEvents.get(0).getDate();
-                    lastEvents.clear();
-                    for (Event event : eventsAfterFiltering) {
-                        lastEvents.add(event.getId());
-                    }
-                }
                 return alienEvents.toArray(new AbstractMonitorEvent[alienEvents.size()]);
             }
         };
@@ -271,6 +277,7 @@ public class EventService {
             }
             break;
         case EventType.A4C_PERSISTENT_EVENT:
+            log.info("Received persistent event " + cloudifyEvent.getId());
             String persistentCloudifyEvent = cloudifyEvent.getMessage().getText();
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
