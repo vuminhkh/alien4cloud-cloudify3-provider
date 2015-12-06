@@ -82,12 +82,13 @@ public class EventService {
      */
     private List<AbstractMonitorEvent> internalProviderEventsQueue = Lists.newLinkedList();
 
-    private static final long delay = 2 * 1000L;
+    private static final long delay = 10 * 1000L;
 
     public synchronized ListenableFuture<AbstractMonitorEvent[]> getEventsSince(final Date lastTimestamp, int batchSize) {
         // TODO Workaround as cloudify 3 seems do not respect appearance order of event based on timestamp
+        Date requestTimestamp = new Date(lastTimestamp.getTime());
         if (lastEvents != null) {
-            lastTimestamp.setTime(lastTimestamp.getTime() - delay);
+            requestTimestamp.setTime(requestTimestamp.getTime() - delay);
         } else {
             lastEvents = Sets.newConcurrentHashSet();
         }
@@ -102,9 +103,9 @@ public class EventService {
         // If the request is on the same timestamp then iterate from the last event size
         // TODO It's like a queue consumption and it's really ugly
         if (lastRequestedTimestamp == lastTimestamp.getTime()) {
-            eventsFuture = eventClient.asyncGetBatch(null, lastTimestamp, lastEvents.size(), batchSize);
+            eventsFuture = eventClient.asyncGetBatch(null, requestTimestamp, lastEvents.size(), batchSize);
         } else {
-            eventsFuture = eventClient.asyncGetBatch(null, lastTimestamp, 0, batchSize);
+            eventsFuture = eventClient.asyncGetBatch(null, requestTimestamp, 0, batchSize);
         }
         Function<Event[], AbstractMonitorEvent[]> cloudify3ToAlienEventsAdapter = new Function<Event[], AbstractMonitorEvent[]>() {
             @Override
@@ -143,6 +144,10 @@ public class EventService {
                         }
                         final DeploymentStatus deploymentStatus = ((PaaSDeploymentStatusMonitorEvent) event).getDeploymentStatus();
                         final String paaSDeploymentId = alienDeploymentIdToPaaSDeploymentIdMapping.get(event.getDeploymentId());
+                        if (paaSDeploymentId == null) {
+                            log.warn("Received status event for non existing deployment " + event.getDeploymentId());
+                            return;
+                        }
                         statusService.registerDeploymentEvent(paaSDeploymentId, deploymentStatus);
                         if (DeploymentStatus.DEPLOYED.equals(deploymentStatus)) {
                             log.info("Deployment {} has finished successfully", paaSDeploymentId);
