@@ -106,7 +106,6 @@ public class EventService {
         } else {
             eventsFuture = eventClient.asyncGetBatch(null, lastTimestamp, 0, batchSize);
         }
-        lastRequestedTimestamp = lastTimestamp.getTime();
         Function<Event[], AbstractMonitorEvent[]> cloudify3ToAlienEventsAdapter = new Function<Event[], AbstractMonitorEvent[]>() {
             @Override
             public AbstractMonitorEvent[] apply(Event[] cloudifyEvents) {
@@ -123,6 +122,7 @@ public class EventService {
                     // Only clear last events if the last requested timestamp has changed
                     lastEvents.clear();
                 }
+                lastRequestedTimestamp = lastTimestamp.getTime();
                 for (Event cloudifyEvent : cloudifyEvents) {
                     lastEvents.add(cloudifyEvent.getId());
                 }
