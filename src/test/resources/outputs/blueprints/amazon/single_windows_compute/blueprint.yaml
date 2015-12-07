@@ -83,7 +83,7 @@ node_templates:
   _a4c_key_pair_for_compute:
     type: cloudify.aws.nodes.KeyPair
     properties:
-      resource_id: khang_keypair
+      resource_id: a4c-manager
       use_external_resource: true
       private_key_path: /root/.ssh/agent_key.pem
 

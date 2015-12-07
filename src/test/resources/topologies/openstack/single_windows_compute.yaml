@@ -16,4 +16,4 @@ topology_template:
         image: 53e6ef20-a087-44d1-9bdb-5c7f4bffad5b
         flavor: 3
         user: Admin
-        key_pair: khang_keypair
+        key_pair: a4c-manager
