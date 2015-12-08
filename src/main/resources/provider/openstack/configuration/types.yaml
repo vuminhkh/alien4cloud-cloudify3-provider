@@ -309,6 +309,8 @@ node_types:
         type: list
         entry_schema:
           type: alien.data.openstack.EmbededFloatingIpProperties
+    attributes:
+      public_ip_address: { get_attribute: [SELF, public_ip_address] }
 
   alien.nodes.openstack.WindowsCompute:
     derived_from: alien.nodes.openstack.Compute
