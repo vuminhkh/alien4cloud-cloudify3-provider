@@ -14,9 +14,6 @@ imports:
 #foreach($import in $cloud.getConfigurationLocation($deployment.locationType).getImports())
   - $import
 #end
-#if($util.collectionHasElement($deployment.nodesToMonitor))
-  - http://www.getcloudify.org/spec/diamond-plugin/$util.common.cfyScriptVersion/plugin.yaml
-#end
 
 node_types:
 #parse("types.yaml.vm")
