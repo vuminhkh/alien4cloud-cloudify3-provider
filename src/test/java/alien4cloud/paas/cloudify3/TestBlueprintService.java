@@ -6,7 +6,6 @@ import java.nio.file.StandardCopyOption;
 
 import javax.annotation.Resource;
 
-import alien4cloud.paas.cloudify3.util.LocationUtil;
 import lombok.SneakyThrows;
 
 import org.junit.Assert;
@@ -21,6 +20,7 @@ import alien4cloud.paas.cloudify3.restclient.BlueprintClient;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.util.FileTestUtil;
+import alien4cloud.paas.cloudify3.util.LocationUtil;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.utils.FileUtil;
 
@@ -37,18 +37,20 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
-    private boolean record = false;
+    private boolean record = true;
 
     @Override
     @Before
     public void before() throws Exception {
         super.before();
         Thread.sleep(1000L);
-        Blueprint[] blueprints = blueprintDAO.list();
-        for (Blueprint blueprint : blueprints) {
-            blueprintDAO.delete(blueprint.getId());
+        if (online) {
+            Blueprint[] blueprints = blueprintDAO.list();
+            for (Blueprint blueprint : blueprints) {
+                blueprintDAO.delete(blueprint.getId());
+            }
+            Thread.sleep(1000L);
         }
-        Thread.sleep(1000L);
     }
 
     private interface DeploymentContextVisitor {

@@ -3,6 +3,7 @@ package alien4cloud.paas.cloudify3.restclient;
 import javax.annotation.Resource;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import org.springframework.web.client.AsyncRestTemplate;
 
@@ -12,10 +13,12 @@ public abstract class AbstractClient {
 
     @Resource
     @Getter
+    @Setter
     private AsyncRestTemplate restTemplate;
 
     @Resource
     @Getter
+    @Setter
     private CloudConfigurationHolder configurationHolder;
 
     /**

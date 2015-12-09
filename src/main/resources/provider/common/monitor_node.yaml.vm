@@ -1,0 +1,34 @@
+#if($util.collectionHasElement($deployment.nodesToMonitor))
+  ${mapping.generatedNodePrefix}_monitor:
+    type: alien.cloudify.nodes.monitor
+    properties:
+      nodes_to_monitor:
+#foreach($nodeToMonitor in $deployment.nodesToMonitor)
+        - $nodeToMonitor.id
+#end
+    relationships:
+#foreach($nodeToMonitor in $deployment.nodesToMonitor)
+      - target: $nodeToMonitor.id
+        type: cloudify.relationships.depends_on
+#end
+      - target: ${mapping.generatedNodePrefix}_monitor_container
+        type: cloudify.relationships.contained_in
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        start:
+          inputs:
+            BASE_DIR: "/tmp/_a4c_monitoring"
+            MONITORING_INTERVAL: $util.common.getMonitoringInterval()
+          implementation: monitor/scripts/policy-start.sh
+          executor: central_deployment_agent
+        stop:
+          inputs:
+            BASE_DIR: "/tmp/_a4c_monitoring"
+          implementation: monitor/scripts/policy-stop.sh
+          executor: central_deployment_agent
+
+  ${mapping.generatedNodePrefix}_monitor_container:
+    type: cloudify.nodes.Compute
+    properties:
+      install_agent: false
+#end

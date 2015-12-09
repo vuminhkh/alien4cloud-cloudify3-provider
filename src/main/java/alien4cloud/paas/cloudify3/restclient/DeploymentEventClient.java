@@ -35,8 +35,7 @@ public class DeploymentEventClient extends AbstractEventClient {
         // instance state query
         BoolQueryBuilder instanceStateQuery = QueryBuilders
                 .boolQuery()
-                .must(QueryBuilders.boolQuery()
-                        .should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.START))
+                .must(QueryBuilders.boolQuery().should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.START))
                         .should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.CONFIGURE))
                         .should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.CREATE))
                         .should(QueryBuilders.matchQuery("context.operation", CloudifyLifeCycle.DELETE))
@@ -44,18 +43,19 @@ public class DeploymentEventClient extends AbstractEventClient {
                 .must(QueryBuilders.matchQuery("event_type", EventType.TASK_SUCCEEDED));
 
         // Workflow query
-        BoolQueryBuilder workflowQuery = QueryBuilders.boolQuery()
+        BoolQueryBuilder workflowQuery = QueryBuilders
+                .boolQuery()
                 .mustNot(QueryBuilders.matchQuery("workflow_id", Workflow.CREATE_DEPLOYMENT_ENVIRONMENT))
                 .mustNot(QueryBuilders.matchQuery("workflow_id", Workflow.EXECUTE_OPERATION))
                 .mustNot(QueryBuilders.matchQuery("workflow_id", Workflow.UNINSTALL))
-                .must(QueryBuilders.boolQuery()
+                .must(QueryBuilders
+                        .boolQuery()
                         .should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_SUCCEEDED))
                         .should(QueryBuilders.matchQuery("event_type", EventType.A4C_PERSISTENT_EVENT))
                         .should(QueryBuilders.matchQuery("event_type", EventType.A4C_WORKFLOW_EVENT))
                         .should(QueryBuilders.matchQuery("event_type", EventType.A4C_WORKFLOW_STARTED))
                         .should(QueryBuilders.matchQuery("event_type", EventType.WORKFLOW_FAILED))
-                        .should(QueryBuilders.boolQuery()
-                                .must(QueryBuilders.matchQuery("event_type", EventType.TASK_SUCCEEDED))
+                        .should(QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("event_type", EventType.TASK_SUCCEEDED))
                                 .must(QueryBuilders.matchQuery("context.workflow_id", Workflow.DELETE_DEPLOYMENT_ENVIRONMENT))
                                 .must(QueryBuilders.matchQuery("context.task_name", "riemann_controller.tasks.delete"))));
 

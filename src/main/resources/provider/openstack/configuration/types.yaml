@@ -2,12 +2,53 @@ tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
 
 template_name: openstack-types
 template_author: Alien4cloud
-template_version: 1.0.0-SNAPSHOT
+template_version: 1.1.0-SNAPSHOT
 
 imports:
   - tosca-normative-types:1.0.0.wd06-SNAPSHOT
+  - cloudify3-common-types:1.1.0-SNAPSHOT
 
 data_types:
+
+  alien.data.openstack.nova.v2.CreateServerArgs:
+    derived_from: tosca.datatypes.Root
+    properties:
+      userdata:
+        type: string
+        required: false
+      name:
+        type: string
+        required: false
+      security_groups:
+        type: list
+        required: false
+        entry_schema:
+          type: string
+      availability_zone:
+        type: string
+        required: false
+      key_name:
+        type: string
+        required: false
+      block_device_mapping:
+        type: map
+        required: false
+        entry_schema:
+          type: string
+      nics:
+        type: list
+        required: false
+        entry_schema:
+          type: string
+      tenant_id:
+        type: string
+        required: false
+      meta:
+        type: map
+        required: false
+        entry_schema:
+          type: string
+
   alien.data.OpenstackConfig:
     derived_from: tosca.datatypes.Root
     properties:
@@ -98,10 +139,83 @@ data_types:
         required: false
         description: One or more metadata key and value pairs to associate with the volume.
 
+  alien.data.openstack.EmbededVolumeProperties:
+    properties:
+      volume:
+        type: alien.data.openstack.cinder.v1.VolumeCreateArgs
+        required: true
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: true
+      deletable:
+        type: boolean
+        default: false
+      # inherited from tosca.nodes.BlockStorage
+      size:
+        type: scalar-unit.size
+        description: >
+          The requested storage size (default unit is MB).
+          Note:
+          - Required when an existing volume (i.e., volume_id) is not available.
+          - If volume_id is provided, size is ignored.  Resize of existing volumes is not considered at this time.
+        constraints:
+          - greater_or_equal: 1 MB
+      volume_id:
+        type: string
+        description: ID of an existing volume (that is in the accessible scope of the requesting application).
+        required: false
+      snapshot_id:
+        type: string
+        description: Some identifier that represents an existing snapshot that should be used when creating the block storage (volume).
+        required: false
+      device:
+        type: string
+        description: >
+          The logical device name which for the attached device (which is represented by the target node in the model).
+          e.g., ‘/dev/hda1’
+          Note: this property will be moved in next releases to the AttachTo relationship as it is specified by TOSCA spec.
+        required: false
+
+    tags:
+      _a4c_c3_prop_map: >
+        {"size": {"path": "volume.size", "unit": "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id", "device": "device_name"}
+
+  alien.data.openstack.EmbededFloatingIpProperties:
+    properties:
+      floatingip:
+        type: alien.data.FloatingIpConfig
+        required: true
+      openstack_config:
+        type: alien.data.OpenstackConfig
+        required: false
+      # inherited from tosca.nodes.Network
+      ip_version:
+        type: integer
+        required: false
+        default: 4
+        constraints:
+          - valid_values: [ 4, 6 ]
+      cidr:
+        type: string
+        required: false
+      gateway_ip:
+        type: string
+        required: false
+      network_name:
+        type: string
+        required: false
+      network_id:
+        type: string
+        required: false
+    tags:
+      _a4c_c3_prop_map: >
+        {"network_name": "floatingip.floating_network_name"}
+
 node_types:
   alien.nodes.openstack.Image:
     abstract: true
     derived_from: tosca.nodes.Root
+    description: Configuration types that is used to auto-generate Compute node by crossing options with the Flavor configuration type.
     properties:
       id:
         type: string
@@ -112,6 +226,7 @@ node_types:
   alien.nodes.openstack.Flavor:
     abstract: true
     derived_from: tosca.nodes.Root
+    description: Configuration types that is used to auto-generate Compute node by crossing options with the Image configuration type.
     properties:
       id:
         type: string
@@ -119,15 +234,29 @@ node_types:
       host:
         type: tosca.capabilities.Container
 
+  alien.cloudify.openstack.nodes.AvailabilityZone:
+    abstract: true
+    derived_from: tosca.nodes.Root
+    description: Defines an availability zone that will be available to be used for H.A. policies defined in the topology.
+    properties:
+      id:
+        type: string
+        default: ''
+        required: true
+
+#################################################
+#                   COMPUTES
+###################################################
+
   alien.nodes.openstack.Compute:
     derived_from: tosca.nodes.Compute
     tags:
       _a4c_c3_derived_from: cloudify.openstack.nodes.Server
+      _a4c_c3_prop_map: >
+        {"user": "cloudify_agent.user"}
     properties:
       server:
-        type: map
-        entry_schema:
-          type: string
+        type: alien.data.openstack.nova.v2.CreateServerArgs
         required: false
         description: "Openstack compute creation arguments, see http://developer.openstack.org/api-ref-compute-v2.html for more details"
       use_external_resource:
@@ -153,17 +282,57 @@ node_types:
       openstack_config:
         type: alien.data.OpenstackConfig
         required: false
+      user:
+        type: string
+        required: true
+        default: ubuntu
+        description: The user to log in to the created Compute VM.
+      cloudify_agent:
+        type: alien.datatypes.AgentConfig
+        required: false
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [TARGET, cloudify.openstack.server_connected_to_floating_ip, floating_ip_address] }
+
+  alien.nodes.openstack.ScalableCompute:
+    # set to false to hide from on demand resources
+    abstract: false
+    derived_from: alien.nodes.openstack.Compute
+    tags:
+      _a4c_c3_derived_from: cloudify.openstack.nodes.ScalableServer
+    properties:
+      volumes:
+        type: list
+        entry_schema:
+          type: alien.data.openstack.EmbededVolumeProperties
+      floatingips:
+        type: list
+        entry_schema:
+          type: alien.data.openstack.EmbededFloatingIpProperties
+    attributes:
+      public_ip_address: { get_attribute: [SELF, public_ip_address] }
 
   alien.nodes.openstack.WindowsCompute:
     derived_from: alien.nodes.openstack.Compute
     tags:
       _a4c_c3_derived_from: cloudify.openstack.nodes.WindowsServer
       _a4c_c3_prop_map: >
-        {"key_pair": null, "private_key_path": null, "user": null, "password": null}
+        {"user": "cloudify_agent.user", "password": "cloudify_agent.password", "port": "cloudify_agent.port", "key_pair": null, "private_key_path": null}
     properties:
+      user:
+        type: string
+        required: true
+        default: Admin
+        description: The user to log in to the created Compute VM.
+      password:
+        type: string
+        required: false
+        description: The password to connect to the created VM in case the user/password has been created in the image.
+      port:
+        type: integer
+        required: true
+        description: The port which will be used by the agent to connect to the machine.
+        default: 5985
       key_pair:
         type: string
         required: true
@@ -177,23 +346,6 @@ node_types:
         description: |
           Path to the private key of the keypair defined in key_pair property on the manager's machine (or manager's docker container).
           Default is set to the agent private key path
-      user:
-        type: string
-        required: true
-        default: Admin
-        description: The user to connect to the created VM in case the user/password has been created in the image.
-      password:
-        type: string
-        required: false
-        description: The password to connect to the created VM in case the user/password has been created in the image.
-# TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
-  alien.nodes.PublicNetwork:
-    abstract: true
-    derived_from: tosca.nodes.Network
-
-  alien.nodes.PrivateNetwork:
-    abstract: true
-    derived_from: tosca.nodes.Network
 
   alien.nodes.openstack.PublicNetwork:
     derived_from: alien.nodes.PublicNetwork
@@ -236,6 +388,10 @@ node_types:
         type: alien.data.OpenstackConfig
         required: false
 
+#################################################
+#                   VOLUMES
+###################################################
+
   alien.cloudify.openstack.nodes.DeletableVolume:
     derived_from: tosca.nodes.BlockStorage
     description: >
@@ -255,7 +411,7 @@ node_types:
       _a4c_c3_derived_from: cloudify.openstack.nodes.Volume
       # Properties from parent type size, volume_id, snapshot_id will be mapped to valid cloudify properties
       _a4c_c3_prop_map: >
-        {"size": {"path": "volume.size", "unit": "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id"}
+        {"size": {"path": "volume.size", "unit": "GiB"}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id", "device": "device_name"}
 
   alien.cloudify.openstack.nodes.Volume:
     derived_from: alien.cloudify.openstack.nodes.DeletableVolume
@@ -263,4 +419,5 @@ node_types:
       This represents a Block Storage (Volume) instance on OpenStack. Cloudify 3 can create this block but will not delete it when the application is undeployed.
       In case the volume is created, it's id will be injected back into alien's deployment topology so next deployment reuse it.
     tags:
-      _a4c_persistent_resource_id: "external_id=volume_id"
+      _a4c_persistent_resources: >
+        {"external_id":"volume_id"}

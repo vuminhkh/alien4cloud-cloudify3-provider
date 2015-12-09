@@ -15,6 +15,7 @@ import javax.annotation.Resource;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.beans.factory.annotation.Value;
@@ -71,6 +72,8 @@ public class BlueprintService {
 
     @Resource
     private PropertyEvaluatorService propertyEvaluatorService;
+    @Resource
+    private OrchestratorDeploymentPropertiesService deploymentPropertiesService;
 
     @Resource
     private ManagedPlugin pluginContext;
@@ -81,19 +84,26 @@ public class BlueprintService {
 
     @PostConstruct
     public void postConstruct() throws IOException {
-        FileUtil.copy(pluginContext.getPluginPath().resolve("recipe"), pluginRecipeResourcesPath, StandardCopyOption.REPLACE_EXISTING);
-        List<Path> providerTemplates = FileUtil.listFiles(pluginContext.getPluginPath().resolve("provider"), ".+\\.yaml\\.vm");
-        for (Path providerTemplate : providerTemplates) {
-            String relativizedPath = FileUtil.relativizePath(pluginContext.getPluginPath(), providerTemplate);
-            Path providerTemplateTargetPath = this.pluginRecipeResourcesPath.resolve("velocity").resolve(relativizedPath);
-            Files.createDirectories(providerTemplateTargetPath.getParent());
-            Files.copy(providerTemplate, providerTemplateTargetPath, StandardCopyOption.REPLACE_EXISTING);
+        synchronized (BlueprintService.class) {
+            this.pluginRecipeResourcesPath = this.pluginContext.getPluginPath().resolve("recipe");
+            if (Files.exists(this.pluginRecipeResourcesPath.resolve("velocity").resolve("provider"))) {
+                return;
+            }
+            log.info("Copy provider templates to velocity main template's folder");
+            // This is a workaround to copy provider templates to velocity folder as relative path do not work with velocity
+            List<Path> providerTemplates = FileUtil.listFiles(pluginContext.getPluginPath().resolve("provider"), ".+\\.yaml\\.vm");
+            for (Path providerTemplate : providerTemplates) {
+                String relativizedPath = FileUtil.relativizePath(pluginContext.getPluginPath(), providerTemplate);
+                Path providerTemplateTargetPath = this.pluginRecipeResourcesPath.resolve("velocity").resolve(relativizedPath);
+                Files.createDirectories(providerTemplateTargetPath.getParent());
+                Files.copy(providerTemplate, providerTemplateTargetPath, StandardCopyOption.REPLACE_EXISTING);
+            }
         }
     }
 
     /**
      * Delete a blueprint on the file system.
-     * 
+     *
      * @param deploymentPaaSId
      *            Alien's paas deployment id used to identify the blueprint.
      */
@@ -122,7 +132,7 @@ public class BlueprintService {
         // Where the main blueprint file will be generated
         Path generatedBlueprintFilePath = generatedBlueprintDirectoryPath.resolve("blueprint.yaml");
         BlueprintGenerationUtil util = new BlueprintGenerationUtil(mappingConfigurationHolder.getMappingConfiguration(), alienDeployment,
-                generatedBlueprintDirectoryPath, propertyEvaluatorService);
+                generatedBlueprintDirectoryPath, propertyEvaluatorService, deploymentPropertiesService);
 
         // The velocity context will be filed up with information in order to be able to generate deployment
         Map<String, Object> context = Maps.newHashMap();
@@ -172,8 +182,8 @@ public class BlueprintService {
                     for (Map.Entry<String, Interface> inter : relationshipInterfaces.entrySet()) {
                         Map<String, Operation> operations = inter.getValue().getOperations();
                         for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
-                            Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(),
-                                    relationship.getRelationshipTemplate().getTarget());
+                            Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(), relationship
+                                    .getRelationshipTemplate().getTarget());
                             Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts = Maps.newHashMap();
                             if (MapUtils.isNotEmpty(relationship.getIndexedToscaElement().getArtifacts())) {
                                 relationshipArtifacts.put(keyRelationship, relationship.getIndexedToscaElement().getArtifacts());
@@ -205,8 +215,7 @@ public class BlueprintService {
         // custom workflows section
         Path wfPluginDir = generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin");
         Files.createDirectories(wfPluginDir);
-        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/setup.py"),
-                generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/setup.py"));
+        Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/setup.py"), generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/setup.py"));
         Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/__init__.py"),
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/__init__.py"));
         Files.copy(pluginRecipeResourcesPath.resolve("custom_wf_plugin/plugin/handlers.py"),
@@ -219,6 +228,19 @@ public class BlueprintService {
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin/plugin/workflows.py"), context);
         FileUtil.zip(generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin"),
                 generatedBlueprintDirectoryPath.resolve("plugins/custom_wf_plugin.zip"));
+
+        // monitor
+        if (CollectionUtils.isNotEmpty(alienDeployment.getNodesToMonitor())) {
+            FileUtil.copy(pluginRecipeResourcesPath.resolve("monitor"), generatedBlueprintDirectoryPath.resolve("monitor"), StandardCopyOption.REPLACE_EXISTING);
+        }
+        // custom openstack plugin (scalable compute workaround)
+        Files.copy(pluginRecipeResourcesPath.resolve("cloudify-openstack-plugin/openstack-plugin.yaml"),
+                generatedBlueprintDirectoryPath.resolve("openstack-plugin.yaml"));
+        FileUtil.unzip(pluginRecipeResourcesPath.resolve("cloudify-openstack-plugin/cloudify-openstack-plugin.zip"),
+                generatedBlueprintDirectoryPath.resolve("plugins"));
+        Files.copy(pluginRecipeResourcesPath.resolve("cloudify-openstack-plugin/cloudify-openstack-plugin.zip"),
+                generatedBlueprintDirectoryPath.resolve("plugins/cloudify-openstack-plugin.zip"));
+
         // Generate the blueprint at the end
         VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/blueprint.yaml.vm"), generatedBlueprintFilePath, context);
         return generatedBlueprintFilePath;
@@ -232,10 +254,10 @@ public class BlueprintService {
                 propertyEvaluatorService, allNodes);
         Map<String, Object> operationContext = Maps.newHashMap(context);
         operationContext.put("operation", operationWrapper);
-        VelocityUtil.generate(pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"),
-                generatedBlueprintDirectoryPath
-                        .resolve(util.getNonNative().getArtifactWrapperPath(owner, interfaceName, operationName, operation.getImplementationArtifact())),
-                operationContext);
+        VelocityUtil.generate(
+                pluginRecipeResourcesPath.resolve("velocity/script_wrapper.vm"),
+                generatedBlueprintDirectoryPath.resolve(util.getNonNative().getArtifactWrapperPath(owner, interfaceName, operationName,
+                        operation.getImplementationArtifact())), operationContext);
         return operationWrapper;
     }
 
@@ -319,7 +341,5 @@ public class BlueprintService {
         Path cloudifyPath = Paths.get(path).toAbsolutePath();
         recipeDirectoryPath = cloudifyPath.resolve("recipes");
         Files.createDirectories(recipeDirectoryPath);
-        pluginRecipeResourcesPath = cloudifyPath.resolve("resources").resolve("recipe");
-        Files.createDirectories(pluginRecipeResourcesPath);
     }
 }

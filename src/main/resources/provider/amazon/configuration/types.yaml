@@ -6,6 +6,7 @@ template_version: 1.1.0-SNAPSHOT
 
 imports:
   - tosca-normative-types:1.0.0.wd06-SNAPSHOT
+  - cloudify3-common-types:1.1.0-SNAPSHOT
 
 node_types:
   # configuration types
@@ -46,6 +47,9 @@ node_types:
       instance_type:
         type: string
         default: ''
+      cloudify_agent:
+        type: alien.datatypes.AgentConfig
+        required: false
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [SELF, public_ip_address] }
@@ -55,7 +59,7 @@ node_types:
     tags:
       _a4c_c3_derived_from: cloudify.aws.nodes.WindowsInstance
       _a4c_c3_prop_map: >
-        {"user": null, "password": null, "key_pair": null, "private_key_path": null}
+        {"user": "cloudify_agent.user", "password": "cloudify_agent.password", "port": "cloudify_agent.port", "key_pair": null, "private_key_path": null}
     properties:
       user:
         type: string
@@ -66,6 +70,11 @@ node_types:
         type: string
         required: false
         description: The password to connect to the created VM in case the user/password has been created in the image.
+      port:
+        type: integer
+        required: true
+        description: The port which will be used by the agent to connect to the machine.
+        default: 5985
       key_pair:
         type: string
         required: true
@@ -79,10 +88,6 @@ node_types:
         description: |
           Path to the private key of the keypair defined in key_pair property on the manager's machine (or manager's docker container).
           Default is set to the agent private key path
-  # TODO alien.nodes.PublicNetwork, alien.nodes.PrivateNetwork must be put in common for all locations of the orchestrator
-  alien.nodes.PublicNetwork:
-    abstract: true
-    derived_from: tosca.nodes.Network
 
   alien.nodes.aws.PublicNetwork:
     derived_from: alien.nodes.PublicNetwork
@@ -90,3 +95,29 @@ node_types:
       _a4c_c3_derived_from: cloudify.aws.nodes.ElasticIP
       _a4c_c3_floating_ip_prop_map: >
         {"cidr": null, "ip_version": null, "network_id": null, "gateway_ip": null, "network_name": null}
+
+  alien.cloudify.aws.nodes.DeletableVolume:
+    derived_from: tosca.nodes.BlockStorage
+    description: >
+      This represents a Block Storage (Volume) instance on AWS. Cloudify 3 can create this block and will delete it when the application is undeployed,
+      even if the volume id is provided.
+    properties:
+      volume_type:
+        type: string
+        default: "standard"
+        constrainsts:
+          - valid_values: [ "standard", "io1", "gp2" ]
+    attributes:
+      device: { get_attribute: [SELF, device] }
+    tags:
+      _a4c_c3_derived_from: cloudify.aws.nodes.Volume
+      _a4c_c3_prop_map: >
+        {"size": {"path": "size", "unit": "GiB"}, "volume_id": "resource_id"}
+
+  alien.cloudify.aws.nodes.Volume:
+    derived_from: alien.cloudify.aws.nodes.DeletableVolume
+    description: >
+      This represents a Block Storage (Volume) instance on AWS. Cloudify 3 can create this block but will not delete it when the application is undeployed.
+      In case the volume is created, it's id will be injected back into alien's deployment topology so next deployment reuse it.
+    tags:
+      _a4c_persistent_resource_id: "aws_resource_id=volume_id"

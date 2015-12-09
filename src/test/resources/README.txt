@@ -18,3 +18,7 @@ http://129.185.67.11:8774/v2/a04007f8e8e34867973059cb4a27a66d/servers/9d5ef146-1
 HEADER:
 
 X-Auth-Token = "Token id retrieved from above"
+
+3. Migration 3.3:
+
+  - types of cloudify.datatypes.AgentConfig : env extra

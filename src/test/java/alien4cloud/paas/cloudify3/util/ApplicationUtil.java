@@ -1,5 +1,18 @@
 package alien4cloud.paas.cloudify3.util;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import javax.annotation.Resource;
+
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
+import org.elasticsearch.index.query.QueryBuilders;
+import org.springframework.stereotype.Component;
+
 import alien4cloud.application.ApplicationService;
 import alien4cloud.dao.ElasticSearchDAO;
 import alien4cloud.model.application.Application;
@@ -9,15 +22,6 @@ import alien4cloud.tosca.model.ArchiveRoot;
 import alien4cloud.tosca.parser.ParsingException;
 import alien4cloud.tosca.parser.ParsingResult;
 import alien4cloud.utils.FileUtil;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
-import javax.annotation.Resource;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @Component
 @Slf4j
@@ -35,6 +39,10 @@ public class ApplicationUtil {
 
     @SneakyThrows
     public Topology createAlienApplication(String applicationName, String topologyFileName) {
+        Application application = alienDAO.customFind(Application.class, QueryBuilders.termQuery("name", applicationName));
+        if (application != null) {
+            applicationService.delete(application.getId());
+        }
         Topology topology = parseYamlTopology(topologyFileName);
         String applicationId = applicationService.create("alien", applicationName, null, null);
         topology.setDelegateId(applicationId);

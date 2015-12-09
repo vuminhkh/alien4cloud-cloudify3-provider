@@ -1,0 +1,12 @@
+#if(!$computeHardSetPassword)
+      - target: ${mapping.generatedNodePrefix}_key_pair_for_${compute.id}
+        type: cloudify.openstack.server_connected_to_keypair
+#end
+#if(!$computeHardSetPassword)
+  ${mapping.generatedNodePrefix}_key_pair_for_${compute.id}:
+    type: cloudify.openstack.nodes.KeyPair
+    properties:
+      resource_id: ${compute.nodeTemplate.properties.get("key_pair").value}
+      use_external_resource: true
+      private_key_path: ${compute.nodeTemplate.properties.get("private_key_path").value}
+#end

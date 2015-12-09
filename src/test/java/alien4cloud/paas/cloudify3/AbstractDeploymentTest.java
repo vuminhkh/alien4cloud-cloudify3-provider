@@ -10,8 +10,6 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Resource;
 
-import alien4cloud.paas.cloudify3.location.OpenstackLocationConfigurator;
-import alien4cloud.paas.cloudify3.util.LocationUtil;
 import org.apache.commons.collections4.MapUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -30,6 +28,7 @@ import alien4cloud.paas.cloudify3.restclient.DeploymentClient;
 import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
+import alien4cloud.paas.cloudify3.util.LocationUtil;
 import alien4cloud.paas.model.NodeOperationExecRequest;
 import alien4cloud.paas.model.PaaSDeploymentContext;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
@@ -90,7 +89,9 @@ public class AbstractDeploymentTest extends AbstractTest {
     @Before
     public void before() throws Exception {
         super.before();
-        cleanDeployments();
+        if (online) {
+            cleanDeployments();
+        }
     }
 
     @After
@@ -154,8 +155,8 @@ public class AbstractDeploymentTest extends AbstractTest {
         }
     }
 
-    protected void executeCustomCommand(PaaSTopologyDeploymentContext context, NodeOperationExecRequest nodeOperationExecRequest)
-            throws ExecutionException, InterruptedException {
+    protected void executeCustomCommand(PaaSTopologyDeploymentContext context, NodeOperationExecRequest nodeOperationExecRequest) throws ExecutionException,
+            InterruptedException {
         final SettableFuture<Map<String, String>> future = SettableFuture.create();
         cloudifyPaaSProvider.executeOperation(context, nodeOperationExecRequest, new IPaaSCallback<Map<String, String>>() {
             @Override

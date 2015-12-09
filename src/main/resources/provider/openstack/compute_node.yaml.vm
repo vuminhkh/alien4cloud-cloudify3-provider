@@ -4,10 +4,11 @@
 #set($computeIsWindows = (${compute.nodeTemplate.type} == "alien.nodes.openstack.WindowsCompute"))
   ${compute.id}:
     type: ${compute.nodeTemplate.type}
-    properties: ${util.natives.formatProperties(3, $compute.nodeTemplate.properties, $deployment.propertyMappings.get($compute.nodeTemplate.type))}
+    properties: ${util.natives.formatProperties(3, $compute.nodeTemplate.properties, $deployment.propertyMappings, $compute.nodeTemplate.type)}
 #if($computeHardSetPassword)
       use_password: false
 #end
+
 #if(${compute.scalingPolicy})
     instances:
 #if(${compute.scalingPolicy.initialInstances})
@@ -32,53 +33,9 @@
 #end
 #end
 #if($computeIsWindows)
-#if(!$computeHardSetPassword)
-      - target: ${mapping.generatedNodePrefix}_key_pair_for_${compute.id}
-        type: cloudify.openstack.server_connected_to_keypair
-#end
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        start:
-          max_retries: 40
-      cloudify.interfaces.worker_installer:
-        install:
-          inputs:
-            cloudify_agent: &CLOUDIFY_AGENT_${compute.id}
-              service:
-                successful_consecutive_status_queries_count: 10
-                status_transition_sleep_interval: 5
-                start_timeout: 240
-                stop_timeout: 240
-              user: "${compute.nodeTemplate.properties.get("user").value}"
-#if($computeHardSetPassword)
-              password: "$computeHardSetPassword"
+#parse("provider/openstack/computes/compute_node_win.yaml.vm")
 #else
-              password: { get_attribute: [SELF, password] }
-#end
-        start:
-          inputs:
-            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
-        stop:
-          inputs:
-            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
-        uninstall:
-          inputs:
-            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
-        restart:
-          inputs:
-            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
-      cloudify.interfaces.plugin_installer:
-        install:
-          inputs:
-            cloudify_agent: *CLOUDIFY_AGENT_${compute.id}
-#if(!$computeHardSetPassword)
-  ${mapping.generatedNodePrefix}_key_pair_for_${compute.id}:
-    type: cloudify.openstack.nodes.KeyPair
-    properties:
-      resource_id: ${compute.nodeTemplate.properties.get("key_pair").value}
-      use_external_resource: true
-      private_key_path: ${compute.nodeTemplate.properties.get("private_key_path").value}
-#end
+#parse("provider/openstack/computes/compute_node_linux.yaml.vm")
 #end
 #foreach($externalNetwork in $publicNetworks)
   ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}:

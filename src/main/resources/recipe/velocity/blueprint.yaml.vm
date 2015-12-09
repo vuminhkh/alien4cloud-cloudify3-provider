@@ -6,10 +6,12 @@ This template is used to generate cloudify 3 recipe from alien model
 - $deployment --> contains Alien's deployment and types
 - $util --> contains utility methods
 *#
-tosca_definitions_version: $mapping.dslVersion
+#parse("provider/common/non_native_nodes.yaml.vm")
+tosca_definitions_version: $cloud.getConfigurationLocation($deployment.locationType).getDsl()
+#parse("provider/common/non_native_nodes.yaml.vm")
 
 imports:
-#foreach($import in $cloud.getImportsByLocation($deployment.locationType))
+#foreach($import in $cloud.getConfigurationLocation($deployment.locationType).getImports())
   - $import
 #end
 
@@ -22,6 +24,7 @@ node_types:
     derived_from: $util.nonNative.getDerivedFromType($nonNativeType.derivedFrom)
 #end
 #end
+#parse("provider/common/monitor_type.yaml.vm")
 
 #if($util.collectionHasElement($deployment.nonNativesRelationshipTypes))
 relationships:
@@ -34,58 +37,13 @@ relationships:
 #end
 
 node_templates:
-
 #parse("provider/${deployment.locationType}/compute_node.yaml.vm")
 #parse("provider/${deployment.locationType}/network_node.yaml.vm")
 #parse("provider/${deployment.locationType}/volume_node.yaml.vm")
 
-#foreach($nonNativeNode in $deployment.nonNatives)
-  $nonNativeNode.id:
-    type: $nonNativeNode.indexedToscaElement.elementId
-    instances:
-      deploy: 1
-#set( $nodeInterfaces = $util.nonNative.getNodeInterfaces($nonNativeNode) )
-#if($util.nonNative.mapHasEntries($nodeInterfaces))
-    interfaces:
-#foreach($interfaceEntry in $nodeInterfaces.entrySet())
-      $util.nonNative.tryToMapToCloudifyInterface($interfaceEntry.key):
-#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-        $operationEntry.key: ${util.nonNative.getArtifactWrapperPath($nonNativeNode, $interfaceEntry.key, $operationEntry.key, ${operationEntry.value.implementationArtifact})}
-#end
-#end
-#end
-#set( $relationshipTemplates = $util.nonNative.getSourceRelationships($nonNativeNode) )
-#if($util.collectionHasElement($relationshipTemplates))
-    relationships:
-#foreach($relationship in $relationshipTemplates)
-      - target: $relationship.relationshipTemplate.target
-        type: $util.tryToMapToCloudifyType($relationship.indexedToscaElement.elementId)
-#set( $relationshipInterfaces = $util.nonNative.getRelationshipInterfaces($relationship) )
-#if($util.mapHasEntries($relationshipInterfaces))
-#set( $relationshipSourceInterfaces = $util.nonNative.filterRelationshipSourceInterfaces($relationshipInterfaces) )
-#if($util.mapHasEntries($relationshipSourceInterfaces))
-        source_interfaces:
-#foreach($interfaceEntry in $relationshipSourceInterfaces.entrySet())
-          $util.nonNative.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
-#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-            $util.nonNative.tryToMapToCloudifyRelationshipSourceInterfaceOperation($operationEntry.key): ${util.nonNative.getArtifactWrapperPath($relationship, $interfaceEntry.key, $operationEntry.key, ${operationEntry.value.implementationArtifact})}
-#end
-#end
-#end
-#set( $relationshipTargetInterfaces = $util.nonNative.filterRelationshipTargetInterfaces($relationshipInterfaces) )
-#if($util.mapHasEntries($relationshipTargetInterfaces))
-        target_interfaces:
-#foreach($interfaceEntry in $relationshipTargetInterfaces.entrySet())
-          $util.nonNative.tryToMapToCloudifyRelationshipInterface($interfaceEntry.key):
-#foreach($operationEntry in ${interfaceEntry.value.operations.entrySet()})
-            $util.nonNative.tryToMapToCloudifyRelationshipTargetInterfaceOperation($operationEntry.key): ${util.nonNative.getArtifactWrapperPath($relationship, $interfaceEntry.key, $operationEntry.key, ${operationEntry.value.implementationArtifact})}
-#end
-#end
-#end
-#end
-#end
-#end
-#end
+#nonNativeNodes($deployment.nonNatives)
+
+#parse("provider/common/monitor_node.yaml.vm")
 
 plugins:
   custom_wf_plugin:
@@ -96,4 +54,28 @@ workflows:
 #foreach($wfEntry in ${deployment.workflows.workflows.entrySet()})
   a4c_${wfEntry.key}: custom_wf_plugin.plugin.workflows.a4c_${wfEntry.key}
 #end
-  a4c_scale: custom_wf_plugin.plugin.workflows.a4c_scale
+  a4c_scale:
+    mapping: custom_wf_plugin.plugin.workflows.a4c_scale
+    parameters:
+      node_id:
+        description: Which node (not node instance) to scale
+      delta:
+        description: >
+            How many nodes should be added/removed.
+            A positive number denotes increase of instances.
+            A negative number denotes decrease of instances.
+        default: 1
+      scale_compute:
+        description: >
+            If node is contained (transitively) within a compute node
+            and this property is 'true', operate on compute node instead
+            of 'node_id'
+        default: true
+  a4c_heal:
+    mapping: custom_wf_plugin.plugin.workflows.a4c_heal
+    parameters:
+      node_instance_id:
+        description: Which node instance has failed
+      diagnose_value:
+        description: Diagnosed reason of failure
+        default: Not provided
