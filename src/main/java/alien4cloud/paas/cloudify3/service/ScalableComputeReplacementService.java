@@ -372,7 +372,7 @@ public class ScalableComputeReplacementService {
                         relationshipRetargeted.put(paaSRelationshipTemplate.getId(), relationshipType);
                         boolean typeAsChanged = false;
                         // here we also explore the relationship's type interface in order to adapt get_attribute TARGET
-                        Map<String, Interface> interfaces = relationshipType.getInterfaces();
+                        Map<String, Interface> interfaces = paaSRelationshipTemplate.getTemplate().getInterfaces();
                         for (Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
                             for (Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
                                 if (operationEntry.getValue() != null && operationEntry.getValue().getInputParameters() != null) {

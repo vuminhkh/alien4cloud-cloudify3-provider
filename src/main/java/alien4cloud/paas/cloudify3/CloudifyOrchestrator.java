@@ -28,6 +28,7 @@ import alien4cloud.paas.cloudify3.service.DeploymentService;
 import alien4cloud.paas.cloudify3.service.EventService;
 import alien4cloud.paas.cloudify3.service.OpenStackAvailabilityZonePlacementPolicyService;
 import alien4cloud.paas.cloudify3.service.PluginArchiveService;
+import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
 import alien4cloud.paas.cloudify3.service.ScalableComputeReplacementService;
 import alien4cloud.paas.cloudify3.service.StatusService;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
@@ -102,6 +103,9 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
     @Resource
     private ScalableComputeReplacementService scalableComputeReplacementService;
 
+    @Resource
+    private PropertyEvaluatorService propertyEvaluatorService;
+
     /**
      * ********************************************************************************************************************
      * *****************************************************Deployment*****************************************************
@@ -110,6 +114,8 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
 
     @Override
     public void deploy(PaaSTopologyDeploymentContext deploymentContext, final IPaaSCallback callback) {
+        // TODO Better do it in Alien4Cloud or in plugin ?
+        propertyEvaluatorService.processGetPropertyFunction(deploymentContext);
         deploymentContext = scalableComputeReplacementService.transformTopology(deploymentContext);
         try {
 
