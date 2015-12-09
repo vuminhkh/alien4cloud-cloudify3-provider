@@ -120,4 +120,5 @@ node_types:
       This represents a Block Storage (Volume) instance on AWS. Cloudify 3 can create this block but will not delete it when the application is undeployed.
       In case the volume is created, it's id will be injected back into alien's deployment topology so next deployment reuse it.
     tags:
-      _a4c_persistent_resources: {"aws_resource_id": "volume_id"}
+      _a4c_persistent_resources: >
+        {"aws_resource_id": "volume_id"}
