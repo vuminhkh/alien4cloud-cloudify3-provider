@@ -1,6 +1,8 @@
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
 from cloudify.state import ctx_parameters as inputs
+from cloudify.proxy.client import CTX_SOCKET_URL
+from script_runner import tasks as scripts_tasks
 import subprocess
 import os
 import re
@@ -216,6 +218,9 @@ def execute(script_path, process, outputNames):
     process_env = process.get('env', {})
     env.update(process_env)
 
+    proxy = scripts_tasks.start_ctx_proxy(ctx, process)
+    env[CTX_SOCKET_URL] = proxy.socket_url
+
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
         if platform.system() == 'Windows':
@@ -244,11 +249,13 @@ def execute(script_path, process, outputNames):
     stderr_consumer = OutputConsumer(process.stderr)
 
     while True:
+        scripts_tasks.process_ctx_request(proxy)
         return_code = process.poll()
         if return_code is not None:
             break
         time.sleep(0.1)
 
+    proxy.close()
     stdout_consumer.join()
     stderr_consumer.join()
 
