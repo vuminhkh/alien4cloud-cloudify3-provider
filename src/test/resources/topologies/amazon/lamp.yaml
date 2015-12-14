@@ -1,0 +1,81 @@
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+description: Lamp test
+template_name: lamp_test
+template_version: 0.1.0-SNAPSHOT
+template_author: admin
+
+imports:
+  - tosca-normative-types:1.0.0.wd06-SNAPSHOT
+  - alien-extended-storage-types:1.0-SNAPSHOT
+  - cloudify-amazon-types:1.1.0-SNAPSHOT
+  - php-type:2.0.0-SNAPSHOT
+  - apache-type:2.0.0-SNAPSHOT
+  - mysql-type:2.0.0-SNAPSHOT
+  - wordpress-type:2.0.0-SNAPSHOT
+  - cloudify3-common-types:1.1.0-SNAPSHOT
+
+topology_template:
+
+  node_templates:
+
+    NetPub:
+      type: alien.nodes.aws.PublicNetwork
+
+    Apache:
+      type: alien.nodes.Apache
+      properties:
+        port: 80
+        document_root: /var/www
+        version: 2.4
+      requirements:
+        - host: Server
+
+    DataBase:
+      type: alien.cloudify.aws.nodes.Compute
+      properties:
+        image_id: ami-47a23a30
+        instance_type: t2.small
+
+    PHP:
+      type: alien.nodes.PHP
+      properties:
+        version: "5"
+      requirements:
+        - host: Server
+
+    Wordpress:
+      type: alien.nodes.Wordpress
+      properties:
+        context_path: "/"
+        zip_url: "https://wordpress.org/latest.zip"
+      requirements:
+        - host: Apache
+        - database:
+            node: Mysql
+            capability: alien.capabilities.MysqlDatabaseEndpoint
+        - php:
+            node: PHP
+            capability: alien.capabilities.PHPModule
+
+    Mysql:
+      type: alien.nodes.Mysql
+      properties:
+        bind_address: true
+        storage_path: /mountedStorage
+        db_port: 3306
+        db_name: wordpress
+        db_user: pass
+        db_password: pass
+      requirements:
+        - host: DataBase
+
+    Server:
+      type: alien.cloudify.aws.nodes.Compute
+      properties:
+        image_id: ami-47a23a30
+        instance_type: t2.small
+      requirements:
+        - network:
+            node: NetPub
+            capability: tosca.capabilities.Connectivity
+            relationship: tosca.relationships.Network

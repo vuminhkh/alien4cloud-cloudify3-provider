@@ -1,0 +1,67 @@
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+description: Artifact test
+template_name: artifact_test
+template_version: 0.1.0-SNAPSHOT
+template_author: admin
+
+imports:
+  - tosca-normative-types:1.0.0.wd03-SNAPSHOT
+  - alien-base-types:1.0-SNAPSHOT
+  - tomcat-war-types:2.0.0-SNAPSHOT
+  - artifact-test-types:1.0.0-SNAPSHOT
+  - cloudify-amazon-types:1.1.0-SNAPSHOT
+  - cloudify3-common-types:1.1.0-SNAPSHOT
+
+topology_template:
+
+  node_templates:
+
+    NetPub:
+      type: alien.nodes.aws.PublicNetwork
+
+    Java:
+      type: alien.nodes.Java
+      requirements:
+        - host: Server
+
+    War:
+      type: alien.nodes.WarWithLifeCycleScript
+      properties:
+        context_path: helloworld
+      requirements:
+        - host:
+          node: Tomcat
+          capability: alien.capabilities.WarHosting
+          relationship: alien.relationships.WarHostedOnTomcatWithProperties
+
+    Tomcat:
+      type: alien.nodes.Tomcat
+      requirements:
+        - host: Server
+        - java:
+          node: Java
+          capability: alien.capabilities.Java
+          relationship: alien.relationships.RunOnJVM
+
+    Server:
+      type: alien.cloudify.aws.nodes.Compute
+      properties:
+        image_id: ami-47a23a30
+        instance_type: t2.small
+      requirements:
+        - network:
+          node: NetPub
+          capability: tosca.capabilities.Connectivity
+          relationship: tosca.relationships.Network
+
+    Artifact_Directory_Test:
+      type: alien.nodes.TestArtifactDirectory
+      name: Artifact_Directory_Test
+      requirements:
+        - host: Server
+      capabilities:
+        test_capability:
+          properties:
+            test_capability_property: |
+              It's really a great day to begin
+              to love

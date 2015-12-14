@@ -12,6 +12,7 @@ imports:
   - apache-type:2.0.0-SNAPSHOT
   - mysql-type:2.0.0-SNAPSHOT
   - wordpress-type:2.0.0-SNAPSHOT
+  - cloudify3-common-types:1.1.0-SNAPSHOT
 
 topology_template:
 
@@ -20,7 +21,8 @@ topology_template:
     NetPub:
       type: alien.nodes.openstack.PublicNetwork
       properties:
-        network_name: net-pub
+        floatingip:
+          floating_network_name: net-pub
 
     InternalNetwork:
       type: alien.nodes.openstack.PrivateNetwork
@@ -89,9 +91,7 @@ topology_template:
       requirements:
         - network:
             node: NetPub
-            capability: tosca.capabilities.Connectivity
             relationship: tosca.relationships.Network
         - network:
             node: InternalNetwork
-            capability: tosca.capabilities.Connectivity
             relationship: tosca.relationships.Network

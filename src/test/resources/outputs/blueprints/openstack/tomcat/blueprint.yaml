@@ -1,0 +1,186 @@
+
+
+tosca_definitions_version: cloudify_dsl_1_2
+
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.3rc1/types.yaml
+  - http://www.getcloudify.org/spec/openstack-plugin/1.3rc1/plugin.yaml
+  - http://www.getcloudify.org/spec/diamond-plugin/1.3rc1/plugin.yaml
+
+node_types:
+  alien.nodes.openstack.Compute:
+    derived_from: cloudify.openstack.nodes.Server
+    properties:
+      _a4c_substitute_for:
+        default: []
+      _a4c_att_public_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - TARGET
+            - cloudify.openstack.server_connected_to_floating_ip
+            - floating_ip_address
+      _a4c_att_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - ip
+  alien.nodes.openstack.PublicNetwork:
+    derived_from: cloudify.openstack.nodes.FloatingIP
+    properties:
+      _a4c_substitute_for:
+        default: []
+
+  alien.nodes.War:
+    derived_from: cloudify.nodes.Root
+  alien.nodes.Java:
+    derived_from: cloudify.nodes.SoftwareComponent
+  alien.nodes.Tomcat:
+    derived_from: cloudify.nodes.WebServer
+  alien.cloudify.nodes.monitor:
+    derived_from: cloudify.nodes.SoftwareComponent
+    properties:
+      nodes_to_monitor:
+        default: []
+
+relationships:
+  alien.relationships.RunOnJVM:
+    derived_from: cloudify.relationships.depends_on
+  alien.relationships.WarHostedOnTomcat:
+    derived_from: cloudify.relationships.contained_in
+
+node_templates:
+
+  Server:
+    type: alien.nodes.openstack.Compute
+    properties: 
+      flavor: 2
+      image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
+      cloudify_agent: 
+        user: ubuntu
+
+    interfaces:
+      cloudify.interfaces.monitoring_agent:
+        install:
+          implementation: diamond.diamond_agent.tasks.install
+          inputs:
+            diamond_config:
+               interval: 1
+        start: diamond.diamond_agent.tasks.start
+        stop: diamond.diamond_agent.tasks.stop
+        uninstall: diamond.diamond_agent.tasks.uninstall
+      cloudify.interfaces.monitoring:
+        start:
+          implementation: diamond.diamond_agent.tasks.add_collectors
+          inputs:
+            collectors_config:
+               CPUCollector: {}
+               MemoryCollector: {}
+               LoadAverageCollector: {}
+               DiskUsageCollector:
+                 config:
+                   devices: x?vd[a-z]+[0-9]*$
+               NetworkCollector: {}
+
+  Java:
+    type: alien.nodes.Java
+    instances:
+      deploy: 1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create: wrapper/Java/tosca.interfaces.node.lifecycle.Standard/create/artifacts/tomcat-war-types/scripts/_a4c_java_install.py
+    relationships:
+      - target: Server
+        type: cloudify.relationships.contained_in
+  Tomcat:
+    type: alien.nodes.Tomcat
+    instances:
+      deploy: 1
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        stop: wrapper/Tomcat/tosca.interfaces.node.lifecycle.Standard/stop/artifacts/tomcat-war-types/scripts/_a4c_tomcat_stop.py
+        start: wrapper/Tomcat/tosca.interfaces.node.lifecycle.Standard/start/artifacts/tomcat-war-types/scripts/_a4c_tomcat_start.py
+        create: wrapper/Tomcat/tosca.interfaces.node.lifecycle.Standard/create/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install.py
+    relationships:
+      - target: Java
+        type: alien.relationships.RunOnJVM
+      - target: Server
+        type: cloudify.relationships.contained_in
+  War:
+    type: alien.nodes.War
+    instances:
+      deploy: 1
+    interfaces:
+      custom:
+        update_war_file: wrapper/War/custom/update_war_file/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
+    relationships:
+      - target: Tomcat
+        type: alien.relationships.WarHostedOnTomcat
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            postconfigure: wrapper/War_Tomcat/warHostedOnTomcatTomcat/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
+
+  _a4c_monitor:
+    type: alien.cloudify.nodes.monitor
+    properties:
+      nodes_to_monitor:
+        - Server
+    relationships:
+      - target: Server
+        type: cloudify.relationships.depends_on
+      - target: _a4c_monitor_container
+        type: cloudify.relationships.contained_in
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        start:
+          inputs:
+            BASE_DIR: "/tmp/_a4c_monitoring"
+            MONITORING_INTERVAL: 1
+          implementation: monitor/scripts/policy-start.sh
+          executor: central_deployment_agent
+        stop:
+          inputs:
+            BASE_DIR: "/tmp/_a4c_monitoring"
+          implementation: monitor/scripts/policy-stop.sh
+          executor: central_deployment_agent
+
+  _a4c_monitor_container:
+    type: cloudify.nodes.Compute
+    properties:
+      install_agent: false
+
+plugins:
+  custom_wf_plugin:
+    executor: central_deployment_agent
+    source: custom_wf_plugin
+
+workflows:
+  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
+  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_scale:
+    mapping: custom_wf_plugin.plugin.workflows.a4c_scale
+    parameters:
+      node_id:
+        description: Which node (not node instance) to scale
+      delta:
+        description: >
+            How many nodes should be added/removed.
+            A positive number denotes increase of instances.
+            A negative number denotes decrease of instances.
+        default: 1
+      scale_compute:
+        description: >
+            If node is contained (transitively) within a compute node
+            and this property is 'true', operate on compute node instead
+            of 'node_id'
+        default: true
+  a4c_heal:
+    mapping: custom_wf_plugin.plugin.workflows.a4c_heal
+    parameters:
+      node_instance_id:
+        description: Which node instance has failed
+      diagnose_value:
+        description: Diagnosed reason of failure
+        default: Not provided

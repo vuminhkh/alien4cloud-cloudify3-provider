@@ -1,0 +1,96 @@
+
+
+tosca_definitions_version: cloudify_dsl_1_2
+
+
+imports:
+  - http://www.getcloudify.org/spec/cloudify/3.3rc1/types.yaml
+  - http://www.getcloudify.org/spec/aws-plugin/1.3rc1/plugin.yaml
+
+node_types:
+  alien.cloudify.aws.nodes.WindowsCompute:
+    derived_from: cloudify.aws.nodes.WindowsInstance
+    properties:
+      _a4c_substitute_for:
+        default: []
+      _a4c_att_public_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - public_ip_address
+      _a4c_att_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - ip
+  cloudify.aws.nodes.WindowsInstance:
+    derived_from: cloudify.aws.nodes.Instance
+    properties:
+      use_password:
+        default: true
+      os_family:
+        default: windows
+      agent_config:
+        type: cloudify.datatypes.AgentConfig
+        default:
+          port: 5985
+
+
+node_templates:
+
+  compute:
+    type: alien.cloudify.aws.nodes.WindowsCompute
+    properties: 
+      cloudify_agent: 
+        password: Cl@ud1fy234!
+        port: 5985
+        user: cloudify
+      image_id: ami-4b80bf3c
+      instance_type: m3.medium
+    relationships:
+      - type: cloudify.aws.relationships.instance_connected_to_keypair
+        target: _a4c_key_pair_for_compute
+  _a4c_key_pair_for_compute:
+    type: cloudify.aws.nodes.KeyPair
+    properties:
+      resource_id: mkv
+      use_external_resource: true
+      private_key_path: /root/.ssh/agent_key.pem
+
+
+
+plugins:
+  custom_wf_plugin:
+    executor: central_deployment_agent
+    source: custom_wf_plugin
+
+workflows:
+  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
+  a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_scale:
+    mapping: custom_wf_plugin.plugin.workflows.a4c_scale
+    parameters:
+      node_id:
+        description: Which node (not node instance) to scale
+      delta:
+        description: >
+            How many nodes should be added/removed.
+            A positive number denotes increase of instances.
+            A negative number denotes decrease of instances.
+        default: 1
+      scale_compute:
+        description: >
+            If node is contained (transitively) within a compute node
+            and this property is 'true', operate on compute node instead
+            of 'node_id'
+        default: true
+  a4c_heal:
+    mapping: custom_wf_plugin.plugin.workflows.a4c_heal
+    parameters:
+      node_instance_id:
+        description: Which node instance has failed
+      diagnose_value:
+        description: Diagnosed reason of failure
+        default: Not provided

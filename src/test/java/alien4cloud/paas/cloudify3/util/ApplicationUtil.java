@@ -36,6 +36,10 @@ public class ApplicationUtil {
     @Resource
     private ArchiveParser parser;
 
+    public boolean isTopologyExistForLocation(String topologyFileName, String locationName) {
+        return Files.exists(Paths.get("src/test/resources/topologies/" + locationName + "/" + topologyFileName + ".yaml"));
+    }
+
     @SneakyThrows
     public Topology createAlienApplication(String applicationName, String topologyFileName, String locationName) {
         Application application = alienDAO.customFind(Application.class, QueryBuilders.termQuery("name", applicationName));
