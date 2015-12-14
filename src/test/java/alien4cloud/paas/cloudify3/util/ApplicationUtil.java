@@ -26,7 +26,6 @@ import alien4cloud.utils.FileUtil;
 @Component
 @Slf4j
 public class ApplicationUtil {
-    private static final String TOPOLOGIES_PATH = "src/test/resources/topologies/" + LocationUtil.getType() + "/";
 
     @Resource
     private ApplicationService applicationService;
@@ -38,12 +37,12 @@ public class ApplicationUtil {
     private ArchiveParser parser;
 
     @SneakyThrows
-    public Topology createAlienApplication(String applicationName, String topologyFileName) {
+    public Topology createAlienApplication(String applicationName, String topologyFileName, String locationName) {
         Application application = alienDAO.customFind(Application.class, QueryBuilders.termQuery("name", applicationName));
         if (application != null) {
             applicationService.delete(application.getId());
         }
-        Topology topology = parseYamlTopology(topologyFileName);
+        Topology topology = parseYamlTopology(topologyFileName, locationName);
         String applicationId = applicationService.create("alien", applicationName, null, null);
         topology.setDelegateId(applicationId);
         topology.setDelegateType(Application.class.getSimpleName().toLowerCase());
@@ -51,9 +50,9 @@ public class ApplicationUtil {
         return topology;
     }
 
-    private Topology parseYamlTopology(String topologyFileName) throws IOException, ParsingException {
+    private Topology parseYamlTopology(String topologyFileName, String locationName) throws IOException, ParsingException {
         Path zipPath = Files.createTempFile("csar", ".zip");
-        FileUtil.zip(Paths.get(TOPOLOGIES_PATH + topologyFileName + ".yaml"), zipPath);
+        FileUtil.zip(Paths.get("src/test/resources/topologies/" + locationName + "/" + topologyFileName + ".yaml"), zipPath);
         ParsingResult<ArchiveRoot> parsingResult = parser.parse(zipPath);
         return parsingResult.getResult().getTopology();
     }

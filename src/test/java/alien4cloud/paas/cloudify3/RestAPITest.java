@@ -23,7 +23,7 @@ public class RestAPITest {
         cloudConfigurationHolder.setVersionClient(versionClient);
         versionClient.setConfigurationHolder(cloudConfigurationHolder);
         executionClient.setConfigurationHolder(cloudConfigurationHolder);
-        cloudConfigurationHolder.setConfiguration(defaultConfiguration);
+        cloudConfigurationHolder.setConfigurationAndNotifyListeners(defaultConfiguration);
         Execution[] executions = executionClient.list("artifact-test-cfy3-Environment", true);
         for (Execution execution : executions) {
             System.out.println(execution.getWorkflowId() + " = " + execution.getIsSystemWorkflow());

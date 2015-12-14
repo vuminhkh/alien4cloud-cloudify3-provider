@@ -1,56 +1,73 @@
 package alien4cloud.paas.cloudify3;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Set;
 
 import javax.annotation.Resource;
 
 import lombok.SneakyThrows;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import alien4cloud.paas.cloudify3.model.Blueprint;
-import alien4cloud.paas.cloudify3.restclient.BlueprintClient;
+import alien4cloud.component.repository.ArtifactLocalRepository;
+import alien4cloud.component.repository.ArtifactRepositoryConstants;
+import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
+import alien4cloud.paas.cloudify3.util.DeploymentLauncher;
 import alien4cloud.paas.cloudify3.util.FileTestUtil;
-import alien4cloud.paas.cloudify3.util.LocationUtil;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.utils.FileUtil;
 
+import com.google.common.collect.Sets;
+import com.google.common.io.Closeables;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
-public class TestBlueprintService extends AbstractDeploymentTest {
+public class TestBlueprintService extends AbstractTest {
 
     @Resource
     private BlueprintService blueprintService;
 
     @Resource
-    private BlueprintClient blueprintDAO;
-
-    @Resource
     private CloudifyDeploymentBuilderService cloudifyDeploymentBuilderService;
 
+    @Resource
+    private ArtifactLocalRepository artifactRepository;
+
+    @Resource
+    private DeploymentLauncher deploymentLauncher;
+
+    /**
+     * Set true to this boolean when the blueprint has changed and you want to re-register
+     */
     private boolean record = true;
+
+    /**
+     * Set true to this boolean so the blueprint will be uploaded to the manager to verify
+     */
+    private boolean verifyBlueprintUpload = true;
+
+    private static final Set<String> LOCATIONS = Sets.newHashSet();
+
+    static {
+        LOCATIONS.add("openstack");
+        LOCATIONS.add("amazon");
+    }
 
     @Override
     @Before
     public void before() throws Exception {
         super.before();
-        Thread.sleep(1000L);
-        if (online) {
-            Blueprint[] blueprints = blueprintDAO.list();
-            for (Blueprint blueprint : blueprints) {
-                blueprintDAO.delete(blueprint.getId());
-            }
-            Thread.sleep(1000L);
-        }
     }
 
     private interface DeploymentContextVisitor {
@@ -58,26 +75,28 @@ public class TestBlueprintService extends AbstractDeploymentTest {
     }
 
     @SneakyThrows
-    private Path testGeneratedBlueprintFile(String topology) {
+    private void testGeneratedBlueprintFile(String topology) {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        return testGeneratedBlueprintFile(topology, topology, stackTraceElements[2].getMethodName(), null);
+        for (String location : LOCATIONS) {
+            testGeneratedBlueprintFile(topology, location, topology, stackTraceElements[2].getMethodName(), null);
+        }
     }
 
     @SneakyThrows
-    private Path testGeneratedBlueprintFile(String topology, String outputFile, String testName, DeploymentContextVisitor contextVisitor) {
-        PaaSTopologyDeploymentContext context = buildPaaSDeploymentContext(testName, topology);
+    private Path testGeneratedBlueprintFile(String topology, String locationName, String outputFile, String testName, DeploymentContextVisitor contextVisitor) {
+        PaaSTopologyDeploymentContext context = deploymentLauncher.buildPaaSDeploymentContext(testName, topology, locationName);
         if (contextVisitor != null) {
             contextVisitor.visitDeploymentContext(context);
         }
         Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(context));
         Path generatedDirectory = generated.getParent();
-        String recordedDirectory = "src/test/resources/outputs/blueprints/" + LocationUtil.getType() + "/" + outputFile;
+        String recordedDirectory = "src/test/resources/outputs/blueprints/" + locationName + "/" + outputFile;
         if (record) {
             FileUtil.delete(Paths.get(recordedDirectory));
             FileUtil.copy(generatedDirectory, Paths.get(recordedDirectory), StandardCopyOption.REPLACE_EXISTING);
-            // Check if cloudify accept the blueprint
-            blueprintDAO.create(topology, generated.toString());
-            blueprintDAO.delete(topology);
+            if (verifyBlueprintUpload) {
+                deploymentLauncher.verifyBlueprintUpload(topology, generated.toString());
+            }
         } else {
             FileTestUtil.assertFilesAreSame(Paths.get(recordedDirectory), generatedDirectory);
         }
@@ -111,31 +130,41 @@ public class TestBlueprintService extends AbstractDeploymentTest {
 
     @Test
     public void testGenerateTomcat() {
-        // testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
-        Assert.fail("Fix test");
+        testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
     }
 
     @Test
     public void testGenerateArtifactsTest() {
-        // testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
-        Assert.fail("Fix test");
+        testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
+    }
+
+    private void overrideArtifact(PaaSTopologyDeploymentContext deploymentContext, String nodeName, String artifactId, Path newArtifactContent)
+            throws IOException {
+        DeploymentArtifact artifact = deploymentContext.getPaaSTopology().getAllNodes().get(nodeName).getNodeTemplate().getArtifacts().get(artifactId);
+        if (ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(artifact.getArtifactRepository())) {
+            artifactRepository.deleteFile(artifact.getArtifactRef());
+        }
+        InputStream artifactStream = Files.newInputStream(newArtifactContent);
+        try {
+            String artifactFileId = artifactRepository.storeFile(artifactStream);
+            artifact.setArtifactName(newArtifactContent.getFileName().toString());
+            artifact.setArtifactRef(artifactFileId);
+            artifact.setArtifactRepository(ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY);
+        } finally {
+            Closeables.close(artifactStream, true);
+        }
     }
 
     @Test
     public void testGenerateOverriddenArtifactsTest() {
-        // testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY, ARTIFACT_TEST_TOPOLOGY + "Overridden", "testGenerateOverridenArtifactsTest",
-        // new DeploymentContextVisitor() {
-        // @Override
-        // public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
-        // overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
-        // }
-        // });
-        Assert.fail("Fix test");
-    }
-
-    @Test
-    public void testGenerateHAGroup() {
-        // testGeneratedBlueprintFile(HA_GROUPS_TOPOLOGY);
-        Assert.fail("Fix test");
+        for (String location : LOCATIONS) {
+            testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY, location, ARTIFACT_TEST_TOPOLOGY + "Overridden", "testGenerateOverridenArtifactsTest",
+                    new DeploymentContextVisitor() {
+                        @Override
+                        public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
+                            overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
+                        }
+                    });
+        }
     }
 }

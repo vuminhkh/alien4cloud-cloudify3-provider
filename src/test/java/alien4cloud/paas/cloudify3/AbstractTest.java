@@ -10,11 +10,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Value;
 
-import alien4cloud.it.Context;
-import alien4cloud.model.deployment.DeploymentTopology;
-import alien4cloud.model.topology.Topology;
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
-import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.location.AmazonLocationConfigurator;
 import alien4cloud.paas.cloudify3.location.OpenstackLocationConfigurator;
@@ -37,6 +33,10 @@ public class AbstractTest {
 
     public static final String LAMP_TOPOLOGY = "lamp";
 
+    public static final String TOMCAT_TOPOLOGY = "tomcat";
+
+    public static final String ARTIFACT_TEST_TOPOLOGY = "artifact_test";
+
     @Value("${cloudify3.externalNetworkName}")
     private String externalNetworkName;
 
@@ -46,9 +46,6 @@ public class AbstractTest {
     @Value("${directories.alien}/${directories.csar_repository}")
     private String repositoryCsarDirectory;
 
-    @Resource
-    private CloudConfigurationHolder cloudConfigurationHolder;
-
     private static boolean isInitialized = false;
 
     @Resource
@@ -56,17 +53,23 @@ public class AbstractTest {
 
     @Resource
     private OpenstackLocationConfigurator openstackLocationConfigurator;
+
     @Resource
     private AmazonLocationConfigurator amazonLocationConfigurator;
 
     @Resource
     private ArchiveIndexer archiveIndexer;
 
-    protected boolean online = false;
+    @Resource
+    private CloudifyOrchestrator cloudifyOrchestrator;
+
+    @Resource
+    private CloudConfigurationHolder cloudConfigurationHolder;
 
     @BeforeClass
     public static void cleanup() throws IOException {
         FileUtil.delete(CSARUtil.ARTIFACTS_DIRECTORY);
+        FileUtil.copy(Paths.get("src/main/resources"), Paths.get("target/alien/plugin"));
     }
 
     @Before
@@ -77,25 +80,10 @@ public class AbstractTest {
             return;
         }
         FileUtil.delete(Paths.get(repositoryCsarDirectory));
-        CloudConfiguration cloudConfiguration = new CloudConfiguration();
-        if (online) {
-            String cloudifyURL = System.getenv("CLOUDIFY_URL");
-            if (cloudifyURL == null) {
-                cloudifyURL = Context.getInstance().getCloudify3ManagerUrl();
-            }
-            cloudConfiguration.setUrl(cloudifyURL);
-        }
-        try {
-            cloudConfigurationHolder.setConfiguration(cloudConfiguration);
-        } catch (Exception e) {
-            if (online) {
-                throw e;
-            }
-        }
         csarUtil.uploadAll();
         // Reload in order to be sure that the archive is constructed once all dependencies have been uploaded
         List<ParsingError> parsingErrors = Lists.newArrayList();
-        for (PluginArchive pluginArchive : new CloudifyOrchestrator().pluginArchives()) {
+        for (PluginArchive pluginArchive : cloudifyOrchestrator.pluginArchives()) {
             // index the archive in alien catalog
             archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
         }
@@ -107,10 +95,6 @@ public class AbstractTest {
             // index the archive in alien catalog
             archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
         }
-    }
-
-    protected DeploymentTopology generateDeploymentSetup(Topology topology) {
-        DeploymentTopology deploymentTopology = new DeploymentTopology();
-        return deploymentTopology;
+        cloudConfigurationHolder.setConfiguration(new CloudifyOrchestratorFactory().getDefaultConfiguration());
     }
 }

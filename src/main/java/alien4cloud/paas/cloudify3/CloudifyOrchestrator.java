@@ -49,8 +49,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * The cloudify 3 PaaS Provider implementation
- *
- * @author Minh Khang VU
  */
 @Slf4j
 @Component("cloudify-paas-provider-bean")
@@ -157,7 +155,7 @@ public class CloudifyOrchestrator implements IOrchestratorPlugin<CloudConfigurat
         if (newConfiguration.getUrl() == null) {
             throw new PluginConfigurationException("Url is null");
         }
-        cloudConfigurationHolder.setConfiguration(newConfiguration);
+        cloudConfigurationHolder.setConfigurationAndNotifyListeners(newConfiguration);
     }
 
     /**

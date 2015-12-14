@@ -72,6 +72,7 @@ public class BlueprintService {
 
     @Resource
     private PropertyEvaluatorService propertyEvaluatorService;
+
     @Resource
     private OrchestratorDeploymentPropertiesService deploymentPropertiesService;
 
@@ -91,9 +92,9 @@ public class BlueprintService {
             }
             log.info("Copy provider templates to velocity main template's folder");
             // This is a workaround to copy provider templates to velocity folder as relative path do not work with velocity
-            List<Path> providerTemplates = FileUtil.listFiles(pluginContext.getPluginPath().resolve("provider"), ".+\\.yaml\\.vm");
+            List<Path> providerTemplates = FileUtil.listFiles(this.pluginContext.getPluginPath().resolve("provider"), ".+\\.yaml\\.vm");
             for (Path providerTemplate : providerTemplates) {
-                String relativizedPath = FileUtil.relativizePath(pluginContext.getPluginPath(), providerTemplate);
+                String relativizedPath = FileUtil.relativizePath(this.pluginContext.getPluginPath(), providerTemplate);
                 Path providerTemplateTargetPath = this.pluginRecipeResourcesPath.resolve("velocity").resolve(relativizedPath);
                 Files.createDirectories(providerTemplateTargetPath.getParent());
                 Files.copy(providerTemplate, providerTemplateTargetPath, StandardCopyOption.REPLACE_EXISTING);
