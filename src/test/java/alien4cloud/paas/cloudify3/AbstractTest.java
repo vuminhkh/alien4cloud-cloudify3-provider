@@ -1,6 +1,7 @@
 package alien4cloud.paas.cloudify3;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -69,7 +70,9 @@ public class AbstractTest {
     @BeforeClass
     public static void cleanup() throws IOException {
         FileUtil.delete(CSARUtil.ARTIFACTS_DIRECTORY);
-        FileUtil.copy(Paths.get("src/main/resources"), Paths.get("target/alien/plugin"));
+        Path tempPluginDataPath = Paths.get("target/alien/plugin");
+        FileUtil.delete(tempPluginDataPath);
+        FileUtil.copy(Paths.get("src/main/resources"), tempPluginDataPath);
     }
 
     @Before
