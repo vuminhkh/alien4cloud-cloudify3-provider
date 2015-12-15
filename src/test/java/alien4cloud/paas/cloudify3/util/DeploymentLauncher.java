@@ -105,15 +105,11 @@ public class DeploymentLauncher {
         future.get();
     }
 
-    public String launch(String topologyName, String locationName) throws Exception {
+    public String launch(String topologyName) throws Exception {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
         String deploymentId = stackTraceElements[2].getMethodName();
-        launch(buildPaaSDeploymentContext(deploymentId, topologyName, locationName));
+        launch(buildPaaSDeploymentContext(deploymentId, topologyName, "openstack"));
         return deploymentId;
-    }
-
-    public String launch(String topologyName) throws Exception {
-        return launch(topologyName, "openstack");
     }
 
     public void verifyBlueprintUpload(String topology, String path) throws PluginConfigurationException {

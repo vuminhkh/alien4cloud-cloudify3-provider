@@ -297,8 +297,8 @@ env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
 env_map['HOST'] = get_host_node_name(ctx.instance)
-env_map['JAVA_HOME'] = get_property(ctx, 'java_home')
-env_map['JAVA_URL'] = get_property(ctx, 'java_url')
+env_map['JAVA_HOME'] = r'/opt/java'
+env_map['JAVA_URL'] = r'http://download.oracle.com/otn-pub/java/jdk/7u75-b13/jdk-7u75-linux-x64.tar.gz'
 new_script_process = {'env': env_map}
 
 

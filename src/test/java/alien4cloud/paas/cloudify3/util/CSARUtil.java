@@ -114,6 +114,6 @@ public class CSARUtil {
         uploadMySqlTypes();
         uploadPHPTypes();
         uploadWordpress();
-//        uploadArtifactTest();
+        uploadArtifactTest();
     }
 }

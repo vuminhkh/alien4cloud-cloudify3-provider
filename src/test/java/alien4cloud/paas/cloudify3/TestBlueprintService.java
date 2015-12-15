@@ -1,5 +1,8 @@
 package alien4cloud.paas.cloudify3;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -16,8 +19,13 @@ import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import alien4cloud.component.repository.ArtifactLocalRepository;
+import alien4cloud.component.repository.ArtifactRepositoryConstants;
+import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.paas.cloudify3.service.BlueprintService;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
+import alien4cloud.paas.cloudify3.service.PropertyEvaluatorService;
+import alien4cloud.paas.cloudify3.service.ScalableComputeReplacementService;
 import alien4cloud.paas.cloudify3.util.ApplicationUtil;
 import alien4cloud.paas.cloudify3.util.DeploymentLauncher;
 import alien4cloud.paas.cloudify3.util.FileTestUtil;
@@ -25,6 +33,7 @@ import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.utils.FileUtil;
 
 import com.google.common.collect.Sets;
+import com.google.common.io.Closeables;
 
 @Slf4j
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -42,6 +51,15 @@ public class TestBlueprintService extends AbstractTest {
 
     @Resource
     private ApplicationUtil applicationUtil;
+
+    @Resource
+    private ArtifactLocalRepository artifactRepository;
+
+    @Resource
+    private ScalableComputeReplacementService scalableComputeReplacementService;
+
+    @Resource
+    private PropertyEvaluatorService propertyEvaluatorService;
 
     /**
      * Set true to this boolean when the blueprint has changed and you want to re-register
@@ -89,6 +107,8 @@ public class TestBlueprintService extends AbstractTest {
         if (contextVisitor != null) {
             contextVisitor.visitDeploymentContext(context);
         }
+        propertyEvaluatorService.processGetPropertyFunction(context);
+        context = scalableComputeReplacementService.transformTopology(context);
         Path generated = blueprintService.generateBlueprint(cloudifyDeploymentBuilderService.buildCloudifyDeployment(context));
         Path generatedDirectory = generated.getParent();
         if (record) {
@@ -118,10 +138,10 @@ public class TestBlueprintService extends AbstractTest {
         testGeneratedBlueprintFile(NETWORK_TOPOLOGY);
     }
 
-    // @Test
-    // public void testGenerateLamp() {
-    // testGeneratedBlueprintFile(LAMP_TOPOLOGY);
-    // }
+    @Test
+    public void testGenerateLamp() {
+        testGeneratedBlueprintFile(LAMP_TOPOLOGY);
+    }
 
     @Test
     public void testGenerateBlockStorage() {
@@ -132,39 +152,39 @@ public class TestBlueprintService extends AbstractTest {
     public void testGenerateTomcat() {
         testGeneratedBlueprintFile(TOMCAT_TOPOLOGY);
     }
-    //
-    // @Test
-    // public void testGenerateArtifactsTest() {
-    // testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
-    // }
-    //
-    // private void overrideArtifact(PaaSTopologyDeploymentContext deploymentContext, String nodeName, String artifactId, Path newArtifactContent)
-    // throws IOException {
-    // DeploymentArtifact artifact = deploymentContext.getPaaSTopology().getAllNodes().get(nodeName).getNodeTemplate().getArtifacts().get(artifactId);
-    // if (ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(artifact.getArtifactRepository())) {
-    // artifactRepository.deleteFile(artifact.getArtifactRef());
-    // }
-    // InputStream artifactStream = Files.newInputStream(newArtifactContent);
-    // try {
-    // String artifactFileId = artifactRepository.storeFile(artifactStream);
-    // artifact.setArtifactName(newArtifactContent.getFileName().toString());
-    // artifact.setArtifactRef(artifactFileId);
-    // artifact.setArtifactRepository(ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY);
-    // } finally {
-    // Closeables.close(artifactStream, true);
-    // }
-    // }
 
-    // @Test
-    // public void testGenerateOverriddenArtifactsTest() {
-    // for (String location : LOCATIONS) {
-    // testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY, location, ARTIFACT_TEST_TOPOLOGY + "Overridden", "testGenerateOverridenArtifactsTest",
-    // new DeploymentContextVisitor() {
-    // @Override
-    // public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
-    // overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
-    // }
-    // });
-    // }
-    // }
+    @Test
+    public void testGenerateArtifactsTest() {
+        testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY);
+    }
+
+    private void overrideArtifact(PaaSTopologyDeploymentContext deploymentContext, String nodeName, String artifactId, Path newArtifactContent)
+            throws IOException {
+        DeploymentArtifact artifact = deploymentContext.getPaaSTopology().getAllNodes().get(nodeName).getNodeTemplate().getArtifacts().get(artifactId);
+        if (ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY.equals(artifact.getArtifactRepository())) {
+            artifactRepository.deleteFile(artifact.getArtifactRef());
+        }
+        InputStream artifactStream = Files.newInputStream(newArtifactContent);
+        try {
+            String artifactFileId = artifactRepository.storeFile(artifactStream);
+            artifact.setArtifactName(newArtifactContent.getFileName().toString());
+            artifact.setArtifactRef(artifactFileId);
+            artifact.setArtifactRepository(ArtifactRepositoryConstants.ALIEN_ARTIFACT_REPOSITORY);
+        } finally {
+            Closeables.close(artifactStream, true);
+        }
+    }
+
+    @Test
+    public void testGenerateOverriddenArtifactsTest() {
+        for (String location : LOCATIONS) {
+            testGeneratedBlueprintFile(ARTIFACT_TEST_TOPOLOGY, location, ARTIFACT_TEST_TOPOLOGY + "Overridden", "testGenerateOverridenArtifactsTest",
+                    new DeploymentContextVisitor() {
+                        @Override
+                        public void visitDeploymentContext(PaaSTopologyDeploymentContext context) throws Exception {
+                            overrideArtifact(context, "War", "war_file", Paths.get("src/test/resources/data/war-examples/helloWorld.war"));
+                        }
+                    });
+        }
+    }
 }

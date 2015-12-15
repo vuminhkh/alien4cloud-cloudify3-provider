@@ -297,7 +297,7 @@ env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
 env_map['HOST'] = get_host_node_name(ctx.instance)
-env_map['FS_MOUNT_PATH'] = get_property(ctx, 'location')
+env_map['FS_MOUNT_PATH'] = r'/usr/data'
 env_map['PARTITION_NAME'] = get_attribute(ctx, 'partition_name')
 other_instances_map = _all_instances_get_attribute(ctx, 'partition_name')
 if other_instances_map is not None:

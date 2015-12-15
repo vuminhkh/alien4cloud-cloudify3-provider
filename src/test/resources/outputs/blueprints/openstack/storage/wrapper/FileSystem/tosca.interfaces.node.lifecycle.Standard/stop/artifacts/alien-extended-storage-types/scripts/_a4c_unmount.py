@@ -297,7 +297,7 @@ env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
 env_map['HOST'] = get_host_node_name(ctx.instance)
-env_map['FS_MOUNT_PATH'] = get_property(ctx, 'location')
+env_map['FS_MOUNT_PATH'] = r'/usr/data'
 new_script_process = {'env': env_map}
 
 

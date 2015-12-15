@@ -1,12 +1,14 @@
 package alien4cloud.paas.cloudify3;
 
-import alien4cloud.paas.cloudify3.util.DeploymentLauncher;
+import javax.annotation.Resource;
+
 import lombok.extern.slf4j.Slf4j;
 
-import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import alien4cloud.paas.cloudify3.util.DeploymentLauncher;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
@@ -17,7 +19,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 public class TestDeploymentService extends AbstractTest {
 
-    private DeploymentLauncher deploymentLauncher = new DeploymentLauncher();
+    @Resource
+    private DeploymentLauncher deploymentLauncher;
 
     @org.junit.Test
     public void deploySingleCompute() throws Exception {

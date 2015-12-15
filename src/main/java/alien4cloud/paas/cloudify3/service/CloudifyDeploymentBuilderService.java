@@ -344,7 +344,7 @@ public class CloudifyDeploymentBuilderService {
     }
 
     public Set<PaaSNodeTemplate> getNodesToMonitor(List<PaaSNodeTemplate> computes) {
-        Set<PaaSNodeTemplate> nodesToMonitor = Sets.newHashSet();
+        Set<PaaSNodeTemplate> nodesToMonitor = Sets.newLinkedHashSet();
         for (PaaSNodeTemplate compute : computes) {
             // we monitor only if the compute is not a windows type
             // TODO better way to find that this is not a windows compute, taking in accound the location

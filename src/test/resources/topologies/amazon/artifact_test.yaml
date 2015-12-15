@@ -5,12 +5,12 @@ template_version: 0.1.0-SNAPSHOT
 template_author: admin
 
 imports:
-  - tosca-normative-types:1.0.0.wd03-SNAPSHOT
+  - tosca-normative-types:1.0.0.wd06-SNAPSHOT
   - alien-base-types:1.0-SNAPSHOT
   - tomcat-war-types:2.0.0-SNAPSHOT
   - artifact-test-types:1.0.0-SNAPSHOT
-  - cloudify-amazon-types:1.1.0-SNAPSHOT
   - cloudify3-common-types:1.1.0-SNAPSHOT
+  - cloudify-amazon-types:1.1.0-SNAPSHOT
 
 topology_template:
 
@@ -21,6 +21,9 @@ topology_template:
 
     Java:
       type: alien.nodes.Java
+      properties:
+        java_url: "http://download.oracle.com/otn-pub/java/jdk/7u75-b13/jdk-7u75-linux-x64.tar.gz"
+        java_home: "/opt/java"
       requirements:
         - host: Server
 
@@ -30,18 +33,22 @@ topology_template:
         context_path: helloworld
       requirements:
         - host:
-          node: Tomcat
-          capability: alien.capabilities.WarHosting
-          relationship: alien.relationships.WarHostedOnTomcatWithProperties
+            node: Tomcat
+            capability: alien.capabilities.WarHosting
+            relationship: alien.relationships.WarHostedOnTomcatWithProperties
 
     Tomcat:
       type: alien.nodes.Tomcat
+      properties:
+        tomcat_port: "80"
+        tomcat_home: "/opt/tomcat"
+        tomcat_url: "http://mirrors.ircam.fr/pub/apache/tomcat/tomcat-8/v8.0.29/bin/apache-tomcat-8.0.29.tar.gz"
       requirements:
         - host: Server
         - java:
-          node: Java
-          capability: alien.capabilities.Java
-          relationship: alien.relationships.RunOnJVM
+            node: Java
+            capability: alien.capabilities.Java
+            relationship: alien.relationships.RunOnJVM
 
     Server:
       type: alien.cloudify.aws.nodes.Compute
@@ -50,9 +57,9 @@ topology_template:
         instance_type: t2.small
       requirements:
         - network:
-          node: NetPub
-          capability: tosca.capabilities.Connectivity
-          relationship: tosca.relationships.Network
+            node: NetPub
+            capability: tosca.capabilities.Connectivity
+            relationship: tosca.relationships.Network
 
     Artifact_Directory_Test:
       type: alien.nodes.TestArtifactDirectory

@@ -19,8 +19,6 @@ import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
 
-import com.google.common.collect.Lists;
-
 @Component("property-evaluator-service")
 public class PropertyEvaluatorService {
 
@@ -96,9 +94,6 @@ public class PropertyEvaluatorService {
     }
 
     private IValue processConcatFunction(ConcatPropertyValue concatPropertyValue, IPaaSTemplate node, Map<String, PaaSNodeTemplate> allNodes) {
-        ConcatPropertyValue processedConcat = new ConcatPropertyValue();
-        processedConcat.setFunction_concat(concatPropertyValue.getFunction_concat());
-        processedConcat.setParameters(Lists.newArrayList(concatPropertyValue.getParameters()));
         if (concatPropertyValue.getParameters() == null || concatPropertyValue.getParameters().isEmpty()) {
             throw new InvalidArgumentException("Parameter list for concat function is empty");
         }
@@ -108,6 +103,6 @@ public class PropertyEvaluatorService {
                 concatPropertyValue.getParameters().set(i, processSimpleFunction((FunctionPropertyValue) concatParam, node, allNodes));
             }
         }
-        return processedConcat;
+        return concatPropertyValue;
     }
 }

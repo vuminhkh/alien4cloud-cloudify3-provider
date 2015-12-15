@@ -297,7 +297,7 @@ env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
 env_map['HOST'] = get_host_node_name(ctx.instance)
-env_map['TOMCAT_HOME'] = get_property(ctx, 'tomcat_home')
+env_map['TOMCAT_HOME'] = r'/opt/tomcat'
 new_script_process = {'env': env_map}
 
 
@@ -314,5 +314,5 @@ for k,v in parsed_output['outputs'].items():
     ctx.instance.runtime_properties['_a4c_OO:tosca.interfaces.node.lifecycle.Standard:stop:{0}'.format(k)] = v
 
 
-ctx.instance.runtime_properties['server_url'] = r'http://' + get_attribute(ctx, 'public_ip_address') + r':' + get_property(ctx, 'tomcat_port')
+ctx.instance.runtime_properties['server_url'] = r'http://' + get_attribute(ctx, 'public_ip_address') + r':' + r'80'
 ctx.instance.update()
