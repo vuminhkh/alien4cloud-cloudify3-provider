@@ -329,6 +329,11 @@ new_script_process = {'env': env_map}
 node_artifacts = {
     "confs_directory": [
         {
+            "relative_path": "log.properties",
+            "absolute_path": "artifacts/artifact-test-types/conf/log.properties"
+        }
+        ,
+        {
             "relative_path": "settings.properties",
             "absolute_path": "artifacts/artifact-test-types/conf/settings.properties"
         }
@@ -336,11 +341,6 @@ node_artifacts = {
         {
             "relative_path": "test/nestedDirTest.txt",
             "absolute_path": "artifacts/artifact-test-types/conf/test/nestedDirTest.txt"
-        }
-        ,
-        {
-            "relative_path": "log.properties",
-            "absolute_path": "artifacts/artifact-test-types/conf/log.properties"
         }
     ]
 }

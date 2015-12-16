@@ -38,14 +38,14 @@ node_types:
       _a4c_substitute_for:
         default: []
 
-  alien.nodes.Mysql:
-    derived_from: cloudify.nodes.Database
   alien.nodes.Wordpress:
     derived_from: cloudify.nodes.ApplicationModule
-  alien.nodes.Apache:
-    derived_from: cloudify.nodes.WebServer
+  alien.nodes.Mysql:
+    derived_from: cloudify.nodes.Database
   alien.nodes.PHP:
     derived_from: cloudify.nodes.SoftwareComponent
+  alien.nodes.Apache:
+    derived_from: cloudify.nodes.WebServer
   alien.cloudify.nodes.monitor:
     derived_from: cloudify.nodes.SoftwareComponent
     properties:
@@ -53,12 +53,12 @@ node_types:
         default: []
 
 relationships:
-  alien.relationships.WordpressConnectToPHP:
-    derived_from: cloudify.relationships.connected_to
-  alien.relationships.WordpressConnectToMysql:
-    derived_from: cloudify.relationships.connected_to
   alien.relationships.WordpressHostedOnApache:
     derived_from: cloudify.relationships.contained_in
+  alien.relationships.WordpressConnectToMysql:
+    derived_from: cloudify.relationships.connected_to
+  alien.relationships.WordpressConnectToPHP:
+    derived_from: cloudify.relationships.connected_to
 
 node_templates:
 

@@ -61,9 +61,9 @@ public class OperationWrapper extends Operation {
     @Override
     public Map<String, IValue> getInputParameters() {
         if (delegate.getInputParameters() == null) {
-            return Maps.newHashMap();
+            return Maps.newLinkedHashMap();
         }
-        return Maps.newHashMap(delegate.getInputParameters());
+        return Maps.newLinkedHashMap(delegate.getInputParameters());
     }
 
     public Set<OperationOutput> getOutputs() {

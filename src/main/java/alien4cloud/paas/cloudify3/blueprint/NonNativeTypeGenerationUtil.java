@@ -98,7 +98,7 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
         if (MapUtils.isEmpty(nodeTemplate.getNodeTemplate().getAttributes())) {
             return null;
         }
-        Map<String, IValue> attributesThatCanBeSet = Maps.newHashMap();
+        Map<String, IValue> attributesThatCanBeSet = Maps.newLinkedHashMap();
         for (Map.Entry<String, IValue> attributeEntry : nodeTemplate.getNodeTemplate().getAttributes().entrySet()) {
             if (attributeEntry.getValue() instanceof AbstractPropertyValue) {
                 // Replace all get_property with the static value in all attributes
@@ -352,7 +352,7 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     }
 
     public Map<String, String> listArtifactDirectory(final String artifactPath) throws IOException {
-        final Map<String, String> children = Maps.newHashMap();
+        final Map<String, String> children = Maps.newLinkedHashMap();
         final Path realArtifactPath = recipePath.resolve(artifactPath);
         Files.walkFileTree(realArtifactPath, new SimpleFileVisitor<Path>() {
             @Override

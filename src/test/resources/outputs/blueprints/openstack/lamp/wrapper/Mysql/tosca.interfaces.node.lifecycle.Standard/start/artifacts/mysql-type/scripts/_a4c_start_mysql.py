@@ -321,12 +321,12 @@ env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
 env_map['HOST'] = get_host_node_name(ctx.instance)
-env_map['PORT'] = r'3306'
-env_map['DB_USER'] = r'pass'
-env_map['BIND_ADRESS'] = r'true'
 env_map['VOLUME_HOME'] = r'/mountedStorage'
+env_map['PORT'] = r'3306'
 env_map['DB_NAME'] = r'wordpress'
+env_map['DB_USER'] = r'pass'
 env_map['DB_PASSWORD'] = r'pass'
+env_map['BIND_ADRESS'] = r'true'
 new_script_process = {'env': env_map}
 
 node_artifacts = {

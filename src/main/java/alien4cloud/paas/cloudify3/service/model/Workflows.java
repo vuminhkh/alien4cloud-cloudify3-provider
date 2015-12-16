@@ -21,7 +21,7 @@ public class Workflows {
      * <li>value is a sub-workflow related to the given host
      * </ul>
      */
-    private Map<String, HostWorkflow> installHostWorkflows = Maps.newHashMap();
+    private Map<String, HostWorkflow> installHostWorkflows = Maps.newLinkedHashMap();
 
     /**
      * The uninstall workflow steps by host.
@@ -30,12 +30,12 @@ public class Workflows {
      * <li>value is a sub-workflow related to the given host
      * </ul>
      */
-    private Map<String, HostWorkflow> uninstallHostWorkflows = Maps.newHashMap();
+    private Map<String, HostWorkflow> uninstallHostWorkflows = Maps.newLinkedHashMap();
 
     /**
      * Per standard workflow, orphan steps and external links
      *
      */
-    private Map<String, StandardWorkflow> standardWorkflows = Maps.newHashMap();
+    private Map<String, StandardWorkflow> standardWorkflows = Maps.newLinkedHashMap();
 
 }

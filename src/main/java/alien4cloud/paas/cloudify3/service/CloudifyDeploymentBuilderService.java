@@ -65,9 +65,6 @@ public class CloudifyDeploymentBuilderService {
         List<IndexedNodeType> nativeTypes = getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getComputes());
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()));
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()));
-        Map<String, IndexedNodeType> nativeTypesDerivedFrom = getDerivedFromTypesMap(deploymentContext.getPaaSTopology().getComputes());
-        nativeTypesDerivedFrom.putAll(getDerivedFromTypesMap(deploymentContext.getPaaSTopology().getVolumes()));
-        nativeTypesDerivedFrom.putAll(getDerivedFromTypesMap(deploymentContext.getPaaSTopology().getNetworks()));
 
         cloudifyDeployment.setDeploymentPaaSId(deploymentContext.getDeploymentPaaSId());
         cloudifyDeployment.setDeploymentId(deploymentContext.getDeploymentId());
@@ -76,7 +73,6 @@ public class CloudifyDeploymentBuilderService {
         cloudifyDeployment.setVolumes(deploymentContext.getPaaSTopology().getVolumes());
         cloudifyDeployment.setNonNatives(deploymentContext.getPaaSTopology().getNonNatives());
         cloudifyDeployment.setNativeTypes(nativeTypes);
-        cloudifyDeployment.setNativeTypesHierarchy(nativeTypesDerivedFrom);
 
         cloudifyDeployment.setAllNodes(deploymentContext.getPaaSTopology().getAllNodes());
         cloudifyDeployment.setProviderDeploymentProperties(deploymentContext.getDeploymentTopology().getProviderDeploymentProperties());
@@ -207,7 +203,7 @@ public class CloudifyDeploymentBuilderService {
      * @return
      */
     private Map<String, AbstractStep> getHostRelatedSteps(String hostId, Workflow workflow) {
-        Map<String, AbstractStep> steps = Maps.newHashMap();
+        Map<String, AbstractStep> steps = Maps.newLinkedHashMap();
         for (AbstractStep step : workflow.getSteps().values()) {
             // proceed only NodeActivityStep
             if (step instanceof NodeActivityStep) {
@@ -229,17 +225,6 @@ public class CloudifyDeploymentBuilderService {
             nodeTypeMap.put(node.getIndexedToscaElement().getElementId(), node.getIndexedToscaElement());
         }
         return IndexedModelUtils.orderByDerivedFromHierarchy(nodeTypeMap);
-    }
-
-    private Map<String, IndexedNodeType> getDerivedFromTypesMap(List<PaaSNodeTemplate> nodes) {
-        Map<String, IndexedNodeType> derivedFromTypesMap = Maps.newHashMap();
-        for (PaaSNodeTemplate node : nodes) {
-            List<IndexedNodeType> derivedFroms = node.getDerivedFroms();
-            for (IndexedNodeType derivedFrom : derivedFroms) {
-                derivedFromTypesMap.put(derivedFrom.getElementId(), derivedFrom);
-            }
-        }
-        return derivedFromTypesMap;
     }
 
     /**
@@ -290,8 +275,8 @@ public class CloudifyDeploymentBuilderService {
      *            The deployment context from alien 4 cloud.
      */
     private void processNonNativeTypes(CloudifyDeployment cloudifyDeployment, PaaSTopologyDeploymentContext deploymentContext) {
-        Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
-        Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
+        Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newLinkedHashMap();
+        Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newLinkedHashMap();
         for (PaaSNodeTemplate nonNative : deploymentContext.getPaaSTopology().getNonNatives()) {
             nonNativesTypesMap.put(nonNative.getIndexedToscaElement().getElementId(), nonNative.getIndexedToscaElement());
             List<PaaSRelationshipTemplate> relationshipTemplates = nonNative.getRelationshipTemplates();
@@ -309,8 +294,8 @@ public class CloudifyDeploymentBuilderService {
     }
 
     private void processDeploymentArtifacts(CloudifyDeployment cloudifyDeployment, PaaSTopologyDeploymentContext deploymentContext) {
-        Map<String, Map<String, DeploymentArtifact>> allArtifacts = Maps.newHashMap();
-        Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newHashMap();
+        Map<String, Map<String, DeploymentArtifact>> allArtifacts = Maps.newLinkedHashMap();
+        Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newLinkedHashMap();
         for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
             PaaSNodeTemplate node = nodeEntry.getValue();
             // add the node artifacts

@@ -52,11 +52,6 @@ public class CloudifyDeployment {
 
     private List<IndexedNodeType> nativeTypes;
 
-    /**
-     * Derived from types for native types
-     */
-    private Map<String, IndexedNodeType> nativeTypesHierarchy;
-
     private Map<String, PaaSNodeTemplate> allNodes;
 
     /**

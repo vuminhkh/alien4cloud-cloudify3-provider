@@ -323,9 +323,9 @@ env_map['TARGET_INSTANCES'] = get_instance_list(ctx.target.node.id)
 env_map['SOURCE_NODE'] = ctx.source.node.id
 env_map['SOURCE_INSTANCE'] = ctx.source.instance.id
 env_map['SOURCE_INSTANCES'] = get_instance_list(ctx.source.node.id)
-env_map['TOMCAT_PORT'] = r'80'
-env_map['TOMCAT_HOME'] = r'/opt/tomcat'
 env_map['CONTEXT_PATH'] = r'helloworld'
+env_map['TOMCAT_HOME'] = r'/opt/tomcat'
+env_map['TOMCAT_PORT'] = r'80'
 new_script_process = {'env': env_map}
 
 node_artifacts = {
@@ -354,8 +354,8 @@ for k,v in parsed_output['outputs'].items():
     ctx.source.instance.runtime_properties['_a4c_OO:tosca.interfaces.relationship.Configure:post_configure_source:{0}'.format(k)] = v
 
 
-ctx.source.instance.runtime_properties['local_application_url'] = r'http://' + get_attribute(ctx.source, 'ip_address') + r':' + r'80' + r'/' + r'helloworld'
 ctx.source.instance.runtime_properties['application_url'] = r'http://' + get_attribute(ctx.source, 'public_ip_address') + r':' + r'80' + r'/' + r'helloworld'
+ctx.source.instance.runtime_properties['local_application_url'] = r'http://' + get_attribute(ctx.source, 'ip_address') + r':' + r'80' + r'/' + r'helloworld'
 ctx.source.instance.update()
 ctx.target.instance.runtime_properties['server_url'] = r'http://' + get_attribute(ctx.target, 'public_ip_address') + r':' + r'80'
 ctx.target.instance.update()

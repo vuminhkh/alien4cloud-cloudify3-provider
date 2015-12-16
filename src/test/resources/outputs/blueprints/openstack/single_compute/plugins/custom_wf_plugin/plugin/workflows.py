@@ -26,15 +26,15 @@ def uninstall_host_compute(ctx, graph, custom_context):
     generate_native_node_workflows(ctx, graph, custom_context, 'uninstall')
 
 
-def uninstall_host(ctx, graph, custom_context, compute):
-    options = {}
-    options['compute'] = uninstall_host_compute
-    options[compute](ctx, graph, custom_context)
-
-
 def install_host(ctx, graph, custom_context, compute):
     options = {}
     options['compute'] = install_host_compute
+    options[compute](ctx, graph, custom_context)
+
+
+def uninstall_host(ctx, graph, custom_context, compute):
+    options = {}
+    options['compute'] = uninstall_host_compute
     options[compute](ctx, graph, custom_context)
 
 

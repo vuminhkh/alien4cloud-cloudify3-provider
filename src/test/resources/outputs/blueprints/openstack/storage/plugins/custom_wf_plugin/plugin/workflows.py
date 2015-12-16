@@ -65,15 +65,15 @@ def uninstall_host_compute(ctx, graph, custom_context):
     link_tasks(graph, 'FileSystem_deleted', 'FileSystem_deleting', custom_context)
 
 
-def uninstall_host(ctx, graph, custom_context, compute):
-    options = {}
-    options['Compute'] = uninstall_host_compute
-    options[compute](ctx, graph, custom_context)
-
-
 def install_host(ctx, graph, custom_context, compute):
     options = {}
     options['Compute'] = install_host_compute
+    options[compute](ctx, graph, custom_context)
+
+
+def uninstall_host(ctx, graph, custom_context, compute):
+    options = {}
+    options['Compute'] = uninstall_host_compute
     options[compute](ctx, graph, custom_context)
 
 

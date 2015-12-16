@@ -297,8 +297,8 @@ env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
 env_map['HOST'] = get_host_node_name(ctx.instance)
-env_map['JAVA_HOME'] = r'/opt/java'
 env_map['JAVA_URL'] = r'http://download.oracle.com/otn-pub/java/jdk/7u75-b13/jdk-7u75-linux-x64.tar.gz'
+env_map['JAVA_HOME'] = r'/opt/java'
 new_script_process = {'env': env_map}
 
 
@@ -316,6 +316,6 @@ for k,v in parsed_output['outputs'].items():
     ctx.instance.runtime_properties['_a4c_OO:tosca.interfaces.node.lifecycle.Standard:create:{0}'.format(k)] = v
 
 
-ctx.instance.runtime_properties['java_message'] = r'Java help: ' + get_attribute(ctx, '_a4c_OO:tosca.interfaces.node.lifecycle.Standard:create:JAVA_HELP')
 ctx.instance.runtime_properties['java_version'] = get_attribute(ctx, '_a4c_OO:tosca.interfaces.node.lifecycle.Standard:create:JAVA_VERSION')
+ctx.instance.runtime_properties['java_message'] = r'Java help: ' + get_attribute(ctx, '_a4c_OO:tosca.interfaces.node.lifecycle.Standard:create:JAVA_HELP')
 ctx.instance.update()

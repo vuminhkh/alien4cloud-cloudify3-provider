@@ -41,14 +41,14 @@ node_types:
         type: cloudify.datatypes.AgentConfig
         default:
           port: 5985
-  alien.nodes.WarWithLifeCycleScript:
-    derived_from: cloudify.nodes.Root
   alien.nodes.Java:
     derived_from: cloudify.nodes.SoftwareComponent
   alien.nodes.TestArtifactDirectory:
     derived_from: cloudify.nodes.SoftwareComponent
   alien.nodes.Tomcat:
     derived_from: cloudify.nodes.WebServer
+  alien.nodes.WarWithLifeCycleScript:
+    derived_from: cloudify.nodes.Root
   alien.cloudify.nodes.monitor:
     derived_from: cloudify.nodes.SoftwareComponent
     properties:

@@ -20,7 +20,7 @@ public class HostWorkflow {
     /**
      * The steps related to this host.
      */
-    private Map<String, AbstractStep> steps = Maps.newHashMap();
+    private Map<String, AbstractStep> steps = Maps.newLinkedHashMap();
 
     /**
      * The link between this host steps (internal links).

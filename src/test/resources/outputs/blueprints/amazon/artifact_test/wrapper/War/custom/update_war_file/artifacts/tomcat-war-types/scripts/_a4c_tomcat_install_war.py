@@ -321,10 +321,10 @@ env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
 env_map['HOST'] = get_host_node_name(ctx.instance)
+env_map['CONTEXT_PATH'] = r'helloworld'
+env_map['TOMCAT_HOME'] = r'/opt/tomcat'
 env_map['TOMCAT_PORT'] = r'80'
 env_map['WAR_URL'] = ''
-env_map['TOMCAT_HOME'] = r'/opt/tomcat'
-env_map['CONTEXT_PATH'] = r'helloworld'
 new_script_process = {'env': env_map}
 
 node_artifacts = {

@@ -33,12 +33,12 @@ node_types:
       _a4c_substitute_for:
         default: []
 
-  alien.nodes.War:
-    derived_from: cloudify.nodes.Root
   alien.nodes.Java:
     derived_from: cloudify.nodes.SoftwareComponent
   alien.nodes.Tomcat:
     derived_from: cloudify.nodes.WebServer
+  alien.nodes.War:
+    derived_from: cloudify.nodes.Root
   alien.cloudify.nodes.monitor:
     derived_from: cloudify.nodes.SoftwareComponent
     properties:

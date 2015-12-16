@@ -105,35 +105,35 @@ def install_host_server(ctx, graph, custom_context):
 
 # subworkflow 'install' for host 'DataBase'
 def install_host_database(ctx, graph, custom_context):
+    operation_task(ctx, graph, 'Mysql', 'cloudify.interfaces.lifecycle.configure', 'configure_Mysql', custom_context)
     custom_context.add_customized_wf_node('Mysql')
     set_state_task(ctx, graph, 'Mysql', 'initial', 'Mysql_initial', custom_context)
     custom_context.add_customized_wf_node('Mysql')
     set_state_task(ctx, graph, 'Mysql', 'creating', 'Mysql_creating', custom_context)
     custom_context.add_customized_wf_node('Mysql')
-    set_state_task(ctx, graph, 'Mysql', 'configured', 'Mysql_configured', custom_context)
-    custom_context.register_native_delegate_wf_step('DataBase', 'DataBase_install')
-    custom_context.add_customized_wf_node('Mysql')
     set_state_task(ctx, graph, 'Mysql', 'configuring', 'Mysql_configuring', custom_context)
-    custom_context.add_customized_wf_node('Mysql')
-    set_state_task(ctx, graph, 'Mysql', 'started', 'Mysql_started', custom_context)
-    operation_task(ctx, graph, 'Mysql', 'cloudify.interfaces.lifecycle.start', 'start_Mysql', custom_context)
     custom_context.add_customized_wf_node('Mysql')
     set_state_task(ctx, graph, 'Mysql', 'starting', 'Mysql_starting', custom_context)
     operation_task(ctx, graph, 'Mysql', 'cloudify.interfaces.lifecycle.create', 'create_Mysql', custom_context)
-    operation_task(ctx, graph, 'Mysql', 'cloudify.interfaces.lifecycle.configure', 'configure_Mysql', custom_context)
+    custom_context.add_customized_wf_node('Mysql')
+    set_state_task(ctx, graph, 'Mysql', 'configured', 'Mysql_configured', custom_context)
+    custom_context.register_native_delegate_wf_step('DataBase', 'DataBase_install')
+    custom_context.add_customized_wf_node('Mysql')
+    set_state_task(ctx, graph, 'Mysql', 'started', 'Mysql_started', custom_context)
     custom_context.add_customized_wf_node('Mysql')
     set_state_task(ctx, graph, 'Mysql', 'created', 'Mysql_created', custom_context)
+    operation_task(ctx, graph, 'Mysql', 'cloudify.interfaces.lifecycle.start', 'start_Mysql', custom_context)
     generate_native_node_workflows(ctx, graph, custom_context, 'install')
+    link_tasks(graph, 'Mysql_configured', 'configure_Mysql', custom_context)
     link_tasks(graph, 'Mysql_creating', 'Mysql_initial', custom_context)
     link_tasks(graph, 'create_Mysql', 'Mysql_creating', custom_context)
-    link_tasks(graph, 'Mysql_starting', 'Mysql_configured', custom_context)
-    link_tasks(graph, 'Mysql_initial', 'DataBase_install', custom_context)
     link_tasks(graph, 'configure_Mysql', 'Mysql_configuring', custom_context)
-    link_tasks(graph, 'Mysql_started', 'start_Mysql', custom_context)
     link_tasks(graph, 'start_Mysql', 'Mysql_starting', custom_context)
     link_tasks(graph, 'Mysql_created', 'create_Mysql', custom_context)
-    link_tasks(graph, 'Mysql_configured', 'configure_Mysql', custom_context)
+    link_tasks(graph, 'Mysql_starting', 'Mysql_configured', custom_context)
+    link_tasks(graph, 'Mysql_initial', 'DataBase_install', custom_context)
     link_tasks(graph, 'Mysql_configuring', 'Mysql_created', custom_context)
+    link_tasks(graph, 'Mysql_started', 'start_Mysql', custom_context)
 
 
 # subworkflow 'uninstall' for host 'Server'
@@ -196,17 +196,17 @@ def uninstall_host_database(ctx, graph, custom_context):
     link_tasks(graph, 'DataBase_uninstall', 'Mysql_deleted', custom_context)
 
 
-def uninstall_host(ctx, graph, custom_context, compute):
-    options = {}
-    options['Server'] = uninstall_host_server
-    options['DataBase'] = uninstall_host_database
-    options[compute](ctx, graph, custom_context)
-
-
 def install_host(ctx, graph, custom_context, compute):
     options = {}
     options['Server'] = install_host_server
     options['DataBase'] = install_host_database
+    options[compute](ctx, graph, custom_context)
+
+
+def uninstall_host(ctx, graph, custom_context, compute):
+    options = {}
+    options['Server'] = uninstall_host_server
+    options['DataBase'] = uninstall_host_database
     options[compute](ctx, graph, custom_context)
 
 

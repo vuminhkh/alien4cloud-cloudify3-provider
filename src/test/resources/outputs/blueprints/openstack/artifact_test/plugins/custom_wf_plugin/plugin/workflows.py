@@ -186,15 +186,15 @@ def uninstall_host_server(ctx, graph, custom_context):
     link_tasks(graph, 'Server_uninstall', 'Artifact_Directory_Test_deleted', custom_context)
 
 
-def uninstall_host(ctx, graph, custom_context, compute):
-    options = {}
-    options['Server'] = uninstall_host_server
-    options[compute](ctx, graph, custom_context)
-
-
 def install_host(ctx, graph, custom_context, compute):
     options = {}
     options['Server'] = install_host_server
+    options[compute](ctx, graph, custom_context)
+
+
+def uninstall_host(ctx, graph, custom_context, compute):
+    options = {}
+    options['Server'] = uninstall_host_server
     options[compute](ctx, graph, custom_context)
 
 

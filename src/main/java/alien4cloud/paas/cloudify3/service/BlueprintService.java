@@ -166,7 +166,7 @@ public class BlueprintService {
                 for (Map.Entry<String, Interface> inter : interfaces.entrySet()) {
                     Map<String, Operation> operations = inter.getValue().getOperations();
                     for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
-                        Map<String, Map<String, DeploymentArtifact>> artifacts = Maps.newHashMap();
+                        Map<String, Map<String, DeploymentArtifact>> artifacts = Maps.newLinkedHashMap();
                         // Special case when it's a node operation, then the only artifacts that are being injected is of the node it-self
                         if (MapUtils.isNotEmpty(node.getIndexedToscaElement().getArtifacts())) {
                             artifacts.put(node.getId(), node.getIndexedToscaElement().getArtifacts());
@@ -185,11 +185,11 @@ public class BlueprintService {
                         for (Map.Entry<String, Operation> operationEntry : operations.entrySet()) {
                             Relationship keyRelationship = new Relationship(relationship.getId(), relationship.getSource(), relationship
                                     .getRelationshipTemplate().getTarget());
-                            Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts = Maps.newHashMap();
+                            Map<Relationship, Map<String, DeploymentArtifact>> relationshipArtifacts = Maps.newLinkedHashMap();
                             if (MapUtils.isNotEmpty(relationship.getIndexedToscaElement().getArtifacts())) {
                                 relationshipArtifacts.put(keyRelationship, relationship.getIndexedToscaElement().getArtifacts());
                             }
-                            Map<String, Map<String, DeploymentArtifact>> artifacts = Maps.newHashMap();
+                            Map<String, Map<String, DeploymentArtifact>> artifacts = Maps.newLinkedHashMap();
                             Map<String, DeploymentArtifact> sourceArtifacts = alienDeployment.getAllNodes().get(relationship.getSource())
                                     .getIndexedToscaElement().getArtifacts();
                             if (MapUtils.isNotEmpty(sourceArtifacts)) {
