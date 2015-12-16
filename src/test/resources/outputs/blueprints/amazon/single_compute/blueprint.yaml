@@ -87,8 +87,8 @@ plugins:
     source: custom_wf_plugin
 
 workflows:
-  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
   a4c_install: custom_wf_plugin.plugin.workflows.a4c_install
+  a4c_uninstall: custom_wf_plugin.plugin.workflows.a4c_uninstall
   a4c_scale:
     mapping: custom_wf_plugin.plugin.workflows.a4c_scale
     parameters:

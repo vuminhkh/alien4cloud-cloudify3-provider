@@ -39,17 +39,6 @@ def install_host(ctx, graph, custom_context, compute):
 
 
 @workflow
-def a4c_uninstall(**kwargs):
-    graph = ctx.graph_mode()
-    nodes = _get_all_nodes(ctx)
-    instances = _get_all_nodes_instances(ctx)
-    custom_context = CustomContext(ctx, instances, nodes)
-    ctx.internal.send_workflow_event(event_type='a4c_workflow_started', message=build_pre_event(WfStartEvent('uninstall')))
-    _a4c_uninstall(ctx, graph, custom_context)
-    return graph.execute()
-
-
-@workflow
 def a4c_install(**kwargs):
     graph = ctx.graph_mode()
     nodes = _get_all_nodes(ctx)
@@ -60,11 +49,22 @@ def a4c_install(**kwargs):
     return graph.execute()
 
 
-def _a4c_uninstall(ctx, graph, custom_context):
+@workflow
+def a4c_uninstall(**kwargs):
+    graph = ctx.graph_mode()
+    nodes = _get_all_nodes(ctx)
+    instances = _get_all_nodes_instances(ctx)
+    custom_context = CustomContext(ctx, instances, nodes)
+    ctx.internal.send_workflow_event(event_type='a4c_workflow_started', message=build_pre_event(WfStartEvent('uninstall')))
+    _a4c_uninstall(ctx, graph, custom_context)
+    return graph.execute()
+
+
+def _a4c_install(ctx, graph, custom_context):
     #  following code can be pasted in src/test/python/workflows/tasks.py for simulation
-    custom_context.register_native_delegate_wf_step('Compute', 'Compute_uninstall')
-    custom_context.register_native_delegate_wf_step('NetPub', 'NetPub_uninstall')
-    generate_native_node_workflows(ctx, graph, custom_context, 'uninstall')
+    custom_context.register_native_delegate_wf_step('NetPub', 'NetPub_install')
+    custom_context.register_native_delegate_wf_step('Compute', 'Compute_install')
+    generate_native_node_workflows(ctx, graph, custom_context, 'install')
 
 
 @workflow
@@ -196,11 +196,11 @@ def a4c_heal(
     graph.execute()
 
 
-def _a4c_install(ctx, graph, custom_context):
+def _a4c_uninstall(ctx, graph, custom_context):
     #  following code can be pasted in src/test/python/workflows/tasks.py for simulation
-    custom_context.register_native_delegate_wf_step('NetPub', 'NetPub_install')
-    custom_context.register_native_delegate_wf_step('Compute', 'Compute_install')
-    generate_native_node_workflows(ctx, graph, custom_context, 'install')
+    custom_context.register_native_delegate_wf_step('Compute', 'Compute_uninstall')
+    custom_context.register_native_delegate_wf_step('NetPub', 'NetPub_uninstall')
+    generate_native_node_workflows(ctx, graph, custom_context, 'uninstall')
 
 
 @workflow
