@@ -65,8 +65,8 @@ node_templates:
   Server:
     type: alien.nodes.openstack.Compute
     properties: 
-      flavor: 2
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
+      flavor: 2
       cloudify_agent: 
         user: ubuntu
 
@@ -95,8 +95,8 @@ node_templates:
   DataBase:
     type: alien.nodes.openstack.Compute
     properties: 
-      flavor: 2
       image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
+      flavor: 2
       cloudify_agent: 
         user: ubuntu
 

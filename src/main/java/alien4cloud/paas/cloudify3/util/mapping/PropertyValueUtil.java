@@ -54,7 +54,7 @@ public final class PropertyValueUtil {
      */
     public static Map<String, AbstractPropertyValue> mapProperties(Map<String, IPropertyMapping> typePropertiesMappings,
             Map<String, AbstractPropertyValue> properties) {
-        Map<String, Map<String, IPropertyMapping>> allTypesPropertiesMappings = Maps.newHashMap();
+        Map<String, Map<String, IPropertyMapping>> allTypesPropertiesMappings = Maps.newLinkedHashMap();
         return mapProperties(allTypesPropertiesMappings, typePropertiesMappings, properties);
     }
 
@@ -73,7 +73,7 @@ public final class PropertyValueUtil {
             return properties;
         }
 
-        Map<String, AbstractPropertyValue> mappedProperties = Maps.newHashMap();
+        Map<String, AbstractPropertyValue> mappedProperties = Maps.newLinkedHashMap();
         for (Map.Entry<String, AbstractPropertyValue> propertyEntry : properties.entrySet()) {
             PropertyValue sourcePropertyValue = (PropertyValue) propertyEntry.getValue();
             if (sourcePropertyValue == null) {
@@ -133,7 +133,7 @@ public final class PropertyValueUtil {
                 }
                 ComplexPropertyValue complexPropertyValue = (ComplexPropertyValue) listItem;
                 // for each item we build a map
-                Map<String, AbstractPropertyValue> itemProperties = Maps.newHashMap();
+                Map<String, AbstractPropertyValue> itemProperties = Maps.newLinkedHashMap();
                 for (Entry<String, Object> complexPropertyEntry : complexPropertyValue.getValue().entrySet()) {
                     PropertyValue complexPropertyEntryValue = propertyValueFromObject(complexPropertyEntry.getValue());
                     String complexPropertyEntryName = complexPropertyEntry.getKey();
@@ -151,7 +151,7 @@ public final class PropertyValueUtil {
                 return;
             }
             ComplexPropertyValue complexPropertyValue = (ComplexPropertyValue) sourcePropertyValue;
-            Map<String, AbstractPropertyValue> itemProperties = Maps.newHashMap();
+            Map<String, AbstractPropertyValue> itemProperties = Maps.newLinkedHashMap();
             for (Entry<String, Object> complexPropertyEntry : complexPropertyValue.getValue().entrySet()) {
                 PropertyValue complexPropertyEntryValue = propertyValueFromObject(complexPropertyEntry.getValue());
                 String complexPropertyEntryName = complexPropertyEntry.getKey();
@@ -229,7 +229,7 @@ public final class PropertyValueUtil {
             return properties;
         }
 
-        Map<String, AbstractPropertyValue> mappedProperties = Maps.newHashMap();
+        Map<String, AbstractPropertyValue> mappedProperties = Maps.newLinkedHashMap();
 
         for (Map.Entry<String, AbstractPropertyValue> propertyEntry : properties.entrySet()) {
             PropertyValue sourcePropertyValue = (PropertyValue) propertyEntry.getValue();
@@ -334,7 +334,7 @@ public final class PropertyValueUtil {
         } else if (sourcePropertyValueObject == null) {
             return targetPropertyValueObject;
         } else if (sourcePropertyValueObject instanceof Map && targetPropertyValueObject instanceof Map) {
-            Map result = Maps.newHashMap((Map) targetPropertyValueObject);
+            Map result = Maps.newLinkedHashMap((Map) targetPropertyValueObject);
             result.putAll((Map) sourcePropertyValueObject);
             return result;
         } else {
@@ -385,7 +385,7 @@ public final class PropertyValueUtil {
     private static <T> T deepClone(T propertyValueObject) {
         T clone;
         if (propertyValueObject instanceof Map) {
-            Map map = Maps.newHashMap();
+            Map map = Maps.newLinkedHashMap();
             Map<String, ?> propertyValueObjectMap = (Map) propertyValueObject;
             for (Map.Entry<String, ?> entry : propertyValueObjectMap.entrySet()) {
                 // key is a string in property values structure
