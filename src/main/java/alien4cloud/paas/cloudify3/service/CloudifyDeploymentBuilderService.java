@@ -224,7 +224,7 @@ public class CloudifyDeploymentBuilderService {
     }
 
     private List<IndexedNodeType> getTypesOrderedByDerivedFromHierarchy(List<PaaSNodeTemplate> nodes) {
-        Map<String, IndexedNodeType> nodeTypeMap = Maps.newHashMap();
+        Map<String, IndexedNodeType> nodeTypeMap = Maps.newLinkedHashMap();
         for (PaaSNodeTemplate node : nodes) {
             nodeTypeMap.put(node.getIndexedToscaElement().getElementId(), node.getIndexedToscaElement());
         }
