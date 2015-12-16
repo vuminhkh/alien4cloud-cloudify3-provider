@@ -352,7 +352,7 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     }
 
     public Map<String, String> listArtifactDirectory(final String artifactPath) throws IOException {
-        final Map<String, String> children = Maps.newLinkedHashMap();
+        final Map<String, String> children = Maps.newHashMap();
         final Path realArtifactPath = recipePath.resolve(artifactPath);
         Files.walkFileTree(realArtifactPath, new SimpleFileVisitor<Path>() {
             @Override
