@@ -99,9 +99,9 @@ node_templates:
       cloudify.interfaces.lifecycle:
         delete: {}
     properties: 
+      resource_id: yeah
       volume: 
         size: 1
-      resource_id: yeah
       use_external_resource: true
     relationships:
       - target: Compute

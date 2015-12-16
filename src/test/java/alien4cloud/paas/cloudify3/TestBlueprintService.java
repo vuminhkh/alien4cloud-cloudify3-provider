@@ -13,6 +13,7 @@ import javax.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,6 +82,7 @@ public class TestBlueprintService extends AbstractTest {
     @Override
     @Before
     public void before() throws Exception {
+        Assert.assertTrue("This test only works on Java version 1.7", System.getProperty("java.version").startsWith("1.7"));
         super.before();
     }
 

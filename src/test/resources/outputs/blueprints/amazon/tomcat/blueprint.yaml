@@ -41,12 +41,12 @@ node_types:
         type: cloudify.datatypes.AgentConfig
         default:
           port: 5985
-  alien.nodes.Java:
-    derived_from: cloudify.nodes.SoftwareComponent
-  alien.nodes.Tomcat:
-    derived_from: cloudify.nodes.WebServer
   alien.nodes.War:
     derived_from: cloudify.nodes.Root
+  alien.nodes.Tomcat:
+    derived_from: cloudify.nodes.WebServer
+  alien.nodes.Java:
+    derived_from: cloudify.nodes.SoftwareComponent
   alien.cloudify.nodes.monitor:
     derived_from: cloudify.nodes.SoftwareComponent
     properties:
@@ -54,10 +54,10 @@ node_types:
         default: []
 
 relationships:
-  alien.relationships.RunOnJVM:
-    derived_from: cloudify.relationships.depends_on
   alien.relationships.WarHostedOnTomcat:
     derived_from: cloudify.relationships.contained_in
+  alien.relationships.RunOnJVM:
+    derived_from: cloudify.relationships.depends_on
 
 node_templates:
 
@@ -67,16 +67,19 @@ node_templates:
       image_id: ami-47a23a30
       instance_type: t2.small
 
-  Java:
-    type: alien.nodes.Java
+  War:
+    type: alien.nodes.War
     instances:
       deploy: 1
     interfaces:
-      cloudify.interfaces.lifecycle:
-        create: wrapper/Java/tosca.interfaces.node.lifecycle.Standard/create/artifacts/tomcat-war-types/scripts/_a4c_java_install.py
+      custom:
+        update_war_file: wrapper/War/custom/update_war_file/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
     relationships:
-      - target: Server
-        type: cloudify.relationships.contained_in
+      - target: Tomcat
+        type: alien.relationships.WarHostedOnTomcat
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            postconfigure: wrapper/War_Tomcat/warHostedOnTomcatTomcat/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
   Tomcat:
     type: alien.nodes.Tomcat
     instances:
@@ -91,19 +94,16 @@ node_templates:
         type: alien.relationships.RunOnJVM
       - target: Server
         type: cloudify.relationships.contained_in
-  War:
-    type: alien.nodes.War
+  Java:
+    type: alien.nodes.Java
     instances:
       deploy: 1
     interfaces:
-      custom:
-        update_war_file: wrapper/War/custom/update_war_file/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
+      cloudify.interfaces.lifecycle:
+        create: wrapper/Java/tosca.interfaces.node.lifecycle.Standard/create/artifacts/tomcat-war-types/scripts/_a4c_java_install.py
     relationships:
-      - target: Tomcat
-        type: alien.relationships.WarHostedOnTomcat
-        source_interfaces:
-          cloudify.interfaces.relationship_lifecycle:
-            postconfigure: wrapper/War_Tomcat/warHostedOnTomcatTomcat/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
+      - target: Server
+        type: cloudify.relationships.contained_in
 
   _a4c_monitor:
     type: alien.cloudify.nodes.monitor

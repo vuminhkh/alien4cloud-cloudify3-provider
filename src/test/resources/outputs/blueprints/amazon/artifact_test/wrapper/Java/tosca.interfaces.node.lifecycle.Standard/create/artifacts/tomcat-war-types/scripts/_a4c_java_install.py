@@ -308,7 +308,7 @@ if inputs.get('process', None) is not None and inputs['process'].get('env', None
     new_script_process['env'].update(inputs['process']['env'])
 
 operationOutputNames = None
-operationOutputNames = 'JAVA_VERSION;JAVA_HELP'
+operationOutputNames = 'JAVA_HELP;JAVA_VERSION'
 convert_env_value_to_string(new_script_process['env'])
 parsed_output = execute(ctx.download_resource('artifacts/tomcat-war-types/scripts/java_install.sh'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():

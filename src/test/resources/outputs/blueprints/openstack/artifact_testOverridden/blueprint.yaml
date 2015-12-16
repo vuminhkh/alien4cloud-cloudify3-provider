@@ -33,14 +33,14 @@ node_types:
       _a4c_substitute_for:
         default: []
 
-  alien.nodes.Java:
-    derived_from: cloudify.nodes.SoftwareComponent
+  alien.nodes.WarWithLifeCycleScript:
+    derived_from: cloudify.nodes.Root
   alien.nodes.TestArtifactDirectory:
     derived_from: cloudify.nodes.SoftwareComponent
   alien.nodes.Tomcat:
     derived_from: cloudify.nodes.WebServer
-  alien.nodes.WarWithLifeCycleScript:
-    derived_from: cloudify.nodes.Root
+  alien.nodes.Java:
+    derived_from: cloudify.nodes.SoftwareComponent
   alien.cloudify.nodes.monitor:
     derived_from: cloudify.nodes.SoftwareComponent
     properties:
@@ -48,10 +48,10 @@ node_types:
         default: []
 
 relationships:
-  alien.relationships.RunOnJVM:
-    derived_from: cloudify.relationships.depends_on
   alien.relationships.WarHostedOnTomcatWithProperties:
     derived_from: cloudify.relationships.contained_in
+  alien.relationships.RunOnJVM:
+    derived_from: cloudify.relationships.depends_on
 
 node_templates:
 
@@ -94,16 +94,24 @@ node_templates:
       floatingip: 
         floating_network_name: net-pub
 
-  Java:
-    type: alien.nodes.Java
+  War:
+    type: alien.nodes.WarWithLifeCycleScript
     instances:
       deploy: 1
     interfaces:
       cloudify.interfaces.lifecycle:
-        create: wrapper/Java/tosca.interfaces.node.lifecycle.Standard/create/artifacts/tomcat-war-types/scripts/_a4c_java_install.py
+        create: wrapper/War/tosca.interfaces.node.lifecycle.Standard/create/artifacts/artifact-test-types/scripts/_a4c_create.py
+      custom:
+        update_war_file: wrapper/War/custom/update_war_file/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
     relationships:
-      - target: Server
-        type: cloudify.relationships.contained_in
+      - target: Tomcat
+        type: alien.relationships.WarHostedOnTomcatWithProperties
+        source_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            postconfigure: wrapper/War_Tomcat/warHostedOnTomcatWithPropertiesTomcat/artifacts/artifact-test-types/scripts/_a4c_tomcat_install_war.py
+        target_interfaces:
+          cloudify.interfaces.relationship_lifecycle:
+            postconfigure: wrapper/War_Tomcat/warHostedOnTomcatWithPropertiesTomcat/artifacts/artifact-test-types/scripts/_a4c_configureProperties.py
   Artifact_Directory_Test:
     type: alien.nodes.TestArtifactDirectory
     instances:
@@ -128,24 +136,16 @@ node_templates:
         type: alien.relationships.RunOnJVM
       - target: Server
         type: cloudify.relationships.contained_in
-  War:
-    type: alien.nodes.WarWithLifeCycleScript
+  Java:
+    type: alien.nodes.Java
     instances:
       deploy: 1
     interfaces:
-      custom:
-        update_war_file: wrapper/War/custom/update_war_file/artifacts/tomcat-war-types/scripts/_a4c_tomcat_install_war.py
       cloudify.interfaces.lifecycle:
-        create: wrapper/War/tosca.interfaces.node.lifecycle.Standard/create/artifacts/artifact-test-types/scripts/_a4c_create.py
+        create: wrapper/Java/tosca.interfaces.node.lifecycle.Standard/create/artifacts/tomcat-war-types/scripts/_a4c_java_install.py
     relationships:
-      - target: Tomcat
-        type: alien.relationships.WarHostedOnTomcatWithProperties
-        source_interfaces:
-          cloudify.interfaces.relationship_lifecycle:
-            postconfigure: wrapper/War_Tomcat/warHostedOnTomcatWithPropertiesTomcat/artifacts/artifact-test-types/scripts/_a4c_tomcat_install_war.py
-        target_interfaces:
-          cloudify.interfaces.relationship_lifecycle:
-            postconfigure: wrapper/War_Tomcat/warHostedOnTomcatWithPropertiesTomcat/artifacts/artifact-test-types/scripts/_a4c_configureProperties.py
+      - target: Server
+        type: cloudify.relationships.contained_in
 
   _a4c_monitor:
     type: alien.cloudify.nodes.monitor

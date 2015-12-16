@@ -13,18 +13,18 @@ node_types:
     properties:
       _a4c_substitute_for:
         default: []
-      _a4c_att_public_ip_address:
-        default:
-          function: get_attribute
-          parameters:
-            - SELF
-            - public_ip_address
       _a4c_att_ip_address:
         default:
           function: get_attribute
           parameters:
             - SELF
             - ip
+      _a4c_att_public_ip_address:
+        default:
+          function: get_attribute
+          parameters:
+            - SELF
+            - public_ip_address
   cloudify.aws.nodes.WindowsInstance:
     derived_from: cloudify.aws.nodes.Instance
     properties:
@@ -44,8 +44,8 @@ node_templates:
     type: alien.cloudify.aws.nodes.WindowsCompute
     properties: 
       cloudify_agent: 
-        password: Cl@ud1fy234!
         port: 5985
+        password: Cl@ud1fy234!
         user: cloudify
       image_id: ami-4b80bf3c
       instance_type: m3.medium
