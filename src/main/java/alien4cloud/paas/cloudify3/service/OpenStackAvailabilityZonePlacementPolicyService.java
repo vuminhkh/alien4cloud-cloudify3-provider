@@ -1,10 +1,13 @@
 package alien4cloud.paas.cloudify3.service;
 
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 
-import alien4cloud.paas.model.PaaSInstancePersistentResourceMonitorEvent;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
@@ -21,6 +24,7 @@ import alien4cloud.model.topology.NodeGroup;
 import alien4cloud.orchestrators.locations.services.LocationResourceService;
 import alien4cloud.orchestrators.plugin.ILocationResourceAccessor;
 import alien4cloud.paas.cloudify3.error.AZAssignmentException;
+import alien4cloud.paas.model.PaaSInstancePersistentResourceMonitorEvent;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 
@@ -65,8 +69,7 @@ public class OpenStackAvailabilityZonePlacementPolicyService {
         }
     }
 
-    private void processPolicy(Location location, PaaSTopologyDeploymentContext deploymentContext, AbstractPolicy policy, String groupName,
-            Set<String> members) {
+    private void processPolicy(Location location, PaaSTopologyDeploymentContext deploymentContext, AbstractPolicy policy, String groupName, Set<String> members) {
         if (!(policy instanceof HaPolicy)) {
             // we skip all policies but h.a.
             log.debug("Skipping policy as type is not h.a. but {}", policy.getType());
@@ -145,7 +148,7 @@ public class OpenStackAvailabilityZonePlacementPolicyService {
         Map<String, Object> volumeMap = ((ComplexPropertyValue) volumePropertyValue).getValue();
         volumeMap.put(AZ_KEY, availabilityZone);
 
-        PaaSInstancePersistentResourceMonitorEvent event = new PaaSInstancePersistentResourceMonitorEvent(paaSNodeTemplate.getId(), null, SERVER_PROPERTY,
+        PaaSInstancePersistentResourceMonitorEvent event = new PaaSInstancePersistentResourceMonitorEvent(paaSNodeTemplate.getId(), null, handlerPropertyKey,
                 volumeMap);
         event.setDate(new Date().getTime());
         event.setDeploymentId(deploymentId);
