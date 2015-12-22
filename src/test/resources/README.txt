@@ -21,6 +21,8 @@ X-Auth-Token = "Token id retrieved from above"
 
 3. Bootstrap 3.3. GA :
 
+  - Clone the git repository https://fastconnect.org/gitlab/cloudify/cloudify-cli-docker-image.git
+
   - File /opt/cfy/cloudify-manager-blueprints-commercial/components/restservice/config/cloudify-rest.conf
 
     insecure_endpoints_disabled: {{ ctx.node.properties.insecure_endpoints_disabled }}
@@ -34,3 +36,7 @@ X-Auth-Token = "Token id retrieved from above"
     File /opt/cfy/cloudify-manager-blueprints-commercial/aws-ec2-manager-blueprint.yaml
     Change the blueprint so that It uses existing security group openbar instead of creating new ones
     use_external_resource: true
+
+  - Install python devel and gcc
+    sudo yum -y install gcc
+    sudo yum -y install python-devel
