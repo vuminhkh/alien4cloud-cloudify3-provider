@@ -19,6 +19,18 @@ HEADER:
 
 X-Auth-Token = "Token id retrieved from above"
 
-3. Migration 3.3:
+3. Bootstrap 3.3. GA :
 
-  - types of cloudify.datatypes.AgentConfig : env extra
+  - File /opt/cfy/cloudify-manager-blueprints-commercial/components/restservice/config/cloudify-rest.conf
+
+    insecure_endpoints_disabled: {{ ctx.node.properties.insecure_endpoints_disabled }}
+
+  - File /opt/cfy/env/lib/python2.7/site-packages/cloudify_rest_client/plugins.py:
+
+    replace with src/test/resources/plugins.py
+    rm /opt/cfy/env/lib/python2.7/site-packages/cloudify_rest_client/plugins.pyc
+
+  - File /opt/cfy/cloudify-manager-blueprints-commercial/openstack-manager-blueprint.yaml
+    File /opt/cfy/cloudify-manager-blueprints-commercial/aws-ec2-manager-blueprint.yaml
+    Change the blueprint so that It uses existing security group openbar instead of creating new ones
+    use_external_resource: true

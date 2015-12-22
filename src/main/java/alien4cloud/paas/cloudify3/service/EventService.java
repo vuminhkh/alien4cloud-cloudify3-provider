@@ -300,6 +300,7 @@ public class EventService {
                         cloudifyEvent);
                 // Scaling issue workarround ]]
             } catch (Exception e) {
+                log.warn("Problem processing persistent event " + cloudifyEvent.getId(), e);
                 return null;
             }
             break;
