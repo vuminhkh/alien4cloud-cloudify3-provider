@@ -51,6 +51,9 @@ data_types:
         required: false
         entry_schema:
           type: string
+      wait_started_timeout:
+        type: integer
+        required: false
 
 node_types:
 

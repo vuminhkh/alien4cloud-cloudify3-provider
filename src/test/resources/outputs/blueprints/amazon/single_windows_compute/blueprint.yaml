@@ -47,6 +47,7 @@ node_templates:
         port: 5985
         password: Cl@ud1fy234!
         user: cloudify
+        wait_started_timeout: 3600
       image_id: ami-4b80bf3c
       instance_type: m3.medium
     relationships:
