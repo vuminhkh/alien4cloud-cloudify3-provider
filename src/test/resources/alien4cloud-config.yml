@@ -103,7 +103,7 @@ openstack:
   url: http://129.185.67.11:5000/v2.0
   region: RegionOne
   cfy3:
-    manager_name: alien33rc1-manager-server
+    manager_name: alien33GA-manager-server
     manager_user:
     manager_password:
 
