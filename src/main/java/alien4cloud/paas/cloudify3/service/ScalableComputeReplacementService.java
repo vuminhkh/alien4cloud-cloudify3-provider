@@ -109,7 +109,8 @@ public class ScalableComputeReplacementService {
             // nothing to do concerning this topology
             return deploymentContext;
         }
-        for (PaaSNodeTemplate computeNode : computesToReplaceSet) {
+        // When there's one scalable compute, we perform the transformation on every nodes or else it'll bug
+        for (PaaSNodeTemplate computeNode : deploymentContext.getPaaSTopology().getComputes()) {
             replaceComputeAndRemoveResources(deploymentContext, computeNode, cache);
         }
         // generate the new PaaSTopologyDeploymentContext from the modified topology
@@ -316,10 +317,11 @@ public class ScalableComputeReplacementService {
     private void manageNetworkNode(PaaSTopologyDeploymentContext deploymentContext, NodeTemplate computeNodeTemplate, PaaSNodeTemplate computeNode,
             PaaSNodeTemplate networkNode, int indexInList, TypeMap cache) {
         // first of all we remove the volume from the topology
-        NodeTemplate networkNodeTemplate = deploymentContext.getDeploymentTopology().getNodeTemplates().remove(networkNode.getId());
+        deploymentContext.getDeploymentTopology().getNodeTemplates().remove(networkNode.getId());
         addSubsituteForPropertyValue(computeNodeTemplate, networkNode.getId());
         // transfert the properties of the storage node to the scalable compute node
-        ComplexPropertyValue embededFloatingProperty = buildAndFeedComplexProperty(computeNodeTemplate, networkNodeTemplate, SCALABLE_COMPUTE_FIPS_PROPERTY);
+        ComplexPropertyValue embededFloatingProperty = buildAndFeedComplexProperty(computeNodeTemplate, networkNode.getNodeTemplate(),
+                SCALABLE_COMPUTE_FIPS_PROPERTY);
 
         // add resource_name
         addProperty(embededFloatingProperty.getValue(), RESOURCE_NAME_PROPERTY, new ScalarPropertyValue(networkNode.getId()));
@@ -450,7 +452,6 @@ public class ScalableComputeReplacementService {
      * @param alienEvents
      * @param alienEvent
      * @param cloudifyEvent
-     * @param eventService TODO
      */
     public void processEventForSubstitutes(final List<AbstractMonitorEvent> alienEvents, AbstractMonitorEvent alienEvent, Event cloudifyEvent) {
         if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
