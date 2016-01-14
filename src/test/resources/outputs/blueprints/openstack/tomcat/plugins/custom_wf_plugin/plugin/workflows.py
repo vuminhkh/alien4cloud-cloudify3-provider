@@ -602,5 +602,4 @@ def a4c_heal(
     #_add_relationship(node_War, node_Tomcat)
     #_add_relationship(node_Tomcat, node_Java)
     #_add_relationship(node_Tomcat, node_Server)
-    #_add_relationship(node_Server, node_NetPub)
     #_add_relationship(node_Java, node_Server)

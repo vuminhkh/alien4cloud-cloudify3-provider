@@ -1,6 +1,6 @@
 # before build :
 
-git clone -b master http://fastconnect.org/gitlab/cloudify-drivers/cloudify-openstack-plugin.git
+git clone -b a4c-dev-1.3rc1 http://fastconnect.org/gitlab/cloudify-drivers/cloudify-openstack-plugin.git
 rm -rf cloudify-openstack-plugin/.git
 zip -r cloudify-openstack-plugin.zip cloudify-openstack-plugin/*
 

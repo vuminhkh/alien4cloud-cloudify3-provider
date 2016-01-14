@@ -719,6 +719,4 @@ def a4c_heal(
     #_add_relationship(node_Wordpress, node_PHP)
     #_add_relationship(node_Wordpress, node_Apache)
     #_add_relationship(node_Wordpress, node_Mysql)
-    #_add_relationship(node_Server, node_NetPub)
-    #_add_relationship(node_Server, node_InternalNetwork)
     #_add_relationship(node_Mysql, node_DataBase)

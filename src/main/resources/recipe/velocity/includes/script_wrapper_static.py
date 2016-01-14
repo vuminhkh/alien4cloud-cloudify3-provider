@@ -55,10 +55,8 @@ def process_attribute_mapping(entity, attribute_name, data_retriever_function):
 
 
 def get_nested_attribute(entity, attribute_names):
-    deep_properties = get_attribute(entity, attribute_names[0])
-    attribute_names_iter = iter(attribute_names)
-    next(attribute_names_iter)
-    for attribute_name in attribute_names_iter:
+    deep_properties = entity.instance.runtime_properties
+    for attribute_name in attribute_names:
         if deep_properties is None:
             return ""
         else:

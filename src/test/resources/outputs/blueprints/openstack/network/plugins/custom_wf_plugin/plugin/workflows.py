@@ -353,5 +353,3 @@ def a4c_heal(
     #types.append('tosca.nodes.Compute')
     #types.append('tosca.nodes.Root')
     #node_Compute = _build_node(ctx, 'Compute', types, 1)
-    #_add_relationship(node_Compute, node_NetPub)
-    #_add_relationship(node_Compute, node_InternalNetwork)

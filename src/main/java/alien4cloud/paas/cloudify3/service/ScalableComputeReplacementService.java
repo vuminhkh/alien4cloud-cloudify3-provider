@@ -1,7 +1,6 @@
 package alien4cloud.paas.cloudify3.service;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -17,17 +16,19 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import alien4cloud.deployment.DeploymentContextService;
 import alien4cloud.model.common.Tag;
 import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.ComplexPropertyValue;
 import alien4cloud.model.components.FunctionPropertyValue;
 import alien4cloud.model.components.IValue;
 import alien4cloud.model.components.IndexedNodeType;
+import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.model.components.Interface;
 import alien4cloud.model.components.ListPropertyValue;
 import alien4cloud.model.components.Operation;
 import alien4cloud.model.components.ScalarPropertyValue;
+import alien4cloud.model.deployment.Deployment;
+import alien4cloud.model.deployment.DeploymentTopology;
 import alien4cloud.model.orchestrators.locations.Location;
 import alien4cloud.model.topology.NodeTemplate;
 import alien4cloud.model.topology.RelationshipTemplate;
@@ -42,9 +43,11 @@ import alien4cloud.paas.model.PaaSInstancePersistentResourceMonitorEvent;
 import alien4cloud.paas.model.PaaSInstanceStateMonitorEvent;
 import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
+import alien4cloud.paas.model.PaaSTopology;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.paas.plan.TopologyTreeBuilderService;
 import alien4cloud.rest.utils.JsonUtil;
+import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.NormativeBlockStorageConstants;
 import alien4cloud.tosca.normative.NormativeRelationshipConstants;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
@@ -64,7 +67,7 @@ import com.google.common.collect.Sets;
  * <ul>
  * <li>replace the compute by a ScalableCompute.
  * <li>remove the wired BlockStorage(s).
- * <li>transfer the BlockStorage properties to the ScalableCompute.
+ * <li>transfert the BlockStorage properties to the ScalableCompute.
  * <li>change the target of any relationship that targets the BlockStorage to the ScalableCompute.
  * <li>TODO: change any get_attribute that that targets the BlockStorage (even in a concat ?).
  * </ul>
@@ -82,8 +85,8 @@ public class ScalableComputeReplacementService {
     private static final String SCALABLE_COMPUTE_TYPE = "alien.nodes.openstack.ScalableCompute";
     private static final String COMPUTE_TYPE = "alien.nodes.openstack.Compute";
     private static final String SCALABLE_COMPUTE_VOLUMES_PROPERTY = "volumes";
-    private static final String SCALABLE_COMPUTE_FLOATING_IPS_PROPERTY = "floatingips";
-    private static final String SUBSTITUTE_FOR_PROPERTY = "_a4c_substitute_for";
+    private static final String SCALABLE_COMPUTE_FIPS_PROPERTY = "floatingips";
+    private static final String SUBSTITUE_FOR_PROPERTY = "_a4c_substitute_for";
     private static final String USE_EXTERNAL_RESOURCE_PROPERTY = "use_external_resource";
     private static final String RESOURCE_NAME_PROPERTY = "resource_name";
 
@@ -91,11 +94,10 @@ public class ScalableComputeReplacementService {
     private TopologyTreeBuilderService topologyTreeBuilderService;
     @Inject
     private NodeClient nodeClient;
-    @Inject
-    private DeploymentContextService deploymentContextService;
 
     public PaaSTopologyDeploymentContext transformTopology(PaaSTopologyDeploymentContext deploymentContext) {
         // any type that is modified is cached in this map in order to be reused later while regenerating the deployment ctx
+        TypeMap cache = new TypeMap();
         // actually we known that we have only 1 location
         Location location = deploymentContext.getLocations().entrySet().iterator().next().getValue();
         if (!location.getInfrastructureType().equals("openstack")) {
@@ -107,21 +109,35 @@ public class ScalableComputeReplacementService {
             // nothing to do concerning this topology
             return deploymentContext;
         }
-        List<NodeTemplate> nodesToAdd = Lists.newArrayList();
-        for (PaaSNodeTemplate computeNode : deploymentContext.getPaaSTopology().getComputes()) {
-            removeComputeResources(deploymentContext, computeNode);
-        }
-        TypeMap cache = new TypeMap();
         // When there's one scalable compute, we perform the transformation on every nodes or else it'll bug
         for (PaaSNodeTemplate computeNode : deploymentContext.getPaaSTopology().getComputes()) {
-            nodesToAdd.addAll(replaceComputeResources(deploymentContext, computeNode, cache));
-        }
-        for (NodeTemplate fictiveComponent : nodesToAdd) {
-            deploymentContext.getDeploymentTopology().getNodeTemplates().put(fictiveComponent.getName(), fictiveComponent);
+            replaceComputeAndRemoveResources(deploymentContext, computeNode, cache);
         }
         // generate the new PaaSTopologyDeploymentContext from the modified topology
-        return deploymentContextService.buildTopologyDeploymentContext(deploymentContext.getDeployment(), deploymentContext.getLocations(),
-                deploymentContext.getDeploymentTopology(), cache);
+        PaaSTopologyDeploymentContext newDeploymentContext = buildTopologyDeploymentContext(deploymentContext.getDeployment(),
+                deploymentContext.getLocations(), deploymentContext.getDeploymentTopology(), cache);
+
+        return newDeploymentContext;
+    }
+
+    /**
+     * This method has been duplicated from ...
+     * <p>
+     * alien4cloud.deployment.DeploymentContextService.buildTopologyDeploymentContext(Deployment, Map<String, Location>, DeploymentTopology)
+     * <p>
+     * ... in order to call the topologyTreeBuilderService with our own TypeMap cache.
+     */
+    @Deprecated
+    private PaaSTopologyDeploymentContext buildTopologyDeploymentContext(Deployment deployment, Map<String, Location> locations, DeploymentTopology topology,
+            TypeMap cache) {
+        PaaSTopologyDeploymentContext topologyDeploymentContext = new PaaSTopologyDeploymentContext();
+        topologyDeploymentContext.setLocations(locations);
+        topologyDeploymentContext.setDeployment(deployment);
+        PaaSTopology paaSTopology = topologyTreeBuilderService.buildPaaSTopology(topology, cache);
+        topologyDeploymentContext.setPaaSTopology(paaSTopology);
+        topologyDeploymentContext.setDeploymentTopology(topology);
+        topologyDeploymentContext.setDeployment(deployment);
+        return topologyDeploymentContext;
     }
 
     /**
@@ -148,22 +164,6 @@ public class ScalableComputeReplacementService {
         return computesToReplaceSet;
     }
 
-    private void removeComputeResources(PaaSTopologyDeploymentContext deploymentContext, PaaSNodeTemplate compute) {
-        List<PaaSNodeTemplate> storageNodes = compute.getStorageNodes();
-        if (CollectionUtils.isNotEmpty(storageNodes)) {
-            for (PaaSNodeTemplate storageNode : storageNodes) {
-                removeNode(deploymentContext, compute, storageNode);
-            }
-        }
-        // manage public networks
-        Set<PaaSNodeTemplate> publicNetworkPaaSNodeTemplates = getPublicNetworkPaaSNodeTemplate(compute);
-        if (!publicNetworkPaaSNodeTemplates.isEmpty()) {
-            for (PaaSNodeTemplate publicNetworkPaaSNodeTemplate : publicNetworkPaaSNodeTemplates) {
-                removeNode(deploymentContext, compute, publicNetworkPaaSNodeTemplate);
-            }
-        }
-    }
-
     /**
      * For this particular compute:
      * <ul>
@@ -171,35 +171,35 @@ public class ScalableComputeReplacementService {
      * <li>remove the resources related to compute (volumes, floating ips).
      * </ul>
      */
-    private List<NodeTemplate> replaceComputeResources(PaaSTopologyDeploymentContext deploymentContext, PaaSNodeTemplate compute, TypeMap cache) {
+    private void replaceComputeAndRemoveResources(PaaSTopologyDeploymentContext deploymentContext, PaaSNodeTemplate compute, TypeMap cache) {
         NodeTemplate computeNodeTemplate = deploymentContext.getDeploymentTopology().getNodeTemplates().get(compute.getId());
         // actually, substituting the compute just means change it's type
         // and replace the related indexedNodeType
         computeNodeTemplate.setType(SCALABLE_COMPUTE_TYPE);
         compute.setIndexedToscaElement(topologyTreeBuilderService.getToscaType(SCALABLE_COMPUTE_TYPE, cache, deploymentContext.getDeploymentTopology()
                 .getDependencies(), IndexedNodeType.class));
+        List<PaaSNodeTemplate> storageNodes = compute.getStorageNodes();
         if (computeNodeTemplate.getProperties() == null) {
             Map<String, AbstractPropertyValue> properties = Maps.newHashMap();
             computeNodeTemplate.setProperties(properties);
         }
-        List<NodeTemplate> nodesToAdd = Lists.newArrayList();
         // manage volumes
-        List<PaaSNodeTemplate> storageNodes = compute.getStorageNodes();
         if (CollectionUtils.isNotEmpty(storageNodes)) {
             computeNodeTemplate.getProperties().put(SCALABLE_COMPUTE_VOLUMES_PROPERTY, new ListPropertyValue(Lists.newArrayList()));
+            int volumeIdx = 0;
             for (PaaSNodeTemplate storageNode : storageNodes) {
-                nodesToAdd.addAll(manageStorageNode(deploymentContext, computeNodeTemplate, compute, storageNode));
+                manageStorageNode(deploymentContext, computeNodeTemplate, compute, storageNode, volumeIdx++, cache);
             }
         }
         // manage public networks
         Set<PaaSNodeTemplate> publicNetworkPaaSNodeTemplates = getPublicNetworkPaaSNodeTemplate(compute);
+        int floatingIpIdx = 0;
         if (!publicNetworkPaaSNodeTemplates.isEmpty()) {
-            computeNodeTemplate.getProperties().put(SCALABLE_COMPUTE_FLOATING_IPS_PROPERTY, new ListPropertyValue(Lists.newArrayList()));
+            computeNodeTemplate.getProperties().put(SCALABLE_COMPUTE_FIPS_PROPERTY, new ListPropertyValue(Lists.newArrayList()));
             for (PaaSNodeTemplate publicNetworkPaaSNodeTemplate : publicNetworkPaaSNodeTemplates) {
-                nodesToAdd.addAll(manageNetworkNode(deploymentContext, computeNodeTemplate, compute, publicNetworkPaaSNodeTemplate));
+                manageNetworkNode(deploymentContext, computeNodeTemplate, compute, publicNetworkPaaSNodeTemplate, floatingIpIdx++, cache);
             }
         }
-        return nodesToAdd;
     }
 
     private Set<PaaSNodeTemplate> getPublicNetworkPaaSNodeTemplate(PaaSNodeTemplate compute) {
@@ -214,46 +214,48 @@ public class ScalableComputeReplacementService {
         return result;
     }
 
-    private void addSubstituteForPropertyValue(NodeTemplate computeNodeTemplate, String substitutedNodeId) {
-        AbstractPropertyValue value = computeNodeTemplate.getProperties().get(SUBSTITUTE_FOR_PROPERTY);
-        ListPropertyValue valueAsList;
+    private void addSubsituteForPropertyValue(NodeTemplate computeNodeTemplate, String substitutedNodeId) {
+        AbstractPropertyValue value = computeNodeTemplate.getProperties().get(SUBSTITUE_FOR_PROPERTY);
+        ListPropertyValue valueAsList = null;
         if (value == null) {
             valueAsList = new ListPropertyValue(Lists.newArrayList());
-            computeNodeTemplate.getProperties().put(SUBSTITUTE_FOR_PROPERTY, valueAsList);
+            computeNodeTemplate.getProperties().put(SUBSTITUE_FOR_PROPERTY, valueAsList);
         } else {
             valueAsList = (ListPropertyValue) value;
         }
         valueAsList.getValue().add(new ScalarPropertyValue(substitutedNodeId));
     }
 
-    private List<NodeTemplate> manageStorageNode(PaaSTopologyDeploymentContext deploymentContext, NodeTemplate computeNodeTemplate,
-            PaaSNodeTemplate computeNode, PaaSNodeTemplate storageNode) {
+    private void manageStorageNode(PaaSTopologyDeploymentContext deploymentContext, NodeTemplate computeNodeTemplate, PaaSNodeTemplate computeNode,
+            PaaSNodeTemplate storageNode, int indexInList, TypeMap cache) {
         // first of all we remove the volume from the topology
-        addSubstituteForPropertyValue(computeNodeTemplate, storageNode.getId());
-        // transfer the properties of the storage node to the scalable compute node
-        ComplexPropertyValue embeddedVolumeProperty = buildAndFeedComplexProperty(computeNodeTemplate, storageNode.getNodeTemplate(),
-                SCALABLE_COMPUTE_VOLUMES_PROPERTY);
+        NodeTemplate storageNodeTemplate = deploymentContext.getDeploymentTopology().getNodeTemplates().remove(storageNode.getId());
+        addSubsituteForPropertyValue(computeNodeTemplate, storageNode.getId());
+        // transfert the properties of the storage node to the scalable compute node
+        ComplexPropertyValue embededVolumeProperty = buildAndFeedComplexProperty(computeNodeTemplate, storageNodeTemplate, SCALABLE_COMPUTE_VOLUMES_PROPERTY);
 
         // add resource_name
-        addProperty(embeddedVolumeProperty.getValue(), RESOURCE_NAME_PROPERTY, new ScalarPropertyValue(storageNode.getId()));
+        addProperty(embededVolumeProperty.getValue(), RESOURCE_NAME_PROPERTY, new ScalarPropertyValue(storageNode.getId()));
 
         // add deletable property
-        addProperty(embeddedVolumeProperty.getValue(), DELETABLE_PROPERTY,
-                new ScalarPropertyValue(Boolean.valueOf(Objects.equals(storageNode.getNodeTemplate().getType(), DELETABLE_VOLUME_TYPE)).toString()));
+        addProperty(embededVolumeProperty.getValue(), DELETABLE_PROPERTY,
+                new ScalarPropertyValue(Boolean.valueOf(Objects.equals(storageNodeTemplate.getType(), DELETABLE_VOLUME_TYPE)).toString()));
 
         // add "use_external_resource" property
-        ScalarPropertyValue volumeIdScalar = (ScalarPropertyValue) embeddedVolumeProperty.getValue().get(NormativeBlockStorageConstants.VOLUME_ID);
+        ScalarPropertyValue volumeIdScalar = (ScalarPropertyValue) embededVolumeProperty.getValue().get(NormativeBlockStorageConstants.VOLUME_ID);
         String volumeId = FunctionEvaluator.getScalarValue(volumeIdScalar);
-        addProperty(embeddedVolumeProperty.getValue(), USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean
-                .valueOf(StringUtils.isNotBlank(volumeId)).toString()));
+        addProperty(embededVolumeProperty.getValue(), USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean.valueOf(StringUtils.isNotBlank(volumeId))
+                .toString()));
 
-        // transfer persistent resources tag if needed
-        transferPersistentResourcesTag(computeNode, storageNode, SCALABLE_COMPUTE_VOLUMES_PROPERTY);
         // change all relationships that target the storage to make them target the compute
-        return transferRelationships(deploymentContext, computeNode, storageNode, SCALABLE_COMPUTE_VOLUMES_PROPERTY);
+        transfertNodeTargetRelationships(deploymentContext, computeNode, storageNode, SCALABLE_COMPUTE_VOLUMES_PROPERTY, indexInList, cache);
+
+        // transfert persistent resources tag if needed
+        transfertPersistentResourcesTag(deploymentContext, computeNode, storageNode, SCALABLE_COMPUTE_VOLUMES_PROPERTY);
     }
 
-    private void transferPersistentResourcesTag(PaaSNodeTemplate computeNode, PaaSNodeTemplate oldNode, String mainPropertyListName) {
+    private void transfertPersistentResourcesTag(PaaSTopologyDeploymentContext deploymentContext, PaaSNodeTemplate computeNode, PaaSNodeTemplate oldNode,
+            String mainPropertyListName) {
         Map<String, String> oldNodePersistentResourceConf = loadPersistentResourceConf(oldNode.getIndexedToscaElement());
         if (MapUtils.isNotEmpty(oldNodePersistentResourceConf)) {
             Map<String, String> computePersistentResourceConf = loadPersistentResourceConf(computeNode.getIndexedToscaElement());
@@ -261,8 +263,10 @@ public class ScalableComputeReplacementService {
                 String persistentResourcePath = formatPersistentResourcePath(entry.getKey(), oldNode, mainPropertyListName);
                 computePersistentResourceConf.put(persistentResourcePath, entry.getValue());
             }
+
             replacePersistentResourceTag(computeNode.getIndexedToscaElement(), computePersistentResourceConf);
         }
+
     }
 
     private boolean replacePersistentResourceTag(IndexedNodeType indexedToscaElement, Map<String, String> computePersistentResourceConf) {
@@ -271,15 +275,15 @@ public class ScalableComputeReplacementService {
             tags = Lists.newArrayList();
             indexedToscaElement.setTags(tags);
         }
-        Tag persistentResourceTag = TagUtil.getTagByName(indexedToscaElement.getTags(), CustomTags.PERSISTENT_RESOURCE_TAG);
-        if (persistentResourceTag == null) {
-            persistentResourceTag = new Tag();
-            persistentResourceTag.setName(CustomTags.PERSISTENT_RESOURCE_TAG);
+        Tag persistentResouceTag = TagUtil.getTagByName(indexedToscaElement.getTags(), CustomTags.PERSISTENT_RESOURCE_TAG);
+        if (persistentResouceTag == null) {
+            persistentResouceTag = new Tag();
+            persistentResouceTag.setName(CustomTags.PERSISTENT_RESOURCE_TAG);
         }
 
         try {
-            persistentResourceTag.setValue(new ObjectMapper().writeValueAsString(computePersistentResourceConf));
-            tags.add(persistentResourceTag);
+            persistentResouceTag.setValue(new ObjectMapper().writeValueAsString(computePersistentResourceConf));
+            tags.add(persistentResouceTag);
             return true;
         } catch (JsonProcessingException e) {
             log.error("Failed to write tag <" + CustomTags.PERSISTENT_RESOURCE_TAG + "> value <" + computePersistentResourceConf + "> for tosca element "
@@ -291,7 +295,9 @@ public class ScalableComputeReplacementService {
 
     private String formatPersistentResourcePath(String persistentResourceId, PaaSNodeTemplate oldNode, String mainPropertyListName) {
         // mainPropertyListName.nodeName.persistentResourceId
-        return mainPropertyListName + "." + oldNode.getId() + "." + persistentResourceId;
+        StringBuilder builder = new StringBuilder(mainPropertyListName);
+        builder.append(".").append(oldNode.getId()).append(".").append(persistentResourceId);
+        return builder.toString();
     }
 
     private Map<String, String> loadPersistentResourceConf(IndexedNodeType nodeType) {
@@ -308,19 +314,21 @@ public class ScalableComputeReplacementService {
         return persistentResourceConf;
     }
 
-    private List<NodeTemplate> manageNetworkNode(PaaSTopologyDeploymentContext deploymentContext, NodeTemplate computeNodeTemplate,
-            PaaSNodeTemplate computeNode, PaaSNodeTemplate networkNode) {
-        addSubstituteForPropertyValue(computeNodeTemplate, networkNode.getId());
-        // transfer the properties of the storage node to the scalable compute node
+    private void manageNetworkNode(PaaSTopologyDeploymentContext deploymentContext, NodeTemplate computeNodeTemplate, PaaSNodeTemplate computeNode,
+            PaaSNodeTemplate networkNode, int indexInList, TypeMap cache) {
+        // first of all we remove the volume from the topology
+        deploymentContext.getDeploymentTopology().getNodeTemplates().remove(networkNode.getId());
+        addSubsituteForPropertyValue(computeNodeTemplate, networkNode.getId());
+        // transfert the properties of the storage node to the scalable compute node
         ComplexPropertyValue embededFloatingProperty = buildAndFeedComplexProperty(computeNodeTemplate, networkNode.getNodeTemplate(),
-                SCALABLE_COMPUTE_FLOATING_IPS_PROPERTY);
+                SCALABLE_COMPUTE_FIPS_PROPERTY);
 
         // add resource_name
         addProperty(embededFloatingProperty.getValue(), RESOURCE_NAME_PROPERTY, new ScalarPropertyValue(networkNode.getId()));
         // TODO: manage existing floating ip
         embededFloatingProperty.getValue().put(USE_EXTERNAL_RESOURCE_PROPERTY, new ScalarPropertyValue(Boolean.FALSE.toString()));
         // change all relationships that target the network to make them target the compute
-        return transferRelationships(deploymentContext, computeNode, networkNode, SCALABLE_COMPUTE_FLOATING_IPS_PROPERTY);
+        transfertNodeTargetRelationships(deploymentContext, computeNode, networkNode, SCALABLE_COMPUTE_FIPS_PROPERTY, indexInList, cache);
     }
 
     private ComplexPropertyValue buildAndFeedComplexProperty(NodeTemplate computeNodeTemplate, NodeTemplate removedNodeTemplate, String mainPropertyListName) {
@@ -342,76 +350,86 @@ public class ScalableComputeReplacementService {
         return embededProperty;
     }
 
-    private NodeTemplate createFictiveComponentAndRedirectRelationship(String id, String hostName, RelationshipTemplate redirectedRelationship) {
-        NodeTemplate nodeTemplate = new NodeTemplate();
-        nodeTemplate.setType("tosca.nodes.SoftwareComponent");
-        nodeTemplate.setName(id);
-        nodeTemplate.setInterfaces(Maps.<String, Interface> newHashMap());
-        RelationshipTemplate hostedOn = new RelationshipTemplate();
-        hostedOn.setType(NormativeRelationshipConstants.HOSTED_ON);
-        hostedOn.setTarget(hostName);
-        hostedOn.setInterfaces(Maps.<String, Interface> newHashMap());
-        Map<String, RelationshipTemplate> relationships = Maps.newHashMap();
-        relationships.put("_a4c_generated_host", hostedOn);
-        redirectedRelationship.setTarget(id);
-        nodeTemplate.setRelationships(relationships);
-        return nodeTemplate;
-    }
-
-    private void removeNode(PaaSTopologyDeploymentContext deploymentContext, PaaSNodeTemplate newTargetNode, PaaSNodeTemplate oldTargetNode) {
-        // first of all we remove the old node from the topology
-        deploymentContext.getDeploymentTopology().getNodeTemplates().remove(oldTargetNode.getId());
-        for (Entry<String, NodeTemplate> nodeTemplateEntry : deploymentContext.getDeploymentTopology().getNodeTemplates().entrySet()) {
-            PaaSNodeTemplate paaSNodeTemplate = deploymentContext.getPaaSTopology().getAllNodes().get(nodeTemplateEntry.getKey());
-            Iterator<PaaSRelationshipTemplate> paaSRelationshipTemplateIterator = paaSNodeTemplate.getRelationshipTemplates().iterator();
-            while (paaSRelationshipTemplateIterator.hasNext()) {
-                PaaSRelationshipTemplate paaSRelationshipTemplate = paaSRelationshipTemplateIterator.next();
-                if (paaSRelationshipTemplate.getRelationshipTemplate().getTarget().equals(oldTargetNode.getId())
-                        && nodeTemplateEntry.getKey().equals(newTargetNode.getId())) {
-                    nodeTemplateEntry.getValue().getRelationships().remove(paaSRelationshipTemplate.getId());
-                    paaSRelationshipTemplateIterator.remove();
-                }
-            }
-        }
-    }
-
     /**
      * Browse the topology and for each relationship that targets the oldTargetNode, make it targeting the newTargetNode.
      */
-    private List<NodeTemplate> transferRelationships(PaaSTopologyDeploymentContext deploymentContext, PaaSNodeTemplate newTargetNode,
-            PaaSNodeTemplate oldTargetNode, String mainPropertyListName) {
-        List<NodeTemplate> fictiveNodesToAdd = Lists.newArrayList();
+    private void transfertNodeTargetRelationships(PaaSTopologyDeploymentContext deploymentContext, PaaSNodeTemplate newTargetNode,
+            PaaSNodeTemplate oldTargetNode, String mainPropertyListName, int indexInList, TypeMap cache) {
         for (Entry<String, NodeTemplate> nodeTemplateEntry : deploymentContext.getDeploymentTopology().getNodeTemplates().entrySet()) {
             PaaSNodeTemplate paaSNodeTemplate = deploymentContext.getPaaSTopology().getAllNodes().get(nodeTemplateEntry.getKey());
+            Map<String, IndexedRelationshipType> relationshipRetargeted = Maps.newHashMap();
+            boolean hasHostedOn = false;
             for (PaaSRelationshipTemplate paaSRelationshipTemplate : paaSNodeTemplate.getRelationshipTemplates()) {
                 if (paaSRelationshipTemplate.getRelationshipTemplate().getTarget().equals(oldTargetNode.getId())) {
-                    Map<String, Interface> interfaces = paaSRelationshipTemplate.getTemplate().getInterfaces();
-                    for (Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
-                        for (Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
-                            if (operationEntry.getValue() != null && operationEntry.getValue().getInputParameters() != null) {
-                                for (Entry<String, IValue> inputEntry : operationEntry.getValue().getInputParameters().entrySet()) {
-                                    IValue iValue = inputEntry.getValue();
-                                    if ((iValue instanceof FunctionPropertyValue)
-                                            && ToscaFunctionConstants.GET_ATTRIBUTE.equals(((FunctionPropertyValue) iValue).getFunction())) {
-                                        FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) iValue;
-                                        if (ToscaFunctionConstants.TARGET.equals(functionPropertyValue.getTemplateName())) {
-                                            // ok we have a get_attribute on a TARGET, we have to change this
-                                            String attributeName = functionPropertyValue.getElementNameToFetch();
-                                            // we want to transform the function into a one fetching nested properties
-                                            transformFunction(functionPropertyValue, mainPropertyListName, oldTargetNode.getId(), attributeName);
+                    if (nodeTemplateEntry.getKey().equals(newTargetNode.getId())) {
+                        // the target is the removed node and the src is the modified compute
+                        // just remove the relation
+                        nodeTemplateEntry.getValue().getRelationships().remove(paaSRelationshipTemplate.getId());
+                    } else {
+                        // this relationship targets the initial storage node
+                        // let's make it target the scalable compute node
+                        paaSRelationshipTemplate.getRelationshipTemplate().setTarget(newTargetNode.getId());
+                        IndexedRelationshipType relationshipType = paaSRelationshipTemplate.getIndexedToscaElement();
+                        // just remember the fact that this relationhip is retargeted
+                        relationshipRetargeted.put(paaSRelationshipTemplate.getId(), relationshipType);
+                        boolean typeAsChanged = false;
+                        // here we also explore the relationship's type interface in order to adapt get_attribute TARGET
+                        Map<String, Interface> interfaces = paaSRelationshipTemplate.getTemplate().getInterfaces();
+                        for (Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
+                            for (Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
+                                if (operationEntry.getValue() != null && operationEntry.getValue().getInputParameters() != null) {
+                                    for (Entry<String, IValue> inputEntry : operationEntry.getValue().getInputParameters().entrySet()) {
+                                        IValue iValue = inputEntry.getValue();
+                                        if ((iValue instanceof FunctionPropertyValue)
+                                                && ToscaFunctionConstants.GET_ATTRIBUTE.equals(((FunctionPropertyValue) iValue).getFunction())) {
+                                            FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) iValue;
+                                            if (ToscaFunctionConstants.TARGET.equals(functionPropertyValue.getTemplateName())) {
+                                                // ok we have a get_attribute on a TARGET, we have to change this
+                                                String attributeName = functionPropertyValue.getElementNameToFetch();
+                                                // we want to transform the function into a one fetching nested properties
+                                                transformFunction(functionPropertyValue, mainPropertyListName, oldTargetNode.getId(), attributeName);
+                                                typeAsChanged = true;
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
+                        if (typeAsChanged) {
+                            // the type has been modified, we want to force it's reuse later
+                            cache.put(relationshipType.getElementId(), relationshipType);
+                        }
                     }
-                    NodeTemplate fictiveComponent = createFictiveComponentAndRedirectRelationship("_a4c_" + oldTargetNode.getId(), newTargetNode.getId(),
-                            paaSRelationshipTemplate.getRelationshipTemplate());
-                    fictiveNodesToAdd.add(fictiveComponent);
+                } else if (paaSRelationshipTemplate.getRelationshipTemplate().getTarget().equals(newTargetNode.getId())
+                        && ToscaUtils.isFromType(NormativeRelationshipConstants.HOSTED_ON, paaSRelationshipTemplate.getIndexedToscaElement())) {
+                    // a hostedOn relationship wires the current node with the substituing node
+                    hasHostedOn = true;
                 }
             }
+            // now remove relation ships between the node and the substituing node that are not the retargeted one
+            if (!relationshipRetargeted.isEmpty()) {
+                Set<String> keysToRemove = Sets.newHashSet();
+                for (Entry<String, RelationshipTemplate> relationshipEntry : paaSNodeTemplate.getNodeTemplate().getRelationships().entrySet()) {
+                    if (!relationshipRetargeted.containsKey(relationshipEntry.getKey())
+                            && relationshipEntry.getValue().getTarget().equals(newTargetNode.getId())) {
+                        keysToRemove.add(relationshipEntry.getKey());
+                    }
+                }
+                for (String keyToRemove : keysToRemove) {
+                    paaSNodeTemplate.getNodeTemplate().getRelationships().remove(keyToRemove);
+                }
+                if (hasHostedOn) {
+                    // one hostedOn relation has been removed, we artificially make one of the relation derived from hostedOn
+                    IndexedRelationshipType relationshipType = relationshipRetargeted.entrySet().iterator().next().getValue();
+                    List<String> derivedFrom = Lists.newArrayList();
+                    derivedFrom.add(NormativeRelationshipConstants.HOSTED_ON);
+                    relationshipType.setDerivedFrom(derivedFrom);
+                    // ensure the modified type will be used later
+                    cache.put(relationshipType.getElementId(), relationshipType);
+                }
+            }
+
         }
-        return fictiveNodesToAdd;
     }
 
     private void transformFunction(FunctionPropertyValue function, String mainPropertyListName, String nodeName, String attributeName) {
@@ -431,9 +449,9 @@ public class ScalableComputeReplacementService {
      * if it contains something, this means that this node is substituting others
      * we generate 'fake' events for these ghosts nodes
      *
-     * @param alienEvents all alien events
-     * @param alienEvent the alien event to substitute
-     * @param cloudifyEvent original cloudify event
+     * @param alienEvents
+     * @param alienEvent
+     * @param cloudifyEvent
      */
     public void processEventForSubstitutes(final List<AbstractMonitorEvent> alienEvents, AbstractMonitorEvent alienEvent, Event cloudifyEvent) {
         if (alienEvent instanceof PaaSInstanceStateMonitorEvent) {
@@ -464,7 +482,7 @@ public class ScalableComputeReplacementService {
     public static List getSubstituteForPropertyAsList(Node node) {
         List substitutePropertyAsList = null;
         if (node.getProperties() != null) {
-            Object substituteProperty = node.getProperties().get(SUBSTITUTE_FOR_PROPERTY);
+            Object substituteProperty = node.getProperties().get(SUBSTITUE_FOR_PROPERTY);
             if (substituteProperty != null && substituteProperty instanceof List) {
                 substitutePropertyAsList = (List) substituteProperty;
             }
@@ -479,7 +497,7 @@ public class ScalableComputeReplacementService {
             // the persistentResourcePath fo ex should be of type: volumes.BlockStorage.resourceId
             String persistentResourcePath = eventAlienPersistent.getPersistentResourceId();
             String[] paths = persistentResourcePath.split("\\.");
-            if (paths.length >= 2 && StringUtils.startsWithAny(paths[0], SCALABLE_COMPUTE_VOLUMES_PROPERTY, SCALABLE_COMPUTE_FLOATING_IPS_PROPERTY)) {
+            if (paths.length >= 2 && StringUtils.startsWithAny(paths[0], SCALABLE_COMPUTE_VOLUMES_PROPERTY, SCALABLE_COMPUTE_FIPS_PROPERTY)) {
                 // change the id of the related template, so that the resource will be saved in the good one
                 // paths[1] is 'BlockStorage', the name of the substituted node
                 // TODO: check maybe that it indeed exists in the substituted for the node? (getSubstituteForPropertyAsList)
