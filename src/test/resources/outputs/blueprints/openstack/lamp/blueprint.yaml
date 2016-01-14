@@ -105,6 +105,13 @@ node_templates:
       cloudify_agent: 
         user: ubuntu
 
+    relationships:
+      - target: InternalNetwork
+        type: cloudify.relationships.connected_to
+      - target: _a4c_InternalNetwork_subnet
+        type: cloudify.relationships.depends_on
+      - target: _a4c_floating_ip_Server_on_NetPub
+        type: cloudify.openstack.server_connected_to_floating_ip
     interfaces:
       cloudify.interfaces.monitoring_agent:
         install:
@@ -127,6 +134,11 @@ node_templates:
                  config:
                    devices: x?vd[a-z]+[0-9]*$
                NetworkCollector: {}
+  _a4c_floating_ip_Server_on_NetPub:
+    type: alien.nodes.openstack.PublicNetwork
+    properties: 
+      floatingip: 
+        floating_network_name: net-pub
   InternalNetwork:
     type: alien.nodes.openstack.PrivateNetwork
     properties:
