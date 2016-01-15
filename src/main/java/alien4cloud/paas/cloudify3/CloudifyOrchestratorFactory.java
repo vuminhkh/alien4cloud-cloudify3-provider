@@ -5,11 +5,10 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.orchestrators.ArtifactSupport;
@@ -20,7 +19,9 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
 import alien4cloud.paas.cloudify3.configuration.LocationConfiguration;
 import alien4cloud.paas.cloudify3.configuration.LocationConfigurations;
 import alien4cloud.paas.cloudify3.service.OrchestratorDeploymentPropertiesService;
-import lombok.extern.slf4j.Slf4j;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @Slf4j
 public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<CloudifyOrchestrator, CloudConfiguration> {
@@ -35,8 +36,8 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
     @Resource
     private OrchestratorDeploymentPropertiesService deploymentPropertiesService;
 
-    private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections
-            .synchronizedMap(Maps.<IPaaSProvider, AnnotationConfigApplicationContext> newIdentityHashMap());
+    private Map<IPaaSProvider, AnnotationConfigApplicationContext> contextMap = Collections.synchronizedMap(Maps
+            .<IPaaSProvider, AnnotationConfigApplicationContext> newIdentityHashMap());
 
     @Override
     public Class<CloudConfiguration> getConfigurationType() {
@@ -50,13 +51,12 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
         LocationConfigurations locationConfigurations = new LocationConfigurations();
         LocationConfiguration amazon = new LocationConfiguration();
         amazon.setImports(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
-                "http://www.getcloudify.org/spec/aws-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml",
-                "http://www.getcloudify.org/spec/diamond-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
+                "http://www.getcloudify.org/spec/aws-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
         amazon.setDsl("cloudify_dsl_1_2");
         LocationConfiguration openstack = new LocationConfiguration();
         openstack.setImports(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
-                "http://www.getcloudify.org/spec/openstack-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml",
-                "http://www.getcloudify.org/spec/diamond-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
+                "http://www.getcloudify.org/spec/openstack-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml", "http://www.getcloudify.org/spec/diamond-plugin/"
+                        + CFY_SCRIPT_VERSION + "/plugin.yaml"));
         openstack.setDsl("cloudify_dsl_1_2");
         locationConfigurations.setAmazon(amazon);
         locationConfigurations.setOpenstack(openstack);
