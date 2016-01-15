@@ -7,18 +7,17 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.google.common.collect.Maps;
+
 import alien4cloud.model.components.PropertyConstraint;
 import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.model.components.constraints.GreaterThanConstraint;
+import alien4cloud.paas.cloudify3.model.DeploymentPropertiesNames;
 import alien4cloud.tosca.normative.ToscaType;
 import alien4cloud.utils.MapUtil;
 
-import com.google.common.collect.Maps;
-
 public class OrchestratorDeploymentPropertiesService {
 
-    public static String MONITORING_INTERVAL_INMINUTE = "monitoring_interval_inMinute";
-    // public static String LIVELINESS_TIMEOUT_INSECOND = "liveliness_timeout_inSecond";
     Map<String, PropertyDefinition> deploymentProperties;
 
     @PostConstruct
@@ -34,7 +33,15 @@ public class OrchestratorDeploymentPropertiesService {
         GreaterThanConstraint intervalConstraint = new GreaterThanConstraint();
         intervalConstraint.setGreaterThan("0");
         monitoringInterval.setConstraints(Arrays.asList((PropertyConstraint) intervalConstraint));
-        deploymentProperties.put(MONITORING_INTERVAL_INMINUTE, monitoringInterval);
+        deploymentProperties.put(DeploymentPropertiesNames.MONITORING_INTERVAL_INMINUTE, monitoringInterval);
+
+        // Field 2 : auto_heal
+        PropertyDefinition autoHeal = new PropertyDefinition();
+        autoHeal.setType(ToscaType.BOOLEAN.toString());
+        autoHeal.setRequired(false);
+        autoHeal.setDescription("Whether to enable or not the auto-heal process on this deployment. Default is disabled.");
+        autoHeal.setDefault("false");
+        deploymentProperties.put(DeploymentPropertiesNames.AUTO_HEAL, autoHeal);
     }
 
     public Map<String, PropertyDefinition> getDeploymentProperties() {
