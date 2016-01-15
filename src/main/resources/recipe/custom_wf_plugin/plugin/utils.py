@@ -145,10 +145,10 @@ def count_relationships(instance):
 def should_call_relationship_op(relation_ship_instance):
     source_host_instance = __get_host(relation_ship_instance.node_instance)
     target_host_instance = __get_host(relation_ship_instance.target_node_instance)
-    if source_host_instance.id == target_host_instance.id
+    if source_host_instance.id == target_host_instance.id:
         # source and target are on the same instance > so the relation is considered
         return True
-    if source_host_instance.node_id != target_host_instance.node_id
+    if source_host_instance.node_id != target_host_instance.node_id:
         # source and target are not on the same node > so the relation is considered
         return True
     # source and target are on the same node but different instance (cross relationship are forbidden)
@@ -161,9 +161,9 @@ def __get_host(instance):
         for relationship in instance.relationships:
             if relationship.relationship.is_derived_from('cloudify.relationships.contained_in'):
                 host = relationship.target_node_instance
-    if host is not None
+    if host is not None:
         return __get_host(host)
-    else
+    else:
         return instance
 
 
