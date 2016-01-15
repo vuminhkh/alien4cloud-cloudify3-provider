@@ -49,11 +49,6 @@ node_types:
     derived_from: cloudify.nodes.ApplicationModule
   alien.nodes.Mysql:
     derived_from: cloudify.nodes.Database
-  alien.cloudify.nodes.monitor:
-    derived_from: cloudify.nodes.SoftwareComponent
-    properties:
-      nodes_to_monitor:
-        default: []
 
 relationships:
   alien.relationships.WordpressHostedOnApache:
@@ -137,37 +132,6 @@ node_templates:
       - target: DataBase
         type: cloudify.relationships.contained_in
 
-  _a4c_monitor:
-    type: alien.cloudify.nodes.monitor
-    properties:
-      nodes_to_monitor:
-        - DataBase
-        - Server
-    relationships:
-      - target: DataBase
-        type: cloudify.relationships.depends_on
-      - target: Server
-        type: cloudify.relationships.depends_on
-      - target: _a4c_monitor_container
-        type: cloudify.relationships.contained_in
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        start:
-          inputs:
-            BASE_DIR: "/tmp/_a4c_monitoring"
-            MONITORING_INTERVAL: 1
-          implementation: monitor/scripts/policy-start.sh
-          executor: central_deployment_agent
-        stop:
-          inputs:
-            BASE_DIR: "/tmp/_a4c_monitoring"
-          implementation: monitor/scripts/policy-stop.sh
-          executor: central_deployment_agent
-
-  _a4c_monitor_container:
-    type: cloudify.nodes.Compute
-    properties:
-      install_agent: false
 
 plugins:
   custom_wf_plugin:
