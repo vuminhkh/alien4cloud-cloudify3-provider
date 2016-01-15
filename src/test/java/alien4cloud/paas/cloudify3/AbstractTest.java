@@ -24,6 +24,8 @@ import com.google.common.collect.Lists;
 
 public class AbstractTest {
 
+    public static final String SCALABLE_COMPUTE_TOPOLOGY = "scalable_compute";
+
     public static final String SINGLE_COMPUTE_TOPOLOGY = "single_compute";
 
     public static final String SINGLE_WINDOWS_COMPUTE_TOPOLOGY = "single_windows_compute";
@@ -65,7 +67,7 @@ public class AbstractTest {
     private CloudifyOrchestrator cloudifyOrchestrator;
 
     @Resource
-    private CloudConfigurationHolder cloudConfigurationHolder;
+    protected CloudConfigurationHolder cloudConfigurationHolder;
 
     @BeforeClass
     public static void cleanup() throws IOException {

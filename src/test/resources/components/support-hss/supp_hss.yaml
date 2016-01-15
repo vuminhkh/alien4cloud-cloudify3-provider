@@ -1,0 +1,62 @@
+tosca_definitions_version: tosca_simple_yaml_1_0_0_wd03
+
+template_name: support_hss_types
+template_author: FastConnect
+template_version: 1.0-SNAPSHOT
+
+imports: 
+  - tosca-normative-types:1.0.0.wd06-SNAPSHOT
+  - alien-extended-storage-types:1.1.0-SNAPSHOT
+  - alien-base-types:1.0-SNAPSHOT
+
+description : Component test for hss scaling
+
+node_types:
+  fastconnect.nodes.SoftwareTest4HSS:
+    derived_from: tosca.nodes.SoftwareComponent
+    description: Test component
+    capabilities: 
+      Supp_software_endpoint:
+        type: fastconnect.capabilities.SuppEndpoint
+        upper_bound: unbounded
+    requirements:
+      - Supp_to_volume: tosca.nodes.BlockStorage
+        type: fastconnect.relationships.Supp_to_volume
+        lower_bound: 1
+        upper_bound: unbounded
+    interfaces:
+      Standard:
+        create: 
+          implementation: scripts/createSupp_hss.sh
+        configure: 
+          implementation: scripts/configureSupp_hss.sh
+        start:
+          implementation: scripts/startSupp_hss.sh
+        stop:
+          implementation: scripts/stopSupp_hss.sh
+        delete:
+          implementation: scripts/deleteSupp_hss.sh
+    artifacts:
+      - scripts: scripts
+        type: tosca.artifacts.File
+
+relationship_types:
+
+  fastconnect.relationships.Supp_to_volume:
+    derived_from: tosca.relationships.ConnectsTo
+    valid_targets: [ tosca.capabilities.Node ]
+    valid_sources: [ fastconnect.capabilities.SuppEndpoint ]
+    interfaces:
+      Configure:
+        pre_configure_source:
+          inputs:
+            TARGET_BLOCKSTORAGE_DEVICE: { get_attribute: [TARGET, device] }
+          implementation: scripts/relationships/supp_to_volume.sh
+    artifacts:
+      - scripts: scripts
+        type: tosca.artifacts.File
+
+capability_types:
+  fastconnect.capabilities.SuppEndpoint:
+    derived_from: tosca.capabilities.Root
+    description: Endpoint for supp software

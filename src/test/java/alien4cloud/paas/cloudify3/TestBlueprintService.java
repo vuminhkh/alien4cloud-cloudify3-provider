@@ -131,6 +131,14 @@ public class TestBlueprintService extends AbstractTest {
     }
 
     @Test
+    public void testGenerateScalableCompute() {
+        String oldImport = cloudConfigurationHolder.getConfiguration().getLocations().getOpenstack().getImports().get(1);
+        cloudConfigurationHolder.getConfiguration().getLocations().getOpenstack().getImports().set(1, "openstack-plugin.yaml");
+        testGeneratedBlueprintFile(SCALABLE_COMPUTE_TOPOLOGY);
+        cloudConfigurationHolder.getConfiguration().getLocations().getOpenstack().getImports().set(1, oldImport);
+    }
+
+    @Test
     public void testGenerateSingleWindowsCompute() {
         testGeneratedBlueprintFile(SINGLE_WINDOWS_COMPUTE_TOPOLOGY);
     }
