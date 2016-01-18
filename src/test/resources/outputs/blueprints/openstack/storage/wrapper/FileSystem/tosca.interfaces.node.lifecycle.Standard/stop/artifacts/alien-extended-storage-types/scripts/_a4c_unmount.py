@@ -8,11 +8,17 @@ import re
 import sys
 import time
 import threading
+import platform
 from StringIO import StringIO
 from cloudify_rest_client import CloudifyClient
 from cloudify import utils
 
 client = CloudifyClient(utils.get_manager_ip(), utils.get_manager_rest_service_port())
+
+
+def convert_env_value_to_string(envDict):
+    for key, value in envDict.items():
+        envDict[key] = str(value)
 
 
 def get_host(entity):
@@ -25,23 +31,44 @@ def get_host(entity):
 
 def has_attribute_mapping(entity, attribute_name):
     ctx.logger.info('Check if it exists mapping for attribute {0} in {1}'.format(attribute_name, entity.node.properties))
-    return ('_a4c_att_' + attribute_name) in entity.node.properties
+    mapping_configuration = entity.node.properties.get('_a4c_att_' + attribute_name, None)
+    if mapping_configuration is not None:
+        if mapping_configuration['parameters'][0] == 'SELF' and mapping_configuration['parameters'][1] == attribute_name:
+            return False
+        else:
+            return True
+    return False
 
 
 def process_attribute_mapping(entity, attribute_name, data_retriever_function):
     # This is where attribute mapping is defined in the cloudify type
     mapping_configuration = entity.node.properties['_a4c_att_' + attribute_name]
     ctx.logger.info('Mapping configuration found for attribute {0} is {1}'.format(attribute_name, mapping_configuration))
-    if mapping_configuration:
-        # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
-        # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
-        if mapping_configuration['parameters'][0] == 'SELF':
-            return data_retriever_function(entity, mapping_configuration['parameters'][1])
-        elif mapping_configuration['parameters'][0] == 'TARGET' and entity.instance.relationships:
-            for relationship in entity.instance.relationships:
-                if mapping_configuration['parameters'][1] in relationship.type_hierarchy:
-                    return data_retriever_function(relationship.target, mapping_configuration['parameters'][2])
+    # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
+    # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
+    if mapping_configuration['parameters'][0] == 'SELF':
+        return data_retriever_function(entity, mapping_configuration['parameters'][1])
+    elif mapping_configuration['parameters'][0] == 'TARGET' and entity.instance.relationships:
+        for relationship in entity.instance.relationships:
+            if mapping_configuration['parameters'][1] in relationship.type_hierarchy:
+                return data_retriever_function(relationship.target, mapping_configuration['parameters'][2])
     return ""
+
+
+def get_nested_attribute(entity, attribute_names):
+    deep_properties = get_attribute(entity, attribute_names[0])
+    attribute_names_iter = iter(attribute_names)
+    next(attribute_names_iter)
+    for attribute_name in attribute_names_iter:
+        if deep_properties is None:
+            return ""
+        else:
+            deep_properties = deep_properties.get(attribute_name, None)
+    return deep_properties
+
+
+def _all_instances_get_nested_attribute(entity, attribute_names):
+    return None
 
 
 def get_attribute(entity, attribute_name):
@@ -107,6 +134,11 @@ def get_instance_list(node_id):
         result += node_instance.id
     return result
 
+def get_host_node_name(instance):
+    for relationship in instance.relationships:
+        if 'cloudify.relationships.contained_in' in relationship.type_hierarchy:
+            return relationship.target.node.id
+    return None
 
 def __get_relationship(node, target_name, relationship_type):
     for relationship in node.relationships:
@@ -117,25 +149,30 @@ def __get_relationship(node, target_name, relationship_type):
 
 def __has_attribute_mapping(node, attribute_name):
     ctx.logger.info('Check if it exists mapping for attribute {0} in {1}'.format(attribute_name, node.properties))
-    return ('_a4c_att_' + attribute_name) in node.properties
+    mapping_configuration = node.properties.get('_a4c_att_' + attribute_name, None)
+    if mapping_configuration is not None:
+        if mapping_configuration['parameters'][0] == 'SELF' and mapping_configuration['parameters'][1] == attribute_name:
+            return False
+        else:
+            return True
+    return False
 
 
 def __process_attribute_mapping(node, node_instance, attribute_name, data_retriever_function):
     # This is where attribute mapping is defined in the cloudify type
     mapping_configuration = node.properties['_a4c_att_' + attribute_name]
     ctx.logger.info('Mapping configuration found for attribute {0} is {1}'.format(attribute_name, mapping_configuration))
-    if mapping_configuration:
-        # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
-        # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
-        if mapping_configuration['parameters'][0] == 'SELF':
-            return data_retriever_function(node, node_instance, mapping_configuration['parameters'][1])
-        elif mapping_configuration['parameters'][0] == 'TARGET' and node_instance.relationships:
-            for rel in node_instance.relationships:
-                relationship = __get_relationship(node, rel.get('target_name'), rel.get('type'))
-                if mapping_configuration['parameters'][1] in relationship.get('type_hierarchy'):
-                    target_instance = client.node_instances.get(rel.get('target_id'))
-                    target_node = client.nodes.get(ctx.deployment.id, target_instance.node_id)
-                    return data_retriever_function(target_node, target_instance, mapping_configuration['parameters'][2])
+    # If the mapping configuration exist and if it concerns SELF then just get attribute of the mapped attribute name
+    # Else if it concerns TARGET then follow the relationship and retrieved the mapped attribute name from the TARGET
+    if mapping_configuration['parameters'][0] == 'SELF':
+        return data_retriever_function(node, node_instance, mapping_configuration['parameters'][1])
+    elif mapping_configuration['parameters'][0] == 'TARGET' and node_instance.relationships:
+        for rel in node_instance.relationships:
+            relationship = __get_relationship(node, rel.get('target_name'), rel.get('type'))
+            if mapping_configuration['parameters'][1] in relationship.get('type_hierarchy'):
+                target_instance = client.node_instances.get(rel.get('target_id'))
+                target_node = client.nodes.get(ctx.deployment.id, target_instance.node_id)
+                return data_retriever_function(target_node, target_instance, mapping_configuration['parameters'][2])
     return None
 
 
@@ -175,9 +212,6 @@ def parse_output(output):
 
 
 def execute(script_path, process, outputNames):
-    wrapper_path = ctx.download_resource("scriptWrapper.sh")
-    os.chmod(wrapper_path, 0755)
-
     os.chmod(script_path, 0755)
     on_posix = 'posix' in sys.builtin_module_names
 
@@ -187,6 +221,11 @@ def execute(script_path, process, outputNames):
 
     if outputNames is not None:
         env['EXPECTED_OUTPUTS'] = outputNames
+        if platform.system() == 'Windows':
+            wrapper_path = ctx.download_resource("scriptWrapper.bat")
+        else:
+            wrapper_path = ctx.download_resource("scriptWrapper.sh")
+        os.chmod(wrapper_path, 0755)
         command = '{0} {1}'.format(wrapper_path, script_path)
     else:
         command = script_path
@@ -220,17 +259,19 @@ def execute(script_path, process, outputNames):
     if outputNames is not None:
         outputNameList = outputNames.split(';')
         for outputName in outputNameList:
-            ctx.logger.info('Ouput name: {0} value : {1}'.format(outputName, parsed_output['outputs'][outputName]))
+            ctx.logger.info('Ouput name: {0} value : {1}'.format(outputName, parsed_output['outputs'].get(outputName, None)))
 
-    ok_message = "Script {0} executed normally with standard output {1} and error output {2}".format(command, stdout_consumer.buffer.getvalue(),
-                                                                                                     stderr_consumer.buffer.getvalue())
-    error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,
-                                                                                                                         stdout_consumer.buffer.getvalue(),
-                                                                                                                         stderr_consumer.buffer.getvalue())
     if return_code != 0:
+        error_message = "Script {0} encountered error with return code {1} and standard output {2}, error output {3}".format(command, return_code,
+                                                                                                                             stdout_consumer.buffer.getvalue(),
+                                                                                                                             stderr_consumer.buffer.getvalue())
+        error_message = str(unicode(error_message, errors='ignore'))
         ctx.logger.error(error_message)
         raise NonRecoverableError(error_message)
     else:
+        ok_message = "Script {0} executed normally with standard output {1} and error output {2}".format(command, stdout_consumer.buffer.getvalue(),
+                                                                                                         stderr_consumer.buffer.getvalue())
+        ok_message = str(unicode(ok_message, errors='ignore'))
         ctx.logger.info(ok_message)
 
     return parsed_output
@@ -257,8 +298,8 @@ env_map = {}
 env_map['NODE'] = ctx.node.id
 env_map['INSTANCE'] = ctx.instance.id
 env_map['INSTANCES'] = get_instance_list(ctx.node.id)
+env_map['HOST'] = get_host_node_name(ctx.instance)
 env_map['FS_MOUNT_PATH'] = r'/usr/data'
-
 new_script_process = {'env': env_map}
 
 
@@ -268,6 +309,7 @@ if inputs.get('process', None) is not None and inputs['process'].get('env', None
     new_script_process['env'].update(inputs['process']['env'])
 
 operationOutputNames = None
+convert_env_value_to_string(new_script_process['env'])
 parsed_output = execute(ctx.download_resource('artifacts/alien-extended-storage-types/scripts/unmount.sh'), new_script_process, operationOutputNames)
 for k,v in parsed_output['outputs'].items():
     ctx.logger.info('Output name: {0} value: {1}'.format(k, v))

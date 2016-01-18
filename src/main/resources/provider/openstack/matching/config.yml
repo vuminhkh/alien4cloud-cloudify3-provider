@@ -28,3 +28,9 @@ matching_configurations:
             - type: { equal: "" }
             - distribution: { equal: "" }
             - version: { less_or_equal: "" }
+  alien.cloudify.openstack.nodes.DeletableVolume:
+    properties:
+        - size: { less_or_equal: 0 B }
+  alien.cloudify.openstack.nodes.Volume:
+    properties:
+        - size: { less_or_equal: 0 B }

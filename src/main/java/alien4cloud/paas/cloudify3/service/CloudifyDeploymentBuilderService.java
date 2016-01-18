@@ -7,11 +7,13 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import lombok.extern.slf4j.Slf4j;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.stereotype.Component;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import alien4cloud.exception.InvalidArgumentException;
 import alien4cloud.model.components.DeploymentArtifact;
@@ -19,6 +21,7 @@ import alien4cloud.model.components.IndexedModelUtils;
 import alien4cloud.model.components.IndexedNodeType;
 import alien4cloud.model.components.IndexedRelationshipType;
 import alien4cloud.paas.cloudify3.error.SingleLocationRequiredException;
+import alien4cloud.paas.cloudify3.model.DeploymentPropertiesNames;
 import alien4cloud.paas.cloudify3.service.model.CloudifyDeployment;
 import alien4cloud.paas.cloudify3.service.model.HostWorkflow;
 import alien4cloud.paas.cloudify3.service.model.Relationship;
@@ -36,10 +39,7 @@ import alien4cloud.paas.wf.WorkflowsBuilderService;
 import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
 import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.NormativeRelationshipConstants;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import lombok.extern.slf4j.Slf4j;
 
 @Component("cloudify-deployment-builder-service")
 @Slf4j
@@ -47,6 +47,8 @@ public class CloudifyDeploymentBuilderService {
 
     @Inject
     private WorkflowsBuilderService workflowBuilderService;
+    @Inject
+    private OrchestratorDeploymentPropertiesService deploymentPropertiesService;
 
     /**
      * Build the Cloudify deployment from the deployment context. Cloudify deployment has data pre-parsed so that blueprint generation is easier.
@@ -65,9 +67,6 @@ public class CloudifyDeploymentBuilderService {
         List<IndexedNodeType> nativeTypes = getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getComputes());
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getNetworks()));
         nativeTypes.addAll(getTypesOrderedByDerivedFromHierarchy(deploymentContext.getPaaSTopology().getVolumes()));
-        Map<String, IndexedNodeType> nativeTypesDerivedFrom = getDerivedFromTypesMap(deploymentContext.getPaaSTopology().getComputes());
-        nativeTypesDerivedFrom.putAll(getDerivedFromTypesMap(deploymentContext.getPaaSTopology().getVolumes()));
-        nativeTypesDerivedFrom.putAll(getDerivedFromTypesMap(deploymentContext.getPaaSTopology().getNetworks()));
 
         cloudifyDeployment.setDeploymentPaaSId(deploymentContext.getDeploymentPaaSId());
         cloudifyDeployment.setDeploymentId(deploymentContext.getDeploymentId());
@@ -76,19 +75,27 @@ public class CloudifyDeploymentBuilderService {
         cloudifyDeployment.setVolumes(deploymentContext.getPaaSTopology().getVolumes());
         cloudifyDeployment.setNonNatives(deploymentContext.getPaaSTopology().getNonNatives());
         cloudifyDeployment.setNativeTypes(nativeTypes);
-        cloudifyDeployment.setNativeTypesHierarchy(nativeTypesDerivedFrom);
 
         cloudifyDeployment.setAllNodes(deploymentContext.getPaaSTopology().getAllNodes());
         cloudifyDeployment.setProviderDeploymentProperties(deploymentContext.getDeploymentTopology().getProviderDeploymentProperties());
         cloudifyDeployment.setWorkflows(buildWorkflowsForDeployment(deploymentContext.getDeploymentTopology().getWorkflows()));
 
-        cloudifyDeployment.setNodesToMonitor(getNodesToMonitor(cloudifyDeployment.getComputes()));
+        // if monitoring is enabled then try to get the nodes to monitor
+        setNodesToMonitor(cloudifyDeployment);
 
         // load the mappings for the native types.
         TopologyContext topologyContext = workflowBuilderService.buildTopologyContext(deploymentContext.getDeploymentTopology());
         cloudifyDeployment.setPropertyMappings(PropertiesMappingUtil.loadPropertyMappings(cloudifyDeployment.getNativeTypes(), topologyContext));
 
         return cloudifyDeployment;
+    }
+
+    private void setNodesToMonitor(CloudifyDeployment cloudifyDeployment) {
+        String autoHeal = deploymentPropertiesService.getValueOrDefault(cloudifyDeployment.getProviderDeploymentProperties(),
+                DeploymentPropertiesNames.AUTO_HEAL);
+        if (Boolean.parseBoolean(autoHeal)) {
+            cloudifyDeployment.setNodesToMonitor(getNodesToMonitor(cloudifyDeployment.getComputes()));
+        }
     }
 
     // TODO: shouldn't we put this in utils intead??
@@ -207,7 +214,7 @@ public class CloudifyDeploymentBuilderService {
      * @return
      */
     private Map<String, AbstractStep> getHostRelatedSteps(String hostId, Workflow workflow) {
-        Map<String, AbstractStep> steps = Maps.newHashMap();
+        Map<String, AbstractStep> steps = Maps.newLinkedHashMap();
         for (AbstractStep step : workflow.getSteps().values()) {
             // proceed only NodeActivityStep
             if (step instanceof NodeActivityStep) {
@@ -224,22 +231,11 @@ public class CloudifyDeploymentBuilderService {
     }
 
     private List<IndexedNodeType> getTypesOrderedByDerivedFromHierarchy(List<PaaSNodeTemplate> nodes) {
-        Map<String, IndexedNodeType> nodeTypeMap = Maps.newHashMap();
+        Map<String, IndexedNodeType> nodeTypeMap = Maps.newLinkedHashMap();
         for (PaaSNodeTemplate node : nodes) {
             nodeTypeMap.put(node.getIndexedToscaElement().getElementId(), node.getIndexedToscaElement());
         }
         return IndexedModelUtils.orderByDerivedFromHierarchy(nodeTypeMap);
-    }
-
-    private Map<String, IndexedNodeType> getDerivedFromTypesMap(List<PaaSNodeTemplate> nodes) {
-        Map<String, IndexedNodeType> derivedFromTypesMap = Maps.newHashMap();
-        for (PaaSNodeTemplate node : nodes) {
-            List<IndexedNodeType> derivedFroms = node.getDerivedFroms();
-            for (IndexedNodeType derivedFrom : derivedFroms) {
-                derivedFromTypesMap.put(derivedFrom.getElementId(), derivedFrom);
-            }
-        }
-        return derivedFromTypesMap;
     }
 
     /**
@@ -271,8 +267,8 @@ public class CloudifyDeploymentBuilderService {
             } else if (ToscaUtils.isFromType("alien.nodes.PrivateNetwork", network.getIndexedToscaElement())) {
                 privateNetworks.add(network);
             } else {
-                throw new InvalidArgumentException("The type " + network.getTemplate().getType()
-                        + " must extends alien.nodes.PublicNetwork or alien.nodes.PrivateNetwork");
+                throw new InvalidArgumentException(
+                        "The type " + network.getTemplate().getType() + " must extends alien.nodes.PublicNetwork or alien.nodes.PrivateNetwork");
             }
         }
 
@@ -290,8 +286,8 @@ public class CloudifyDeploymentBuilderService {
      *            The deployment context from alien 4 cloud.
      */
     private void processNonNativeTypes(CloudifyDeployment cloudifyDeployment, PaaSTopologyDeploymentContext deploymentContext) {
-        Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newHashMap();
-        Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newHashMap();
+        Map<String, IndexedNodeType> nonNativesTypesMap = Maps.newLinkedHashMap();
+        Map<String, IndexedRelationshipType> nonNativesRelationshipsTypesMap = Maps.newLinkedHashMap();
         for (PaaSNodeTemplate nonNative : deploymentContext.getPaaSTopology().getNonNatives()) {
             nonNativesTypesMap.put(nonNative.getIndexedToscaElement().getElementId(), nonNative.getIndexedToscaElement());
             List<PaaSRelationshipTemplate> relationshipTemplates = nonNative.getRelationshipTemplates();
@@ -309,8 +305,8 @@ public class CloudifyDeploymentBuilderService {
     }
 
     private void processDeploymentArtifacts(CloudifyDeployment cloudifyDeployment, PaaSTopologyDeploymentContext deploymentContext) {
-        Map<String, Map<String, DeploymentArtifact>> allArtifacts = Maps.newHashMap();
-        Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newHashMap();
+        Map<String, Map<String, DeploymentArtifact>> allArtifacts = Maps.newLinkedHashMap();
+        Map<Relationship, Map<String, DeploymentArtifact>> allRelationshipArtifacts = Maps.newLinkedHashMap();
         for (Map.Entry<String, PaaSNodeTemplate> nodeEntry : deploymentContext.getPaaSTopology().getAllNodes().entrySet()) {
             PaaSNodeTemplate node = nodeEntry.getValue();
             // add the node artifacts
@@ -332,8 +328,8 @@ public class CloudifyDeploymentBuilderService {
         for (PaaSRelationshipTemplate relationship : relationships) {
             Map<String, DeploymentArtifact> artifacts = relationship.getIndexedToscaElement().getArtifacts();
 
-            putArtifacts(allRelationshipArtifacts, new Relationship(relationship.getId(), relationship.getSource(), relationship.getRelationshipTemplate()
-                    .getTarget()), artifacts);
+            putArtifacts(allRelationshipArtifacts,
+                    new Relationship(relationship.getId(), relationship.getSource(), relationship.getRelationshipTemplate().getTarget()), artifacts);
         }
     }
 
@@ -343,8 +339,8 @@ public class CloudifyDeploymentBuilderService {
         }
     }
 
-    public Set<PaaSNodeTemplate> getNodesToMonitor(List<PaaSNodeTemplate> computes) {
-        Set<PaaSNodeTemplate> nodesToMonitor = Sets.newHashSet();
+    private Set<PaaSNodeTemplate> getNodesToMonitor(List<PaaSNodeTemplate> computes) {
+        Set<PaaSNodeTemplate> nodesToMonitor = Sets.newLinkedHashSet();
         for (PaaSNodeTemplate compute : computes) {
             // we monitor only if the compute is not a windows type
             // TODO better way to find that this is not a windows compute, taking in accound the location

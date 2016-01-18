@@ -82,7 +82,7 @@ public class EventService {
      */
     private List<AbstractMonitorEvent> internalProviderEventsQueue = Lists.newLinkedList();
 
-    private static final long delay = 10 * 1000L;
+    private static final long delay = 30 * 1000L;
 
     public synchronized ListenableFuture<AbstractMonitorEvent[]> getEventsSince(final Date lastTimestamp, int batchSize) {
         // TODO Workaround as cloudify 3 seems do not respect appearance order of event based on timestamp
@@ -300,6 +300,7 @@ public class EventService {
                         cloudifyEvent);
                 // Scaling issue workarround ]]
             } catch (Exception e) {
+                log.warn("Problem processing persistent event " + cloudifyEvent.getId(), e);
                 return null;
             }
             break;

@@ -51,6 +51,7 @@ public class CSARUtil {
     private RepositoryManager repositoryManager = new RepositoryManager();
 
     public void uploadCSAR(Path path) throws Exception {
+        log.info("Uploading csar {}", path);
         Path zipPath = Files.createTempFile("csar", ".zip");
         FileUtil.zip(path, zipPath);
         Authentication auth = new TestingAuthenticationToken(Role.ADMIN, "", Role.ADMIN.name());
@@ -68,6 +69,7 @@ public class CSARUtil {
                 throw new RuntimeException("Parsing of csar failed");
             }
         }
+        log.info("Uploaded csar {}", path);
     }
 
     public void uploadNormativeTypes() throws Exception {
@@ -103,6 +105,10 @@ public class CSARUtil {
         uploadCSAR(Paths.get("./src/test/resources/components/artifact-test"));
     }
 
+    public void uploadCustomFS() throws Exception {
+        uploadCSAR(Paths.get("./src/test/resources/components/support-hss"));
+    }
+
     public void uploadAll() throws Exception {
         repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_SAMPLES, "orchestrator-refactoring", SAMPLES_TYPES_NAME);
         repositoryManager.cloneOrCheckout(ARTIFACTS_DIRECTORY, URL_FOR_NORMATIVES, "1.0.0.wd06.alien", TOSCA_NORMATIVE_TYPES_NAME);
@@ -114,6 +120,7 @@ public class CSARUtil {
         uploadMySqlTypes();
         uploadPHPTypes();
         uploadWordpress();
-//        uploadArtifactTest();
+        uploadArtifactTest();
+        uploadCustomFS();
     }
 }

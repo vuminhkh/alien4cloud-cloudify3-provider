@@ -9,9 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Component;
 
-import alien4cloud.paas.cloudify3.restclient.VersionClient;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.model.Version;
+import alien4cloud.paas.cloudify3.restclient.VersionClient;
 import alien4cloud.paas.exception.PluginConfigurationException;
 
 import com.google.common.collect.Lists;
@@ -46,8 +46,12 @@ public class CloudConfigurationHolder {
         }
     }
 
-    public synchronized void setConfiguration(CloudConfiguration configuration) throws PluginConfigurationException {
+    public void setConfiguration(CloudConfiguration configuration) {
         this.configuration = configuration;
+    }
+
+    public synchronized void setConfigurationAndNotifyListeners(CloudConfiguration configuration) throws PluginConfigurationException {
+        this.setConfiguration(configuration);
         try {
             for (ICloudConfigurationChangeListener listener : listeners) {
                 listener.onConfigurationChange(configuration);

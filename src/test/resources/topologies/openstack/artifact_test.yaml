@@ -5,20 +5,28 @@ template_version: 0.1.0-SNAPSHOT
 template_author: admin
 
 imports:
-  - tosca-normative-types:1.0.0.wd03-SNAPSHOT
+  - tosca-normative-types:1.0.0.wd06-SNAPSHOT
   - alien-base-types:1.0-SNAPSHOT
   - tomcat-war-types:2.0.0-SNAPSHOT
   - artifact-test-types:1.0.0-SNAPSHOT
+  - cloudify3-common-types:1.1.0-SNAPSHOT
+  - openstack-types:1.1.0-SNAPSHOT
 
 topology_template:
 
   node_templates:
 
     NetPub:
-      type: tosca.nodes.Network
+      type: alien.nodes.openstack.PublicNetwork
+      properties:
+        floatingip:
+          floating_network_name: net-pub
 
     Java:
       type: alien.nodes.Java
+      properties:
+        java_url: "http://download.oracle.com/otn-pub/java/jdk/7u75-b13/jdk-7u75-linux-x64.tar.gz"
+        java_home: "/opt/java"
       requirements:
         - host: Server
 
@@ -34,6 +42,10 @@ topology_template:
 
     Tomcat:
       type: alien.nodes.Tomcat
+      properties:
+        tomcat_port: "80"
+        tomcat_home: "/opt/tomcat"
+        tomcat_url: "http://mirrors.ircam.fr/pub/apache/tomcat/tomcat-8/v8.0.29/bin/apache-tomcat-8.0.29.tar.gz"
       requirements:
         - host: Server
         - java:
@@ -42,11 +54,10 @@ topology_template:
             relationship: alien.relationships.RunOnJVM
 
     Server:
-      type: tosca.nodes.Compute
-      name: Server
+      type: alien.nodes.openstack.Compute
       properties:
-        os_arch: x86_64
-        os_type: linux
+        image: 02ddfcbb-9534-44d7-974d-5cfd36dfbcab
+        flavor: 2
       requirements:
         - network:
             node: NetPub

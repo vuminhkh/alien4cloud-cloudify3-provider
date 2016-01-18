@@ -61,13 +61,9 @@ public class OperationWrapper extends Operation {
     @Override
     public Map<String, IValue> getInputParameters() {
         if (delegate.getInputParameters() == null) {
-            return Maps.newHashMap();
+            return Maps.newLinkedHashMap();
         }
-        Map<String, IValue> inputs = Maps.newHashMap(delegate.getInputParameters());
-        for (Map.Entry<String, IValue> input : inputs.entrySet()) {
-            input.setValue(propertyEvaluatorService.process(input.getValue(), owner, allNodes));
-        }
-        return inputs;
+        return Maps.newLinkedHashMap(delegate.getInputParameters());
     }
 
     public Set<OperationOutput> getOutputs() {

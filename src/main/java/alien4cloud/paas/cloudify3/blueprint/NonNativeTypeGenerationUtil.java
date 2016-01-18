@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.exception.InvalidArgumentException;
+import alien4cloud.model.components.AbstractPropertyValue;
 import alien4cloud.model.components.ConcatPropertyValue;
 import alien4cloud.model.components.DeploymentArtifact;
 import alien4cloud.model.components.FunctionPropertyValue;
@@ -37,6 +38,7 @@ import alien4cloud.paas.model.PaaSNodeTemplate;
 import alien4cloud.paas.model.PaaSRelationshipTemplate;
 import alien4cloud.paas.plan.ToscaNodeLifecycleConstants;
 import alien4cloud.paas.plan.ToscaRelationshipLifecycleConstants;
+import alien4cloud.topology.TopologyUtils;
 import alien4cloud.tosca.ToscaUtils;
 import alien4cloud.tosca.normative.ToscaFunctionConstants;
 import alien4cloud.utils.FileUtil;
@@ -48,7 +50,7 @@ import com.google.common.collect.Maps;
 public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     public NonNativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
-                                       PropertyEvaluatorService propertyEvaluatorService) {
+            PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
     }
 
@@ -73,110 +75,19 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
     }
 
     public Map<String, Interface> filterRelationshipSourceInterfaces(Map<String, Interface> interfaces) {
-        return filterRelationshipInterfaces(interfaces, true);
+        return TopologyUtils.filterInterfaces(interfaces, mappingConfiguration.getRelationships().getLifeCycle().getSource().keySet());
     }
 
     public Map<String, Interface> filterRelationshipTargetInterfaces(Map<String, Interface> interfaces) {
-        return filterRelationshipInterfaces(interfaces, false);
-    }
-
-    private Map<String, Interface> filterRelationshipInterfaces(Map<String, Interface> interfaces, boolean isSource) {
-        Map<String, Interface> relationshipInterfaces = Maps.newHashMap();
-        for (Map.Entry<String, Interface> interfaceEntry : interfaces.entrySet()) {
-            Map<String, Operation> operations = Maps.newHashMap();
-            Map<String, String> relationshipSourceMapping = mappingConfiguration.getRelationships().getLifeCycle().getSource();
-            Map<String, String> relationshipTargetMapping = mappingConfiguration.getRelationships().getLifeCycle().getTarget();
-            for (Map.Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
-                if (!relationshipSourceMapping.containsKey(operationEntry.getKey()) && !relationshipTargetMapping.containsKey(operationEntry.getKey())) {
-                    log.warn("Operation {} on relationship is not managed", operationEntry.getKey());
-                    continue;
-                }
-                if (isSource) {
-                    if (relationshipSourceMapping.containsKey(operationEntry.getKey())) {
-                        operations.put(operationEntry.getKey(), operationEntry.getValue());
-                    }
-                } else {
-                    if (relationshipTargetMapping.containsKey(operationEntry.getKey())) {
-                        operations.put(operationEntry.getKey(), operationEntry.getValue());
-                    }
-                }
-            }
-            if (!operations.isEmpty()) {
-                Interface inter = new Interface();
-                inter.setDescription(interfaceEntry.getValue().getDescription());
-                inter.setOperations(operations);
-                relationshipInterfaces.put(interfaceEntry.getKey(), inter);
-            }
-        }
-        return relationshipInterfaces;
-    }
-
-    public boolean operationHasInputParameters(Operation operation) {
-        Map<String, IValue> inputParameters = operation.getInputParameters();
-        return inputParameters != null && !inputParameters.isEmpty();
-    }
-
-    public boolean operationHasInputParameters(String interfaceName, Operation operation) {
-        return isStandardLifecycleInterface(interfaceName) && operationHasInputParameters(operation);
+        return TopologyUtils.filterInterfaces(interfaces, mappingConfiguration.getRelationships().getLifeCycle().getTarget().keySet());
     }
 
     public Map<String, Interface> getNodeInterfaces(PaaSNodeTemplate node) {
-        return getInterfaces(node.getIndexedToscaElement().getInterfaces());
+        return TopologyUtils.filterAbstractInterfaces(node.getNodeTemplate().getInterfaces());
     }
 
     public Map<String, Interface> getRelationshipInterfaces(PaaSRelationshipTemplate relationship) {
-        return getInterfaces(relationship.getIndexedToscaElement().getInterfaces());
-    }
-
-    /**
-     * Extract interfaces that have implemented operations
-     *
-     * @param allInterfaces all interfaces
-     * @return interfaces that have implemented operations
-     */
-    private Map<String, Interface> getInterfaces(Map<String, Interface> allInterfaces) {
-        Map<String, Interface> interfaces = Maps.newHashMap();
-        for (Map.Entry<String, Interface> interfaceEntry : allInterfaces.entrySet()) {
-            Map<String, Operation> operations = Maps.newHashMap();
-            for (Map.Entry<String, Operation> operationEntry : interfaceEntry.getValue().getOperations().entrySet()) {
-                if (operationEntry.getValue().getImplementationArtifact() == null) {
-                    // Don't consider operation which do not have any implementation artifact
-                    continue;
-                }
-                operations.put(operationEntry.getKey(), operationEntry.getValue());
-            }
-            if (!operations.isEmpty()) {
-                // At least one operation fulfill the criteria
-                Interface inter = new Interface();
-                inter.setDescription(interfaceEntry.getValue().getDescription());
-                inter.setOperations(operations);
-                interfaces.put(interfaceEntry.getKey(), inter);
-            }
-        }
-        return interfaces;
-    }
-
-    private String resolveKeyWordInNodeFunction(PaaSNodeTemplate node, FunctionPropertyValue functionPropertyValue) {
-        String nodeName = functionPropertyValue.getTemplateName();
-        if (ToscaFunctionConstants.HOST.equals(nodeName)) {
-            // Resolve HOST
-            PaaSNodeTemplate host = node.getParent() != null ? node.getParent() : node;
-            nodeName = host.getId();
-        } else if (ToscaFunctionConstants.SELF.equals(nodeName)) {
-            nodeName = node.getId();
-        }
-        return nodeName;
-    }
-
-    private String resolveKeyWordInRelationshipFunction(PaaSRelationshipTemplate relationship, FunctionPropertyValue functionPropertyValue) {
-        String nodeName = functionPropertyValue.getTemplateName();
-        // SOURCE and TARGET
-        if (ToscaFunctionConstants.SOURCE.equals(nodeName)) {
-            nodeName = relationship.getSource();
-        } else if (ToscaFunctionConstants.TARGET.equals(nodeName)) {
-            nodeName = relationship.getRelationshipTemplate().getTarget();
-        }
-        return nodeName;
+        return TopologyUtils.filterAbstractInterfaces(relationship.getRelationshipTemplate().getInterfaces());
     }
 
     public Map<String, IValue> getNodeAttributes(PaaSNodeTemplate nodeTemplate) {
@@ -184,16 +95,14 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
             // Do not try to publish attributes for non native nodes
             return null;
         }
-        if (MapUtils.isEmpty(nodeTemplate.getIndexedToscaElement().getAttributes())) {
+        if (MapUtils.isEmpty(nodeTemplate.getNodeTemplate().getAttributes())) {
             return null;
         }
-        Map<String, IValue> attributesThatCanBeSet = Maps.newHashMap();
-        for (Map.Entry<String, IValue> attributeEntry : nodeTemplate.getIndexedToscaElement().getAttributes().entrySet()) {
-            if (attributeEntry.getValue() instanceof ScalarPropertyValue || attributeEntry.getValue() instanceof FunctionPropertyValue
-                    || attributeEntry.getValue() instanceof ConcatPropertyValue) {
+        Map<String, IValue> attributesThatCanBeSet = Maps.newLinkedHashMap();
+        for (Map.Entry<String, IValue> attributeEntry : nodeTemplate.getNodeTemplate().getAttributes().entrySet()) {
+            if (attributeEntry.getValue() instanceof AbstractPropertyValue) {
                 // Replace all get_property with the static value in all attributes
-                attributesThatCanBeSet.put(attributeEntry.getKey(),
-                        propertyEvaluatorService.process(attributeEntry.getValue(), nodeTemplate, alienDeployment.getAllNodes()));
+                attributesThatCanBeSet.put(attributeEntry.getKey(), attributeEntry.getValue());
             }
         }
         return attributesThatCanBeSet;
@@ -279,17 +188,17 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
                 // Function case
                 FunctionPropertyValue functionPropertyValue = (FunctionPropertyValue) concatParam;
                 switch (functionPropertyValue.getFunction()) {
-                    case ToscaFunctionConstants.GET_ATTRIBUTE:
-                        pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
-                        break;
-                    case ToscaFunctionConstants.GET_PROPERTY:
-                        pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
-                        break;
-                    case ToscaFunctionConstants.GET_OPERATION_OUTPUT:
-                        pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
-                        break;
-                    default:
-                        throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not yet supported");
+                case ToscaFunctionConstants.GET_ATTRIBUTE:
+                    pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
+                    break;
+                case ToscaFunctionConstants.GET_PROPERTY:
+                    pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
+                    break;
+                case ToscaFunctionConstants.GET_OPERATION_OUTPUT:
+                    pythonCall.append(formatFunctionPropertyValue(context, owner, functionPropertyValue)).append(" + ");
+                    break;
+                default:
+                    throw new NotSupportedException("Function " + functionPropertyValue.getFunction() + " is not yet supported");
                 }
             } else {
                 throw new NotSupportedException("Do not support nested concat in a concat, please simplify your usage");
@@ -358,8 +267,7 @@ public class NonNativeTypeGenerationUtil extends AbstractGenerationUtil {
                     + functionPropertyValue.getElementNameToFetch() + "')";
         } else if (ToscaFunctionConstants.GET_PROPERTY.equals(functionPropertyValue.getFunction())) {
             return "get_property(ctx." + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '"
-                    + functionPropertyValue.getElementNameToFetch()
-                    + "')";
+                    + functionPropertyValue.getElementNameToFetch() + "')";
         } else if (ToscaFunctionConstants.GET_OPERATION_OUTPUT.equals(functionPropertyValue.getFunction())) {
             return "get_attribute(ctx" + functionPropertyValue.getTemplateName().toLowerCase() + context + ", '_a4c_OO:"
                     + functionPropertyValue.getInterfaceName() + ':' + functionPropertyValue.getOperationName() + ":"

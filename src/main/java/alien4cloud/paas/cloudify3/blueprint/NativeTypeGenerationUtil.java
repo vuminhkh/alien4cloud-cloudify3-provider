@@ -27,6 +27,7 @@ import com.google.common.collect.Maps;
 public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
 
     public static final String MAPPED_TO_KEY = "_a4c_c3_derived_from";
+
     public NativeTypeGenerationUtil(MappingConfiguration mappingConfiguration, CloudifyDeployment alienDeployment, Path recipePath,
             PropertyEvaluatorService propertyEvaluatorService) {
         super(mappingConfiguration, alienDeployment, recipePath, propertyEvaluatorService);
@@ -198,7 +199,7 @@ public class NativeTypeGenerationUtil extends AbstractGenerationUtil {
     }
 
     public Map<String, FunctionPropertyValue> getAttributesMapping(Map<String, IValue> attributes) {
-        Map<String, FunctionPropertyValue> functions = Maps.newHashMap();
+        Map<String, FunctionPropertyValue> functions = Maps.newLinkedHashMap();
         for (Map.Entry<String, IValue> attributeEntry : attributes.entrySet()) {
             if (attributeEntry.getValue() instanceof FunctionPropertyValue) {
                 functions.put(attributeEntry.getKey(), (FunctionPropertyValue) attributeEntry.getValue());

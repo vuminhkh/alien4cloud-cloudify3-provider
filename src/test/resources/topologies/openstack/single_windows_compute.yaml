@@ -17,3 +17,5 @@ topology_template:
         flavor: 3
         user: Admin
         key_pair: a4c-manager
+        cloudify_agent:
+          wait_started_timeout: 3600

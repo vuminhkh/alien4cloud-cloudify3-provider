@@ -45,7 +45,7 @@ public class PropertiesMappingUtil {
         };
 
         // <nodeType, <toscaPath, cloudifyPath>>>
-        Map<String, Map<String, IPropertyMapping>> propertyMappingsByTypes = Maps.newHashMap();
+        Map<String, Map<String, IPropertyMapping>> propertyMappingsByTypes = Maps.newLinkedHashMap();
         for (IndexedNodeType nodeType : nodeTypes) {
             deeplyLoadPropertyMapping(PROP_MAPPING_TAG_KEY, propertyMappingsByTypes, nodeType, topologyContext);
         }
@@ -102,7 +102,7 @@ public class PropertiesMappingUtil {
                     if (propertyMappingsByTypes.containsKey(dataType.getElementId())) {
                         Map<String, IPropertyMapping> typeMappings = propertyMappingsByTypes.get(inheritableToscaElement.getElementId());
                         if (typeMappings == null) {
-                            typeMappings = Maps.newHashMap();
+                            typeMappings = Maps.newLinkedHashMap();
                             propertyMappingsByTypes.put(inheritableToscaElement.getElementId(), typeMappings);
                         }
                         typeMappings.put(definitionEntry.getKey(), mapping);
@@ -132,19 +132,19 @@ public class PropertiesMappingUtil {
         };
         String mappingStr = TagUtil.getTagValue(toscaElement.getTags(), fromTagName);
         if (mappingStr == null) {
-            return Maps.newHashMap();
+            return Maps.newLinkedHashMap();
         }
         try {
             Map<String, Object> mappingsDef = mapper.readValue(mappingStr, typeRef);
             return fromFullPathMap(mappingsDef, toscaElement);
         } catch (IOException e) {
             log.error("Failed to load property mapping for tosca element " + toscaElement.getElementId() + ", will be ignored", e);
-            return Maps.newHashMap();
+            return Maps.newLinkedHashMap();
         }
     }
 
     private static Map<String, IPropertyMapping> fromFullPathMap(Map<String, Object> parsedMappings, IndexedInheritableToscaElement toscaElement) {
-        Map<String, IPropertyMapping> propertyMappings = Maps.newHashMap();
+        Map<String, IPropertyMapping> propertyMappings = Maps.newLinkedHashMap();
 
         for (Map.Entry<String, Object> parsedMapping : parsedMappings.entrySet()) {
             String[] key = asPropAndSubPath(parsedMapping.getKey());

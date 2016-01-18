@@ -38,6 +38,15 @@ def _get_all_nodes_instances(ctx):
     return node_instances
 
 
+def _get_node_instance(ctx, node_id, instance_id):
+    for node in ctx.nodes:
+        if node.id == node_id:
+            for instance in node.instances:
+                if instance.id == instance_id:
+                    return instance
+    return None
+
+
 def _get_all_nodes_instances_from_nodes(nodes):
     node_instances = set()
     for node in nodes:
@@ -141,6 +150,66 @@ def count_relationships(instance):
         relationship_count += 1
     return relationship_count
 
+
+def should_call_relationship_op(ctx, relation_ship_instance):
+    result = False
+    source_host_instance = __get_host(ctx, relation_ship_instance.node_instance)
+    target_host_instance = __get_host(ctx, relation_ship_instance.target_node_instance)
+    if source_host_instance.id == target_host_instance.id:
+        # source and target are on the same instance > so the relation is considered
+        result = True
+    elif source_host_instance.node_id != target_host_instance.node_id:
+        # source and target are not on the same node > so the relation is considered
+        result = True
+    # source and target are on the same node but different instance (cross relationship are forbidden)
+    else:
+        result = False
+    ctx.internal.send_workflow_event(
+            event_type='other',
+            message="Filtering cross relationship src: instance id {0}, host ins id: {1}, host node id: {2} tgt instance id {3}, host ins id: {4}, host node id: {5}, result is {6}".format(
+                    relation_ship_instance.node_instance.id,
+                    source_host_instance.id,
+                    source_host_instance.node_id,
+                    relation_ship_instance.target_node_instance.id,
+                    target_host_instance.id,
+                    target_host_instance.node_id,
+                    result
+            ))
+    return result
+
+
+# Find the host for this instance. When the instance comes from a modification context
+# the relationships are partial (only the relationships concerned by the modification are
+# returned for old instances concerned by the modification), that's why we sometimes look for host in the context.
+def __get_host(ctx, instance):
+    host = __recursively_get_host(instance)
+    if _is_host_node_instance(host):
+        return host
+    else:
+        # the host instance can not be detected in this partial context (modification related to scaling)
+        # so we we'll explore the host hierarchy from the context
+        # fisrt of all, we search for the instance in the context
+        instance_from_ctx = _get_node_instance(ctx, instance.node_id, instance.id)
+        if instance_from_ctx is None:
+            # the host is not a real one BUT the instance is a new instance coming from modification
+            # (can not be found from context)
+            return host
+        else:
+            return __recursively_get_host(instance_from_ctx)
+
+
+def __recursively_get_host(instance):
+    host = None
+    if instance.relationships:
+        for relationship in instance.relationships:
+            if relationship.relationship.is_derived_from('cloudify.relationships.contained_in'):
+                host = relationship.target_node_instance
+    if host is not None:
+        return __recursively_get_host(host)
+    else:
+        return instance
+
+
 def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname, step_id, custom_context):
     sequence = TaskSequenceWrapper(graph)
     sequence.add(build_wf_event_task(instance, step_id, "in"))
@@ -153,8 +222,10 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
         fork.add(instance.execute_operation('cloudify.interfaces.monitoring.start'))
         if relationship_count > 0:
             for relationship in instance.relationships:
-                fork.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.establish'))
-                fork.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.establish'))
+                # add a condition in order to test if it's a 1-1 rel
+                if should_call_relationship_op(ctx, relationship):
+                    fork.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.establish'))
+                    fork.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.establish'))
         sequence.add(
             instance.send_event("Start monitoring on node '{0}' instance '{1}'".format(node_id, instance.id)),
             forkjoin_sequence(graph, fork, instance, "establish")
@@ -164,19 +235,27 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
         if relationship_count > 0 or len(as_target_relationships) > 0:
             preconfigure_tasks = ForkjoinWrapper(graph)
             for relationship in instance.relationships:
-                preconfigure_tasks.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.preconfigure'))
+                # add a condition in order to test if it's a 1-1 rel
+                if should_call_relationship_op(ctx, relationship):
+                    preconfigure_tasks.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.preconfigure'))
             for relationship in as_target_relationships:
-                preconfigure_tasks.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.preconfigure'))
+                # add a condition in order to test if it's a 1-1 rel
+                if should_call_relationship_op(ctx, relationship):
+                    preconfigure_tasks.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.preconfigure'))
             sequence.add(forkjoin_sequence(graph, preconfigure_tasks, instance, "preconf for {0}".format(instance.id)))
         sequence.add(instance.execute_operation(operation_fqname))
         if relationship_count > 0 or len(as_target_relationships) > 0:
             postconfigure_tasks = ForkjoinWrapper(graph)
             for relationship in instance.relationships:
-                postconfigure_tasks.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.postconfigure'))
+                # add a condition in order to test if it's a 1-1 rel
+                if should_call_relationship_op(ctx, relationship):
+                    postconfigure_tasks.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.postconfigure'))
             for relationship in as_target_relationships:
-                task = relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.postconfigure')
-                _set_send_node_event_on_error_handler(task, instance, "Error occurred while postconfiguring node as target for relationship {0} - ignoring...".format(relationship))
-                postconfigure_tasks.add(task)
+                # add a condition in order to test if it's a 1-1 rel
+                if should_call_relationship_op(ctx, relationship):
+                    task = relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.postconfigure')
+                    _set_send_node_event_on_error_handler(task, instance, "Error occurred while postconfiguring node as target for relationship {0} - ignoring...".format(relationship))
+                    postconfigure_tasks.add(task)
             msg = "postconf for {0}".format(instance.id)
             sequence.add(forkjoin_sequence(graph, postconfigure_tasks, instance, msg))
 
@@ -195,12 +274,14 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
         if relationship_count > 0:
             fork = ForkjoinWrapper(graph)
             for relationship in instance.relationships:
-                unlink_task_source = relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.unlink')
-                _set_send_node_event_on_error_handler(unlink_task_source, instance, "Error occurred while unlinking node from target {0} - ignoring...".format(relationship.target_id))
-                fork.add(unlink_task_source)
-                unlink_task_target = relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.unlink')
-                _set_send_node_event_on_error_handler(unlink_task_target, instance, "Error occurred while unlinking node from target {0} - ignoring...".format(relationship.target_id))
-                fork.add(unlink_task_target)
+                # add a condition in order to test if it's a 1-1 rel
+                if should_call_relationship_op(ctx, relationship):
+                    unlink_task_source = relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.unlink')
+                    _set_send_node_event_on_error_handler(unlink_task_source, instance, "Error occurred while unlinking node from target {0} - ignoring...".format(relationship.target_id))
+                    fork.add(unlink_task_source)
+                    unlink_task_target = relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.unlink')
+                    _set_send_node_event_on_error_handler(unlink_task_target, instance, "Error occurred while unlinking node from target {0} - ignoring...".format(relationship.target_id))
+                    fork.add(unlink_task_target)
             sequence.add(forkjoin_sequence(graph, fork, instance, "unlink"))
     elif operation_fqname == 'cloudify.interfaces.lifecycle.delete':
         task = instance.execute_operation(operation_fqname)

@@ -63,6 +63,6 @@
     </bean>
 
     <bean id="alien-plugin-context" class="alien4cloud.plugin.model.ManagedPlugin">
-        <constructor-arg value="src/main/resources"/>
+        <constructor-arg value="target/alien/plugin"/>
     </bean>
 </beans>

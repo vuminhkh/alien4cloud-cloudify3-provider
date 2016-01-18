@@ -12,17 +12,22 @@ import alien4cloud.utils.FileUtil;
 
 public class FileTestUtil {
 
-    public static void assertFilesAreSame(final Path expected, final Path actual) throws IOException {
+    public static void assertFilesAreSame(final Path expected, final Path actual, final String... ignoredPatterns) throws IOException {
         Files.walkFileTree(expected, new SimpleFileVisitor<Path>() {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                for (String ignoredPattern : ignoredPatterns) {
+                    if (file.toString().matches(ignoredPattern)) {
+                        return FileVisitResult.CONTINUE;
+                    }
+                }
                 String fileRelativePath = FileUtil.relativizePath(expected, file);
                 Path destFile = actual.resolve(fileRelativePath);
                 FileAssert.assertEquals(fileRelativePath + " should be same than recorded one", file.toFile(), destFile.toFile());
                 return FileVisitResult.CONTINUE;
             }
-        
+
         });
     }
 

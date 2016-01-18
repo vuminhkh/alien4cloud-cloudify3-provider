@@ -8,7 +8,7 @@ imports:
   - tosca-normative-types:1.0.0.wd06-SNAPSHOT
   - openstack-types:1.1.0-SNAPSHOT
   - alien-extended-storage-types:1.1.0-SNAPSHOT
-# - mysql-type:2.0.0-SNAPSHOT
+  - cloudify3-common-types:1.1.0-SNAPSHOT
 
 topology_template:
 
@@ -47,21 +47,7 @@ topology_template:
       requirements:
         - host:
             node: Compute
-            capability: tosca.capabilities.Container
             relationship: tosca.relationships.HostedOn
         - partition:
             node: BlockStorage
-            capability: tosca.capabilities.Node
             relationship: alien.relationships.LinuxPartition
-
-#    Mysql:
-#      type: alien.nodes.Mysql
-#      properties:
-#        bind_address: true
-#        storage_path: /var/mysql
-#        db_port: 3306
-#        db_name: wordpress
-#        db_user: pass
-#        db_password: pass
-#      requirements:
-#        - host: Compute
