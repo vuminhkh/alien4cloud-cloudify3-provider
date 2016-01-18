@@ -29,6 +29,9 @@
       resource_id: ${compute.nodeTemplate.properties.get("key_pair").value}
       use_external_resource: true
       private_key_path: ${compute.nodeTemplate.properties.get("private_key_path").value}
+#else
+    interfaces:
+#parse("provider/common/monitoring_interfaces.yaml.vm")
 #end
 #foreach($externalNetwork in $publicNetworks)
   ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}:

@@ -6,6 +6,9 @@ import javax.annotation.Resource;
 
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.SettableFuture;
+
 import alien4cloud.common.AlienConstants;
 import alien4cloud.it.Context;
 import alien4cloud.model.deployment.DeploymentTopology;
@@ -22,9 +25,6 @@ import alien4cloud.paas.plan.TopologyTreeBuilderService;
 import alien4cloud.paas.wf.WorkflowsBuilderService;
 import alien4cloud.paas.wf.WorkflowsBuilderService.TopologyContext;
 import alien4cloud.utils.ReflectionUtil;
-
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.SettableFuture;
 
 @Component
 public class DeploymentLauncher {
@@ -66,6 +66,11 @@ public class DeploymentLauncher {
     }
 
     public PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName, String locationName) {
+        return buildPaaSDeploymentContext(appName, topologyName, locationName, null);
+    }
+
+    public PaaSTopologyDeploymentContext buildPaaSDeploymentContext(String appName, String topologyName, String locationName,
+            Map<String, String> deploymentProperties) {
         Topology topology = applicationUtil.createAlienApplication(appName, topologyName, locationName);
         // init the workflows
         TopologyContext topologyContext = workflowBuilderService.buildTopologyContext(topology);
@@ -84,6 +89,8 @@ public class DeploymentLauncher {
         location.setInfrastructureType(locationName);
         locationMap.put(AlienConstants.GROUP_ALL, location);
         deploymentContext.setLocations(locationMap);
+
+        deploymentTopology.setProviderDeploymentProperties(deploymentProperties);
         return deploymentContext;
     }
 
@@ -106,9 +113,13 @@ public class DeploymentLauncher {
     }
 
     public String launch(String topologyName) throws Exception {
+        return launch(topologyName, null);
+    }
+
+    public String launch(String topologyName, Map<String, String> deploymentProperties) throws Exception {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
         String deploymentId = stackTraceElements[2].getMethodName();
-        launch(buildPaaSDeploymentContext(deploymentId, topologyName, "openstack"));
+        launch(buildPaaSDeploymentContext(deploymentId, topologyName, "amazon", deploymentProperties));
         return deploymentId;
     }
 
