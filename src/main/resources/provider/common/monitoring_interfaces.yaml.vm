@@ -1,3 +1,4 @@
+#if(!$computeIsWindows)
     interfaces:
       cloudify.interfaces.monitoring_agent:
         install:
@@ -20,3 +21,4 @@
                  config:
                    devices: x?vd[a-z]+[0-9]*$
                NetworkCollector: {}
+#end

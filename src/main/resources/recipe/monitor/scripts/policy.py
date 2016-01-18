@@ -85,7 +85,7 @@ def main(argv):
 
     nodes_to_monitor=json.loads(argv[1].replace("'", '"'))
     print ('Monitoring is desactivated : doing nothing')
-    #check_liveness(nodes_to_monitor, depl_id)
+    check_liveness(nodes_to_monitor, depl_id)
 
 if __name__ == '__main__':
     main(sys.argv)
