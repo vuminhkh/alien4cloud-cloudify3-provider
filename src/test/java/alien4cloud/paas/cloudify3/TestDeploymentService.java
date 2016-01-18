@@ -1,20 +1,23 @@
 package alien4cloud.paas.cloudify3;
 
+import java.util.Map;
+
 import javax.annotation.Resource;
 
-import lombok.extern.slf4j.Slf4j;
-
-import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Maps;
+
+import alien4cloud.paas.cloudify3.model.DeploymentPropertiesNames;
 import alien4cloud.paas.cloudify3.util.DeploymentLauncher;
+import lombok.extern.slf4j.Slf4j;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:test-context.xml")
 @Slf4j
-@Ignore
+// @Ignore
 /**
  * This is not a test, it's more an utility class to rapidly bring up a deployment
  */
@@ -30,7 +33,9 @@ public class TestDeploymentService extends AbstractTest {
 
     @org.junit.Test
     public void deployLamp() throws Exception {
-        deploymentLauncher.launch(LAMP_TOPOLOGY);
+        Map<String, String> deploymentProps = Maps.newHashMap();
+        deploymentProps.put(DeploymentPropertiesNames.AUTO_HEAL, "true");
+        deploymentLauncher.launch(LAMP_TOPOLOGY, deploymentProps);
     }
 
     @org.junit.Test

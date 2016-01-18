@@ -34,6 +34,9 @@
 #end
 #if($computeIsWindows)
 #parse("provider/openstack/computes/compute_node_win.yaml.vm")
+#else
+    interfaces:
+#parse("provider/common/monitoring_interfaces.yaml.vm")
 #end
 #foreach($externalNetwork in $publicNetworks)
   ${mapping.generatedNodePrefix}_floating_ip_${compute.id}_on_${externalNetwork.id}:
