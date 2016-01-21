@@ -1,8 +1,0 @@
-imports: []
-native_types:
-  compute_type: cloudify.nodes.Compute
-
-attributes:
-  compute:
-    ip_address: ip
-    public_ip_address: ip

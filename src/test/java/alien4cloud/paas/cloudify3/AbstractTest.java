@@ -11,16 +11,17 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.google.common.collect.Lists;
+
 import alien4cloud.orchestrators.plugin.model.PluginArchive;
 import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.location.AmazonLocationConfigurator;
+import alien4cloud.paas.cloudify3.location.ByonLocationConfigurator;
 import alien4cloud.paas.cloudify3.location.OpenstackLocationConfigurator;
 import alien4cloud.paas.cloudify3.util.CSARUtil;
 import alien4cloud.tosca.ArchiveIndexer;
 import alien4cloud.tosca.parser.ParsingError;
 import alien4cloud.utils.FileUtil;
-
-import com.google.common.collect.Lists;
 
 public class AbstractTest {
 
@@ -61,6 +62,9 @@ public class AbstractTest {
     private AmazonLocationConfigurator amazonLocationConfigurator;
 
     @Resource
+    private ByonLocationConfigurator byonLocationConfigurator;
+
+    @Resource
     private ArchiveIndexer archiveIndexer;
 
     @Resource
@@ -97,6 +101,11 @@ public class AbstractTest {
             archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
         }
         for (PluginArchive pluginArchive : amazonLocationConfigurator.pluginArchives()) {
+            // index the archive in alien catalog
+            archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
+        }
+
+        for (PluginArchive pluginArchive : byonLocationConfigurator.pluginArchives()) {
             // index the archive in alien catalog
             archiveIndexer.importArchive(pluginArchive.getArchive(), pluginArchive.getArchiveFilePath(), parsingErrors);
         }

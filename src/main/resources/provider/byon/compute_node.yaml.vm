@@ -1,19 +1,24 @@
-## Compute nodes
-#foreach($matchedPaaSCompute in ${deployment.computes})
-  ${matchedPaaSCompute.paaSNodeTemplate.id}:
-    type: ${util.compute.tryToMapComputeType($matchedPaaSCompute.paaSNodeTemplate.indexedToscaElement, "${mapping.generatedTypePrefix}.Compute")}
-    properties:
-#if(${matchedPaaSCompute.paaSComputeTemplate.userData.user})
-      ip: ${matchedPaaSCompute.paaSComputeTemplate.userData.ip}
+#parse("provider/common/generic_resource.yaml.vm")
+#foreach($compute in ${deployment.computes})
+  ${compute.id}:
+    type: ${compute.nodeTemplate.type}
+    properties: ${util.natives.formatProperties(3, $compute.nodeTemplate.properties, $deployment.propertyMappings.get($compute.nodeTemplate.type))}
+#if(${compute.scalingPolicy})
+    instances:
+#if(${compute.scalingPolicy.initialInstances})
+      deploy: ${compute.scalingPolicy.initialInstances}
+#else
+      deploy: 1
 #end
-      cloudify_agent:
-#if(${matchedPaaSCompute.paaSComputeTemplate.userData.user})
-        user: ${matchedPaaSCompute.paaSComputeTemplate.userData.user}
 #end
-#if(${matchedPaaSCompute.paaSComputeTemplate.userData.key})
-        key: ${matchedPaaSCompute.paaSComputeTemplate.userData.key}
-#end
-#if(${matchedPaaSCompute.paaSComputeTemplate.userData.key})
-        password: ${matchedPaaSCompute.paaSComputeTemplate.userData.password}
-#end
+
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          inputs:
+            service_url: ${util.common.getScalarPropertyValue($compute.nodeTemplate, "host_pool_service_endpoint")}
+        delete:
+          inputs:
+            service_url: ${util.common.getScalarPropertyValue($compute.nodeTemplate, "host_pool_service_endpoint")}
+##parse("provider/common/monitoring_interfaces.yaml.vm")
 #end

@@ -10,4 +10,6 @@ public class LocationConfigurations {
     private LocationConfiguration openstack;
 
     private LocationConfiguration amazon;
+
+    private LocationConfiguration byon;
 }

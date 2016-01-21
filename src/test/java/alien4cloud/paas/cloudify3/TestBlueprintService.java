@@ -1,25 +1,5 @@
 package alien4cloud.paas.cloudify3;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Set;
-
-import javax.annotation.Resource;
-
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
 import alien4cloud.component.repository.ArtifactLocalRepository;
 import alien4cloud.component.repository.ArtifactRepositoryConstants;
 import alien4cloud.model.components.DeploymentArtifact;
@@ -32,9 +12,24 @@ import alien4cloud.paas.cloudify3.util.DeploymentLauncher;
 import alien4cloud.paas.cloudify3.util.FileTestUtil;
 import alien4cloud.paas.model.PaaSTopologyDeploymentContext;
 import alien4cloud.utils.FileUtil;
-
 import com.google.common.collect.Sets;
 import com.google.common.io.Closeables;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Set;
+import javax.annotation.Resource;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @Slf4j
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -77,6 +72,7 @@ public class TestBlueprintService extends AbstractTest {
     static {
         LOCATIONS.add("openstack");
         LOCATIONS.add("amazon");
+        LOCATIONS.add("byon");
     }
 
     @Override

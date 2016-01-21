@@ -48,18 +48,27 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
         CloudConfiguration cloudConfiguration = new CloudConfiguration();
         cloudConfiguration.setUrl("http://yourManagerIP");
         LocationConfigurations locationConfigurations = new LocationConfigurations();
+
         LocationConfiguration amazon = new LocationConfiguration();
         amazon.setImports(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
                 "http://www.getcloudify.org/spec/aws-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml",
                 "http://www.getcloudify.org/spec/diamond-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
         amazon.setDsl("cloudify_dsl_1_2");
+        locationConfigurations.setAmazon(amazon);
+
         LocationConfiguration openstack = new LocationConfiguration();
         openstack.setImports(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
                 "http://www.getcloudify.org/spec/openstack-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml",
                 "http://www.getcloudify.org/spec/diamond-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
         openstack.setDsl("cloudify_dsl_1_2");
-        locationConfigurations.setAmazon(amazon);
         locationConfigurations.setOpenstack(openstack);
+
+        LocationConfiguration byon = new LocationConfiguration();
+        byon.setImports(Lists.newArrayList("http://www.getcloudify.org/spec/cloudify/" + CFY_VERSION + "/types.yaml",
+                "http://www.getcloudify.org/spec/host-pool-plugin/" + CFY_SCRIPT_VERSION + "/plugin.yaml"));
+        byon.setDsl("cloudify_dsl_1_2");
+        locationConfigurations.setByon(byon);
+
         cloudConfiguration.setLocations(locationConfigurations);
         return cloudConfiguration;
     }
@@ -101,7 +110,7 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
     @Override
     public LocationSupport getLocationSupport() {
         // TODO dynamically search in spring context for locations support
-        return new LocationSupport(false, new String[] { "openstack", "amazon" });
+        return new LocationSupport(false, new String[] { "openstack", "amazon", "byon" });
     }
 
     @Override
