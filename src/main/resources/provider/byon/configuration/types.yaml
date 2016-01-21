@@ -29,3 +29,8 @@ node_types:
     attributes:
       ip_address: { get_attribute: [SELF, ip] }
       public_ip_address: { get_attribute: [SELF, public_address] }
+
+  alien.cloudify.byon.nodes.WindowsCompute:
+    derived_from: alien.cloudify.byon.nodes.Compute
+    tags:
+      _a4c_c3_derived_from: cloudify.hostpool.nodes.WindowsHost
