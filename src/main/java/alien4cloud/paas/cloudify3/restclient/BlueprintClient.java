@@ -37,7 +37,7 @@ public class BlueprintClient extends AbstractClient {
         if (log.isDebugEnabled()) {
             log.debug("List blueprint");
         }
-        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl(), Blueprint[].class));
+        return FutureUtil.unwrapRestResponse(getForEntity(getBaseUrl(), Blueprint[].class));
     }
 
     @SneakyThrows
@@ -61,9 +61,8 @@ public class BlueprintClient extends AbstractClient {
         try {
             MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
             headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
-            ListenableFuture<Blueprint> response = FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getSuffixedUrl("/{id}", "application_file_name"),
-                    HttpMethod.PUT, new HttpEntity<>(Files.readAllBytes(destination.toPath()), headers), Blueprint.class, id, sourceName));
-            return response;
+            return FutureUtil.unwrapRestResponse(exchange(getSuffixedUrl("/{id}", "application_file_name"), HttpMethod.PUT,
+                    new HttpEntity<>(Files.readAllBytes(destination.toPath()), headers), Blueprint.class, id, sourceName));
         } finally {
             destination.delete();
         }
@@ -78,7 +77,7 @@ public class BlueprintClient extends AbstractClient {
         if (log.isDebugEnabled()) {
             log.debug("Read blueprint {}", id);
         }
-        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Blueprint.class, id));
+        return FutureUtil.unwrapRestResponse(getForEntity(getSuffixedUrl("/{id}"), Blueprint.class, id));
     }
 
     @SneakyThrows
@@ -90,7 +89,7 @@ public class BlueprintClient extends AbstractClient {
         if (log.isDebugEnabled()) {
             log.debug("Delete blueprint {}", id);
         }
-        return FutureUtil.toGuavaFuture(getRestTemplate().delete(getSuffixedUrl("/{id}"), id));
+        return FutureUtil.toGuavaFuture(delete(getSuffixedUrl("/{id}"), id));
     }
 
     @SneakyThrows

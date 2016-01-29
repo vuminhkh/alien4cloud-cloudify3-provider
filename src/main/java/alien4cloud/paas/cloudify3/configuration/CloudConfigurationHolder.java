@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 import alien4cloud.paas.cloudify3.model.Version;
 import alien4cloud.paas.cloudify3.restclient.VersionClient;
+import alien4cloud.paas.cloudify3.restclient.auth.AuthenticationInterceptor;
+import alien4cloud.paas.cloudify3.restclient.auth.SSLContextManager;
 import alien4cloud.paas.exception.PluginConfigurationException;
 
 import com.google.common.collect.Lists;
@@ -26,12 +28,22 @@ public class CloudConfigurationHolder {
     @Setter
     private VersionClient versionClient;
 
+    @Resource
+    @Setter
+    private AuthenticationInterceptor authenticationInterceptor;
+
+    @Resource
+    private SSLContextManager sslContextManager;
+
     private List<ICloudConfigurationChangeListener> listeners = Lists.newArrayList();
 
     public CloudConfigurationHolder() {
         this.registerListener(new ICloudConfigurationChangeListener() {
             @Override
             public void onConfigurationChange(CloudConfiguration newConfiguration) throws Exception {
+                authenticationInterceptor.setUserName(newConfiguration.getUserName());
+                authenticationInterceptor.setPassword(newConfiguration.getPassword());
+                sslContextManager.disableSslVerification(configuration.getDisableVerification() != null && configuration.getDisableVerification());
                 Version version = versionClient.read();
                 log.info("Configure PaaS provider for Cloudify version " + version.getVersion());
             }

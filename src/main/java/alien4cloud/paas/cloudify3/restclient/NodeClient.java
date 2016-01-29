@@ -29,9 +29,9 @@ public class NodeClient extends AbstractClient {
             throw new IllegalArgumentException("Deployment id must not be null or empty");
         }
         if (nodeId != null) {
-            return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl("deployment_id", "node_id"), Node[].class, deploymentId, nodeId));
+            return FutureUtil.unwrapRestResponse(getForEntity(getBaseUrl("deployment_id", "node_id"), Node[].class, deploymentId, nodeId));
         } else {
-            return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl("deployment_id"), Node[].class, deploymentId));
+            return FutureUtil.unwrapRestResponse(getForEntity(getBaseUrl("deployment_id"), Node[].class, deploymentId));
         }
     }
 

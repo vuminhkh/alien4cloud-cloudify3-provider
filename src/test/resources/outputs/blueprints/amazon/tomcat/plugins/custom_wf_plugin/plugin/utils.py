@@ -38,11 +38,12 @@ def _get_all_nodes_instances(ctx):
     return node_instances
 
 
-def _get_node_instance(ctx, instance_id):
+def _get_node_instance(ctx, node_id, instance_id):
     for node in ctx.nodes:
-        for instance in node.instances:
-            if instance.id == instance_id:
-                return instance
+        if node.id == node_id:
+            for instance in node.instances:
+                if instance.id == instance_id:
+                    return instance
     return None
 
 
@@ -187,8 +188,14 @@ def __get_host(ctx, instance):
     else:
         # the host instance can not be detected in this partial context (modification related to scaling)
         # so we we'll explore the host hierarchy from the context
-        instance_from_ctx = _get_node_instance(ctx, instance.id)
-        return __recursively_get_host(instance_from_ctx)
+        # fisrt of all, we search for the instance in the context
+        instance_from_ctx = _get_node_instance(ctx, instance.node_id, instance.id)
+        if instance_from_ctx is None:
+            # the host is not a real one BUT the instance is a new instance coming from modification
+            # (can not be found from context)
+            return host
+        else:
+            return __recursively_get_host(instance_from_ctx)
 
 
 def __recursively_get_host(instance):

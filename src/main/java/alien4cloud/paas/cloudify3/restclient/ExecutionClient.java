@@ -35,10 +35,10 @@ public class ExecutionClient extends AbstractClient {
             log.debug("List execution");
         }
         if (deploymentId != null && deploymentId.length() > 0) {
-            return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl("deployment_id", "include_system_workflows"), Execution[].class,
-                    deploymentId, includeSystemWorkflow));
+            return FutureUtil.unwrapRestResponse(getForEntity(getBaseUrl("deployment_id", "include_system_workflows"), Execution[].class, deploymentId,
+                    includeSystemWorkflow));
         } else {
-            return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl(), Execution[].class));
+            return FutureUtil.unwrapRestResponse(getForEntity(getBaseUrl(), Execution[].class));
         }
     }
 
@@ -60,7 +60,7 @@ public class ExecutionClient extends AbstractClient {
         request.put("force", force);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        return FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getBaseUrl(), HttpMethod.POST, new HttpEntity<>(request, headers), Execution.class));
+        return FutureUtil.unwrapRestResponse(exchange(getBaseUrl(), HttpMethod.POST, new HttpEntity<>(request, headers), Execution.class));
     }
 
     @SneakyThrows
@@ -80,8 +80,7 @@ public class ExecutionClient extends AbstractClient {
         }
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        return FutureUtil.unwrapRestResponse(
-                getRestTemplate().exchange(getSuffixedUrl("/{id}"), HttpMethod.POST, new HttpEntity<>(request, headers), Execution.class, id));
+        return FutureUtil.unwrapRestResponse(exchange(getSuffixedUrl("/{id}"), HttpMethod.POST, new HttpEntity<>(request, headers), Execution.class, id));
     }
 
     @SneakyThrows
@@ -93,7 +92,7 @@ public class ExecutionClient extends AbstractClient {
         if (log.isDebugEnabled()) {
             log.debug("Read execution {}", id);
         }
-        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Execution.class, id));
+        return FutureUtil.unwrapRestResponse(getForEntity(getSuffixedUrl("/{id}"), Execution.class, id));
     }
 
     @SneakyThrows

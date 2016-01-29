@@ -7,6 +7,7 @@ import lombok.Setter;
 import alien4cloud.exception.NotFoundException;
 import alien4cloud.ui.form.annotation.FormProperties;
 import alien4cloud.ui.form.annotation.FormPropertyConstraint;
+import alien4cloud.ui.form.annotation.FormPropertyDefinition;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -21,6 +22,15 @@ public class CloudConfiguration {
 
     @NotNull
     private LocationConfigurations locations;
+
+    @NotNull
+    private String userName;
+
+    @FormPropertyDefinition(type = "string", isPassword = true, isRequired = false)
+    private String password;
+
+    @NotNull
+    private Boolean disableVerification;
 
     @JsonIgnore
     public LocationConfiguration getConfigurationLocation(String locationName) {

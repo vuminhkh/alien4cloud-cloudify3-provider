@@ -28,8 +28,8 @@
 
     <!-- Configuration for the rest template deserializers -->
     <util:list id="restTemplateDeserializerList">
-        <bean class="org.springframework.http.converter.ByteArrayHttpMessageConverter"></bean>
-        <bean class="org.springframework.http.converter.ResourceHttpMessageConverter"></bean>
+        <bean class="org.springframework.http.converter.ByteArrayHttpMessageConverter"/>
+        <bean class="org.springframework.http.converter.ResourceHttpMessageConverter"/>
         <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
             <property name="objectMapper">
                 <bean class="com.fasterxml.jackson.databind.ObjectMapper">
@@ -44,10 +44,14 @@
         </bean>
     </util:list>
 
+    <bean id="authenticationInterceptor" class="alien4cloud.paas.cloudify3.restclient.auth.AuthenticationInterceptor"/>
+
+    <bean id="sslContextManager" class="alien4cloud.paas.cloudify3.restclient.auth.SSLContextManager"/>
+
     <bean id="syncRestTemplate" class="org.springframework.web.client.RestTemplate">
         <constructor-arg name="messageConverters" ref="restTemplateDeserializerList"/>
         <property name="errorHandler">
-            <bean class="alien4cloud.paas.cloudify3.error.CloudifyResponseErrorHandler"></bean>
+            <bean class="alien4cloud.paas.cloudify3.error.CloudifyResponseErrorHandler"/>
         </property>
     </bean>
 
@@ -55,7 +59,7 @@
         <constructor-arg>
             <bean class="org.springframework.http.client.SimpleClientHttpRequestFactory">
                 <property name="taskExecutor">
-                    <bean class="org.springframework.core.task.SimpleAsyncTaskExecutor"></bean>
+                    <bean class="org.springframework.core.task.SimpleAsyncTaskExecutor"/>
                 </property>
             </bean>
         </constructor-arg>

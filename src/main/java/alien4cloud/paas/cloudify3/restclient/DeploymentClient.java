@@ -2,18 +2,13 @@ package alien4cloud.paas.cloudify3.restclient;
 
 import java.util.Map;
 
-import alien4cloud.paas.cloudify3.model.Blueprint;
-import com.google.common.util.concurrent.AsyncFunction;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
 import alien4cloud.paas.cloudify3.model.Deployment;
 import alien4cloud.paas.cloudify3.util.FutureUtil;
@@ -36,7 +31,7 @@ public class DeploymentClient extends AbstractClient {
         if (log.isDebugEnabled()) {
             log.debug("List deployment");
         }
-        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl(), Deployment[].class));
+        return FutureUtil.unwrapRestResponse(getForEntity(getBaseUrl(), Deployment[].class));
     }
 
     @SneakyThrows
@@ -51,10 +46,9 @@ public class DeploymentClient extends AbstractClient {
         Map<String, Object> request = Maps.newHashMap();
         request.put("blueprint_id", blueprintId);
         request.put("inputs", inputs);
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        return FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getSuffixedUrl("/{id}"), HttpMethod.PUT, new HttpEntity<>(request, headers),
-                Deployment.class, id));
+        return FutureUtil.unwrapRestResponse(exchange(getSuffixedUrl("/{id}"), HttpMethod.PUT, createHttpEntity(request, headers), Deployment.class, id));
     }
 
     @SneakyThrows
@@ -66,7 +60,7 @@ public class DeploymentClient extends AbstractClient {
         if (log.isDebugEnabled()) {
             log.debug("Read deployment {}", id);
         }
-        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), Deployment.class, id));
+        return FutureUtil.unwrapRestResponse(getForEntity(getSuffixedUrl("/{id}"), Deployment.class, id));
     }
 
     @SneakyThrows
@@ -78,7 +72,7 @@ public class DeploymentClient extends AbstractClient {
         if (log.isDebugEnabled()) {
             log.debug("Delete deployment {}", id);
         }
-        return FutureUtil.toGuavaFuture(getRestTemplate().delete(getSuffixedUrl("/{id}"), id));
+        return FutureUtil.toGuavaFuture(delete(getSuffixedUrl("/{id}"), id));
     }
 
     @SneakyThrows
