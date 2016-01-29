@@ -21,8 +21,6 @@ import alien4cloud.paas.cloudify3.error.BadConfigurationException;
 @Component
 public class SSLContextManager {
 
-    private boolean disableSslVerification;
-
     private void doDisableSSLVerification() {
         // Attention disable/enable SSL verification only works if the plugin is reloaded, as the configuration is static
         try {
@@ -58,11 +56,6 @@ public class SSLContextManager {
     public void disableSslVerification(boolean disableSslVerification) {
         if (disableSslVerification) {
             log.warn("!!! All SSL verification will be disabled, this mode is only suitable for testing !!!");
-        } else if (this.disableSslVerification) {
-            log.warn("!!!! Reactivate SSL verification only works after reload of the plugin !!!");
-        }
-        this.disableSslVerification = disableSslVerification;
-        if (this.disableSslVerification) {
             doDisableSSLVerification();
         }
     }

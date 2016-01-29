@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Getter
 @Setter
-@FormProperties({ "url", "locations" })
+@FormProperties({ "url", "locations", "userName", "password", "disableVerification" })
 public class CloudConfiguration {
 
     @FormPropertyConstraint(pattern = "http\\:.+(?:\\d+)")
