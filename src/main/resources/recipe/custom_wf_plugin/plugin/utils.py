@@ -209,6 +209,7 @@ def __recursively_get_host(instance):
     else:
         return instance
 
+
 # check if the pre/post configure source/target operation should be called.
 # return true if the operation has not been called yet and then, register it as called.
 def __check_and_register_call_config_arround(ctx, custom_context, relationship_instance, source_or_target, pre_or_post):
@@ -260,13 +261,14 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
                 # add a condition in order to test if it's a 1-1 rel
                 if should_call_relationship_op(ctx, relationship):
                     fork.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.establish'))
+                    # if the target of the relation is not in modified instances, we should call the target.add_source
+                    #if relationship.target_node_instance.id not in custom_context.modified_instance_ids:
                     fork.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.establish'))
             for relationship in as_target_relationships:
                 # add a condition in order to test if it's a 1-1 rel
                 if should_call_relationship_op(ctx, relationship):
                     if relationship.node_instance.id not in custom_context.modified_instance_ids:
                         fork.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.establish'))
-                    # if the source of the relation is not in modifed instance, we should call the operation
                     if relationship.node_instance.id not in custom_context.modified_instance_ids:
                         fork.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.establish'))
         sequence.add(
