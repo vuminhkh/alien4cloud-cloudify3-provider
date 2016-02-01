@@ -209,12 +209,16 @@ def __recursively_get_host(instance):
     else:
         return instance
 
+
 # check if the pre/post configure source/target operation should be called.
 # return true if the operation has not been called yet and then, register it as called.
 def __check_and_register_call_config_arround(ctx, custom_context, relationship_instance, source_or_target, pre_or_post):
     source_node_id = relationship_instance.node_instance.node_id
     target_node_id = relationship_instance.target_node_instance.node_id
-    operation_id = source_node_id + '#' + target_node_id + '#' + pre_or_post + '_configure_' + source_or_target
+    operation_target_instance_id = relationship_instance.node_instance.id
+    if source_or_target == 'target':
+        operation_target_instance_id = relationship_instance.target_node_instance.id
+    operation_id = source_node_id + '#' + target_node_id + '#' + pre_or_post + '_configure_' + source_or_target + '#' + operation_target_instance_id
     result = False
     cause = 'No known cause'
     if custom_context.is_native_node(source_node_id) and source_or_target == 'source':
@@ -223,10 +227,12 @@ def __check_and_register_call_config_arround(ctx, custom_context, relationship_i
     elif custom_context.is_native_node(target_node_id) and source_or_target == 'target':
         result = True
         cause = 'target is a native node'
-    elif not custom_context.should_exec_config_arround:
-        # such kind of operation are never called for other than install or heal wf
-        result =  False
-        cause = 'wf does not allow around config ope calls'
+    elif source_or_target == 'source' and relationship_instance.node_instance.id not in custom_context.modified_instance_ids:
+        result = False
+        cause = 'source instance already exists (so arround operation has already been called)'
+    elif source_or_target == 'target' and relationship_instance.target_node_instance.id not in custom_context.modified_instance_ids:
+        result = False
+        cause = 'target instance already exists (so arround operation has already been called)'
     else:
         if operation_id in custom_context.executed_operation:
             result = False
@@ -260,13 +266,14 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
                 # add a condition in order to test if it's a 1-1 rel
                 if should_call_relationship_op(ctx, relationship):
                     fork.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.establish'))
+                    # if the target of the relation is not in modified instances, we should call the target.add_source
+                    #if relationship.target_node_instance.id not in custom_context.modified_instance_ids:
                     fork.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.establish'))
             for relationship in as_target_relationships:
                 # add a condition in order to test if it's a 1-1 rel
                 if should_call_relationship_op(ctx, relationship):
                     if relationship.node_instance.id not in custom_context.modified_instance_ids:
                         fork.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.establish'))
-                    # if the source of the relation is not in modifed instance, we should call the operation
                     if relationship.node_instance.id not in custom_context.modified_instance_ids:
                         fork.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.establish'))
         sequence.add(
@@ -276,6 +283,7 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
     elif operation_fqname == 'cloudify.interfaces.lifecycle.configure':
         as_target_relationships = custom_context.relationship_targets.get(instance.id, set())
         if relationship_count > 0 or len(as_target_relationships) > 0:
+            has_preconfigure_tasks = False
             preconfigure_tasks = ForkjoinWrapper(graph)
             preconfigure_tasks.add(instance.send_event("preconfiguring task for instance {0}'".format(instance.id)))
             for relationship in instance.relationships:
@@ -283,15 +291,19 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
                 if should_call_relationship_op(ctx, relationship):
                     if __check_and_register_call_config_arround(ctx, custom_context, relationship, 'source', 'pre'):
                         preconfigure_tasks.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.preconfigure'))
+                        has_preconfigure_tasks = True
             for relationship in as_target_relationships:
                 # add a condition in order to test if it's a 1-1 rel
                 if should_call_relationship_op(ctx, relationship):
                     if __check_and_register_call_config_arround(ctx, custom_context, relationship, 'target', 'pre'):
                         preconfigure_tasks.add(relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.preconfigure'))
-            sequence.add(forkjoin_sequence(graph, preconfigure_tasks, instance, "preconf for {0}".format(instance.id)))
+                        has_preconfigure_tasks = True
+            if has_preconfigure_tasks:
+                sequence.add(forkjoin_sequence(graph, preconfigure_tasks, instance, "preconf for {0}".format(instance.id)))
         # the configure operation call itself
         sequence.add(instance.execute_operation(operation_fqname))
         if relationship_count > 0 or len(as_target_relationships) > 0:
+            has_postconfigure_tasks = False
             postconfigure_tasks = ForkjoinWrapper(graph)
             postconfigure_tasks.add(instance.send_event("postconfiguring task for instance {0}'".format(instance.id)))
             for relationship in instance.relationships:
@@ -299,6 +311,7 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
                 if should_call_relationship_op(ctx, relationship):
                     if __check_and_register_call_config_arround(ctx, custom_context, relationship, 'source', 'post'):
                         postconfigure_tasks.add(relationship.execute_source_operation('cloudify.interfaces.relationship_lifecycle.postconfigure'))
+                        has_postconfigure_tasks = True
             for relationship in as_target_relationships:
                 # add a condition in order to test if it's a 1-1 rel
                 if should_call_relationship_op(ctx, relationship):
@@ -306,7 +319,9 @@ def operation_task_for_instance(ctx, graph, node_id, instance, operation_fqname,
                         task = relationship.execute_target_operation('cloudify.interfaces.relationship_lifecycle.postconfigure')
                         _set_send_node_event_on_error_handler(task, instance, "Error occurred while postconfiguring node as target for relationship {0} - ignoring...".format(relationship))
                         postconfigure_tasks.add(task)
-            sequence.add(forkjoin_sequence(graph, postconfigure_tasks, instance, "postconf for {0}".format(instance.id)))
+                        has_postconfigure_tasks = True
+            if has_postconfigure_tasks:
+                sequence.add(forkjoin_sequence(graph, postconfigure_tasks, instance, "postconf for {0}".format(instance.id)))
 
         persistent_event_tasks = build_persistent_event_tasks(instance)
         if persistent_event_tasks is not None:
@@ -585,9 +600,7 @@ class TaskSequenceWrapper(object):
 
 
 class CustomContext(object):
-    def __init__(self, ctx, modified_instances, modified_and_related_nodes, should_exec_config_arround):
-        # indicates that this is an initial install wf (not scaling, healing or whatever ...)
-        self.should_exec_config_arround = should_exec_config_arround
+    def __init__(self, ctx, modified_instances, modified_and_related_nodes):
         # this set to store pre/post conf source/target operation that have been already called
         # we'll use a string like sourceId#targetId#pre|post#source|target
         self.executed_operation = set()
