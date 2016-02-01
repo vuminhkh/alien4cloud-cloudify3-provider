@@ -18,6 +18,10 @@ from workflow import build_pre_event
 #foreach($wfStepEntry in ${steps.entrySet()})
 #if($util.workflow.isSetStateTask(${wfStepEntry.value}))
     custom_context.add_customized_wf_node('${wfStepEntry.value.activity.nodeId}')
+#end
+#end
+#foreach($wfStepEntry in ${steps.entrySet()})
+#if($util.workflow.isSetStateTask(${wfStepEntry.value}))
     set_state_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '${wfStepEntry.value.activity.stateName}', '${wfStepEntry.value.name}', custom_context)
 #end
 #if($util.workflow.isOperationExecutionTask(${wfStepEntry.value}))
@@ -62,7 +66,7 @@ def a4c_${wfEntry.key}(**kwargs):
     graph = ctx.graph_mode()
     nodes = _get_all_nodes(ctx)
     instances = _get_all_nodes_instances(ctx)
-    custom_context = CustomContext(ctx, instances, nodes)
+    custom_context = CustomContext(ctx, instances, nodes, True)
     ctx.internal.send_workflow_event(event_type='a4c_workflow_started', message=build_pre_event(WfStartEvent('${wfEntry.key}')))
     _a4c_${wfEntry.key}(ctx, graph, custom_context)
     return graph.execute()
@@ -75,6 +79,10 @@ def _a4c_${wfEntry.key}(ctx, graph, custom_context):
 #foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
 #if($util.workflow.isSetStateTask(${wfStepEntry.value}))
     custom_context.add_customized_wf_node('${wfStepEntry.value.activity.nodeId}')
+#end
+#end
+#foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
+#if($util.workflow.isSetStateTask(${wfStepEntry.value}))
     set_state_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '${wfStepEntry.value.activity.stateName}', '${wfStepEntry.value.name}', custom_context)
 #end
 #if($util.workflow.isOperationExecutionTask(${wfStepEntry.value}))
@@ -125,7 +133,7 @@ def a4c_scale(ctx, node_id, delta, scale_compute, **kwargs):
             graph = ctx.graph_mode()
             ctx.internal.send_workflow_event(event_type='a4c_workflow_started',
                                              message=build_pre_event(WfStartEvent('scale', 'install')))
-            custom_context = CustomContext(ctx, added, added_and_related)
+            custom_context = CustomContext(ctx, added, added_and_related, False)
             install_host(ctx, graph, custom_context, node_id)
             try:
                 graph.execute()
@@ -135,7 +143,7 @@ def a4c_scale(ctx, node_id, delta, scale_compute, **kwargs):
                 for task in graph.tasks_iter():
                     graph.remove_task(task)
                 try:
-                    custom_context = CustomContext(ctx, added, added_and_related)
+                    custom_context = CustomContext(ctx, added, added_and_related, False)
                     uninstall_host(ctx, graph, custom_context, node_id)
                     graph.execute()
                 except:
@@ -148,7 +156,7 @@ def a4c_scale(ctx, node_id, delta, scale_compute, **kwargs):
             graph = ctx.graph_mode()
             ctx.internal.send_workflow_event(event_type='a4c_workflow_started',
                                              message=build_pre_event(WfStartEvent('scale', 'uninstall')))
-            custom_context = CustomContext(ctx, removed, removed_and_related)
+            custom_context = CustomContext(ctx, removed, removed_and_related, False)
             uninstall_host(ctx, graph, custom_context, node_id)
             try:
                 graph.execute()
@@ -206,7 +214,7 @@ def a4c_heal(
       graph = ctx.graph_mode()
       ctx.internal.send_workflow_event(event_type='a4c_workflow_started',
                                                message=build_pre_event(WfStartEvent('heal', 'uninstall')))
-      custom_context = CustomContext(ctx, subgraph_node_instances, added_and_related)
+      custom_context = CustomContext(ctx, subgraph_node_instances, added_and_related, False)
       uninstall_host(ctx, graph, custom_context, node_id)
       graph.execute()
     except:
@@ -216,7 +224,7 @@ def a4c_heal(
       graph.remove_task(task)
     ctx.internal.send_workflow_event(event_type='a4c_workflow_started',
                                              message=build_pre_event(WfStartEvent('heal', 'install')))
-    custom_context = CustomContext(ctx, subgraph_node_instances, added_and_related)
+    custom_context = CustomContext(ctx, subgraph_node_instances, added_and_related, True)
     install_host(ctx, graph, custom_context, node_id)
     graph.execute()
 
