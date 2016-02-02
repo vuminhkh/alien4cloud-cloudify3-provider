@@ -90,16 +90,16 @@ public class TestBlueprintService extends AbstractTest {
     private void testGeneratedBlueprintFile(String topology) {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
         for (String location : LOCATIONS) {
-            if (applicationUtil.isTopologyExistForLocation(topology, location)) {
-                testGeneratedBlueprintFile(topology, location, topology, stackTraceElements[2].getMethodName(), null);
-            } else {
-                log.warn("Topology {} do not exist for location {}", topology, location);
-            }
+            testGeneratedBlueprintFile(topology, location, topology, stackTraceElements[2].getMethodName(), null);
         }
     }
 
     @SneakyThrows
     private Path testGeneratedBlueprintFile(String topology, String locationName, String outputFile, String testName, DeploymentContextVisitor contextVisitor) {
+        if (!applicationUtil.isTopologyExistForLocation(topology, locationName)) {
+            log.warn("Topology {} do not exist for location {}", topology, locationName);
+            return null;
+        }
         String recordedDirectory = "src/test/resources/outputs/blueprints/" + locationName + "/" + outputFile;
         PaaSTopologyDeploymentContext context = deploymentLauncher.buildPaaSDeploymentContext(testName, topology, locationName);
         if (contextVisitor != null) {
