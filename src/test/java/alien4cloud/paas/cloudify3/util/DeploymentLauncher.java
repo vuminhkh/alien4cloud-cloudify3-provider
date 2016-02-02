@@ -63,7 +63,7 @@ public class DeploymentLauncher {
         cloudConfiguration.setUrl(cloudifyURL);
         cloudConfiguration.setUserName("admin");
         cloudConfiguration.setPassword("admin");
-        cloudConfiguration.setDisableVerification(true);
+        cloudConfiguration.setDisableSSLVerification(true);
         cloudConfigurationHolder.setConfigurationAndNotifyListeners(cloudConfiguration);
         initialized = true;
     }

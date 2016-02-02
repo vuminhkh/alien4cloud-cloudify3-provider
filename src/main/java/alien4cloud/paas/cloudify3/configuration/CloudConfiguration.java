@@ -13,7 +13,7 @@ import alien4cloud.ui.form.annotation.FormPropertyDefinition;
 
 @Getter
 @Setter
-@FormProperties({ "url", "locations", "userName", "password", "disableVerification" })
+@FormProperties({ "url", "locations", "userName", "password", "disableSSLVerification" })
 public class CloudConfiguration {
 
     @FormPropertyConstraint(pattern = "http\\:.+(?:\\d+)")
@@ -30,7 +30,7 @@ public class CloudConfiguration {
     private String password;
 
     @NotNull
-    private Boolean disableVerification;
+    private Boolean disableSSLVerification;
 
     @JsonIgnore
     public LocationConfiguration getConfigurationLocation(String locationName) {

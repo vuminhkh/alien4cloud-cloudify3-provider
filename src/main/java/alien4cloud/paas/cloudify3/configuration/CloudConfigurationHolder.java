@@ -43,7 +43,7 @@ public class CloudConfigurationHolder {
             public void onConfigurationChange(CloudConfiguration newConfiguration) throws Exception {
                 authenticationInterceptor.setUserName(newConfiguration.getUserName());
                 authenticationInterceptor.setPassword(newConfiguration.getPassword());
-                sslContextManager.disableSslVerification(configuration.getDisableVerification() != null && configuration.getDisableVerification());
+                sslContextManager.disableSSLVerification(configuration.getDisableSSLVerification() != null && configuration.getDisableSSLVerification());
                 Version version = versionClient.read();
                 log.info("Configure PaaS provider for Cloudify version " + version.getVersion());
             }

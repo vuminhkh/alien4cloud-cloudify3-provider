@@ -45,7 +45,7 @@ public class CloudifyOrchestratorFactory implements IOrchestratorPluginFactory<C
         cloudConfiguration.setUrl("http://yourManagerIP");
         cloudConfiguration.setUserName("admin");
         cloudConfiguration.setPassword("admin");
-        cloudConfiguration.setDisableVerification(false);
+        cloudConfiguration.setDisableSSLVerification(false);
         LocationConfigurations locationConfigurations = new LocationConfigurations();
 
         LocationConfiguration amazon = new LocationConfiguration();

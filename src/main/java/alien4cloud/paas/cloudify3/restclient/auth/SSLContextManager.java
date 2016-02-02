@@ -53,8 +53,8 @@ public class SSLContextManager {
         }
     }
 
-    public void disableSslVerification(boolean disableSslVerification) {
-        if (disableSslVerification) {
+    public void disableSSLVerification(boolean disableSSLVerification) {
+        if (disableSSLVerification) {
             log.warn("!!! All SSL verification will be disabled, this mode is only suitable for testing !!!");
             doDisableSSLVerification();
         }
