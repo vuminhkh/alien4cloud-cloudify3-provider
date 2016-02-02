@@ -13,8 +13,6 @@ topology_template:
     compute:
       type: alien.cloudify.byon.nodes.Compute
       properties:
-        image: ami-47a23a30
-        flavor: t2.small
         host_pool_service_endpoint: "http://host.pool.service"
-        
+
 # eu-west-1
