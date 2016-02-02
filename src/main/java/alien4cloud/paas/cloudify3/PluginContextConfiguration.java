@@ -27,9 +27,8 @@ import com.google.common.collect.Lists;
 @ImportResource("classpath:cloudify3-plugin-properties-config.xml")
 public class PluginContextConfiguration {
 
-    @Bean(name = "cloudify-async-rest-template")
-    public AsyncRestTemplate asyncRestTemplate() {
-
+    @Bean(name = "cloudify-rest-template")
+    public RestTemplate restTemplate() {
         // Object mapper configuration
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
@@ -48,13 +47,15 @@ public class PluginContextConfiguration {
         RestTemplate syncRestTemplate = new RestTemplate();
         syncRestTemplate.setErrorHandler(new CloudifyResponseErrorHandler());
         syncRestTemplate.setMessageConverters(messageConverters);
+        return syncRestTemplate;
+    }
 
+    @Bean(name = "cloudify-async-rest-template")
+    public AsyncRestTemplate asyncRestTemplate() {
         // Async rest template
         SimpleAsyncTaskExecutor simpleAsyncTaskExecutor = new SimpleAsyncTaskExecutor();
         SimpleClientHttpRequestFactory simpleClientHttpRequestFactory = new SimpleClientHttpRequestFactory();
         simpleClientHttpRequestFactory.setTaskExecutor(simpleAsyncTaskExecutor);
-
-        AsyncRestTemplate asyncRestTemplate = new AsyncRestTemplate(simpleClientHttpRequestFactory, syncRestTemplate);
-        return asyncRestTemplate;
+        return new AsyncRestTemplate(simpleClientHttpRequestFactory, restTemplate());
     }
 }

@@ -25,7 +25,7 @@ public class NodeInstanceClient extends AbstractClient {
         if (log.isDebugEnabled()) {
             log.debug("List node instances for deployment {}", deploymentId);
         }
-        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl("deployment_id"), NodeInstance[].class, deploymentId));
+        return FutureUtil.unwrapRestResponse(getForEntity(getBaseUrl("deployment_id"), NodeInstance[].class, deploymentId));
     }
 
     @SneakyThrows
@@ -37,7 +37,7 @@ public class NodeInstanceClient extends AbstractClient {
         if (log.isDebugEnabled()) {
             log.debug("Read node instance {}", id);
         }
-        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getSuffixedUrl("/{id}"), NodeInstance.class, id));
+        return FutureUtil.unwrapRestResponse(getForEntity(getSuffixedUrl("/{id}"), NodeInstance.class, id));
     }
 
     @SneakyThrows

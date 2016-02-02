@@ -18,6 +18,10 @@ from workflow import build_pre_event
 #foreach($wfStepEntry in ${steps.entrySet()})
 #if($util.workflow.isSetStateTask(${wfStepEntry.value}))
     custom_context.add_customized_wf_node('${wfStepEntry.value.activity.nodeId}')
+#end
+#end
+#foreach($wfStepEntry in ${steps.entrySet()})
+#if($util.workflow.isSetStateTask(${wfStepEntry.value}))
     set_state_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '${wfStepEntry.value.activity.stateName}', '${wfStepEntry.value.name}', custom_context)
 #end
 #if($util.workflow.isOperationExecutionTask(${wfStepEntry.value}))
@@ -75,6 +79,10 @@ def _a4c_${wfEntry.key}(ctx, graph, custom_context):
 #foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
 #if($util.workflow.isSetStateTask(${wfStepEntry.value}))
     custom_context.add_customized_wf_node('${wfStepEntry.value.activity.nodeId}')
+#end
+#end
+#foreach($wfStepEntry in ${wfEntry.value.steps.entrySet()})
+#if($util.workflow.isSetStateTask(${wfStepEntry.value}))
     set_state_task(ctx, graph, '${wfStepEntry.value.activity.nodeId}', '${wfStepEntry.value.activity.stateName}', '${wfStepEntry.value.name}', custom_context)
 #end
 #if($util.workflow.isOperationExecutionTask(${wfStepEntry.value}))

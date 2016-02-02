@@ -1,5 +1,6 @@
 package alien4cloud.paas.cloudify3;
 
+import org.mockito.Mockito;
 import org.springframework.web.client.AsyncRestTemplate;
 
 import alien4cloud.paas.cloudify3.configuration.CloudConfiguration;
@@ -7,26 +8,37 @@ import alien4cloud.paas.cloudify3.configuration.CloudConfigurationHolder;
 import alien4cloud.paas.cloudify3.model.Execution;
 import alien4cloud.paas.cloudify3.restclient.ExecutionClient;
 import alien4cloud.paas.cloudify3.restclient.VersionClient;
+import alien4cloud.paas.cloudify3.restclient.auth.AuthenticationInterceptor;
 import alien4cloud.paas.exception.PluginConfigurationException;
 
 public class RestAPITest {
 
-    public static void main(String[] args) throws PluginConfigurationException {
-        AsyncRestTemplate restTemplate = new PluginContextConfiguration().asyncRestTemplate();
+    public static void main(String[] args) {
+        AuthenticationInterceptor authenticationInterceptor = new AuthenticationInterceptor();
+        PluginContextConfiguration fake = Mockito.mock(PluginContextConfiguration.class);
+        Mockito.when(fake.asyncRestTemplate()).thenCallRealMethod();
+        Mockito.when(fake.restTemplate()).thenCallRealMethod();
+        AsyncRestTemplate asyncRestTemplate = fake.asyncRestTemplate();
         ExecutionClient executionClient = new ExecutionClient();
         VersionClient versionClient = new VersionClient();
-        versionClient.setRestTemplate(restTemplate);
-        executionClient.setRestTemplate(restTemplate);
+        versionClient.setRestTemplate(asyncRestTemplate);
+        executionClient.setRestTemplate(asyncRestTemplate);
         CloudConfiguration defaultConfiguration = new CloudifyOrchestratorFactory().getDefaultConfiguration();
-        defaultConfiguration.setUrl("http://129.185.67.108/");
+        defaultConfiguration.setUrl("https://129.185.67.33");
+        defaultConfiguration.setUserName("admin");
+        defaultConfiguration.setPassword("admin");
         CloudConfigurationHolder cloudConfigurationHolder = new CloudConfigurationHolder();
         cloudConfigurationHolder.setVersionClient(versionClient);
+        cloudConfigurationHolder.setAuthenticationInterceptor(authenticationInterceptor);
         versionClient.setConfigurationHolder(cloudConfigurationHolder);
         executionClient.setConfigurationHolder(cloudConfigurationHolder);
-        cloudConfigurationHolder.setConfigurationAndNotifyListeners(defaultConfiguration);
-        Execution[] executions = executionClient.list("artifact-test-cfy3-Environment", true);
-        for (Execution execution : executions) {
-            System.out.println(execution.getWorkflowId() + " = " + execution.getIsSystemWorkflow());
+        try {
+            cloudConfigurationHolder.setConfigurationAndNotifyListeners(defaultConfiguration);
+            Execution[] executions = executionClient.list("artifact-test-cfy3-Environment", true);
+            for (Execution execution : executions) {
+                System.out.println(execution.getWorkflowId() + " = " + execution.getIsSystemWorkflow());
+            }
+        } catch (PluginConfigurationException e) {
         }
     }
 }

@@ -65,8 +65,8 @@ public abstract class AbstractEventClient extends AbstractClient {
         request.put("query", query);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        ListenableFuture<GetEventsResult> eventsResultListenableFuture = FutureUtil.unwrapRestResponse(getRestTemplate().exchange(getBaseUrl(),
-                HttpMethod.POST, new HttpEntity<>(request, headers), GetEventsResult.class));
+        ListenableFuture<GetEventsResult> eventsResultListenableFuture = FutureUtil.unwrapRestResponse(exchange(getBaseUrl(), HttpMethod.POST,
+                new HttpEntity<>(request, headers), GetEventsResult.class));
         Function<GetEventsResult, Event[]> eventsAdapter = new Function<GetEventsResult, Event[]>() {
             @Override
             public Event[] apply(GetEventsResult input) {

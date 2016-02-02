@@ -9,10 +9,11 @@ import alien4cloud.ui.form.annotation.FormProperties;
 import alien4cloud.ui.form.annotation.FormPropertyConstraint;
 import lombok.Getter;
 import lombok.Setter;
+import alien4cloud.ui.form.annotation.FormPropertyDefinition;
 
 @Getter
 @Setter
-@FormProperties({ "url", "locations" })
+@FormProperties({ "url", "locations", "userName", "password", "disableVerification" })
 public class CloudConfiguration {
 
     @FormPropertyConstraint(pattern = "http\\:.+(?:\\d+)")
@@ -21,6 +22,15 @@ public class CloudConfiguration {
 
     @NotNull
     private LocationConfigurations locations;
+
+    @NotNull
+    private String userName;
+
+    @FormPropertyDefinition(type = "string", isPassword = true, isRequired = false)
+    private String password;
+
+    @NotNull
+    private Boolean disableVerification;
 
     @JsonIgnore
     public LocationConfiguration getConfigurationLocation(String locationName) {

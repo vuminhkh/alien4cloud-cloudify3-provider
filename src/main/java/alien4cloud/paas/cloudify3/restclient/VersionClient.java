@@ -20,7 +20,7 @@ public class VersionClient extends AbstractClient {
     }
 
     public ListenableFuture<Version> asyncRead() {
-        return FutureUtil.unwrapRestResponse(getRestTemplate().getForEntity(getBaseUrl(), Version.class));
+        return FutureUtil.unwrapRestResponse(getForEntity(getBaseUrl(), Version.class));
     }
 
     @SneakyThrows
