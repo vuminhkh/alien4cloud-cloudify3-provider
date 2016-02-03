@@ -159,8 +159,12 @@ public class PropertiesMappingUtil {
                 if (parsedMapping.getValue() instanceof String) {
                     mappingString = (String) parsedMapping.getValue();
                 } else {
-                    mappingString = ((Map<String, String>) parsedMapping.getValue()).get("path");
-                    targetMapping.setUnit(((Map<String, String>) parsedMapping.getValue()).get("unit"));
+                    Map<String, String> complexMapping = (Map<String, String>) parsedMapping.getValue();
+                    mappingString = complexMapping.get("path");
+                    targetMapping.setUnit(complexMapping.get("unit"));
+                    if (complexMapping.containsKey("ceil")) {
+                        targetMapping.setCeil(true);
+                    }
                 }
                 String[] splitMappingString = asPropAndSubPath(mappingString);
                 targetMapping.setProperty(splitMappingString[0]);

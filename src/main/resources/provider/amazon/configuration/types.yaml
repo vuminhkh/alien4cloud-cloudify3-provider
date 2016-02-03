@@ -112,7 +112,7 @@ node_types:
     tags:
       _a4c_c3_derived_from: cloudify.aws.nodes.Volume
       _a4c_c3_prop_map: >
-        {"size": {"path": "size", "unit": "GiB"}, "volume_id": "resource_id"}
+        {"size": {"path": "size", "unit": "GiB", "ceil": true}, "volume_id": "resource_id"}
 
   alien.cloudify.aws.nodes.Volume:
     derived_from: alien.cloudify.aws.nodes.DeletableVolume
