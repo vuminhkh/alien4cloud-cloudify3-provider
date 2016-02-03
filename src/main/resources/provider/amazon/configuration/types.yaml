@@ -102,13 +102,19 @@ node_types:
       This represents a Block Storage (Volume) instance on AWS. Cloudify 3 can create this block and will delete it when the application is undeployed,
       even if the volume id is provided.
     properties:
-      volume_type:
+      device:
         type: string
-        default: "standard"
-        constraints:
-          - valid_values: [ "standard", "io1", "gp2" ]
+        required: true
+        description: >
+          The device name to be used for attachement. See amazon description for limitations here http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/device_naming.html#available-ec2-device-names.
+      zone:
+        type: string
+        required: false
+        description: >
+          The AWS availability zone.
     attributes:
       device: { get_attribute: [SELF, device] }
+      zone: { get_attribute: [SELF, zone] }
     tags:
       _a4c_c3_derived_from: cloudify.aws.nodes.Volume
       _a4c_c3_prop_map: >
@@ -121,4 +127,4 @@ node_types:
       In case the volume is created, it's id will be injected back into alien's deployment topology so next deployment reuse it.
     tags:
       _a4c_persistent_resources: >
-        {"aws_resource_id": "volume_id"}
+        {"aws_resource_id": "volume_id", "zone": "zone"}

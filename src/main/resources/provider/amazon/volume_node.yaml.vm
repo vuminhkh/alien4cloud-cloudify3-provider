@@ -1,22 +1,39 @@
 #foreach($volumeTemplate in ${deployment.volumes})
   ${volumeTemplate.id}:
     type: ${volumeTemplate.nodeTemplate.type}
-#if(${volumeTemplate.nodeTemplate.type}=="alien.cloudify.aws.nodes.Volume")
     interfaces:
       cloudify.interfaces.lifecycle:
+        create:
+          implementation: aws.ec2.ebs.create
+#set( $relationshipTemplates = $util.nonNative.getSourceRelationships($volumeTemplate) )
+#if(!${util.natives.hasPropertyValue($volumeTemplate.nodeTemplate.properties, "zone")})## use compute zone if none is provided
+#if($util.collectionHasElement($relationshipTemplates))
+#foreach($relationship in $relationshipTemplates)
+#if(${relationship.indexedToscaElement.elementId}=="tosca.relationships.AttachTo")
+#set( $attachTarget = $relationship.relationshipTemplate.target )
+          inputs:
+            args:
+              zone: { get_attribute: [$attachTarget, placement] }
+#end## if
+#end## foreach($relationship in $relationshipTemplates)
+#end## if $util.collectionHasElement($relationshipTemplates)
+#end## if hasPropertyValue($volumeTemplate.nodeTemplate.properties, "zone")})
+#if(${volumeTemplate.nodeTemplate.type}=="alien.cloudify.aws.nodes.Volume")
         delete: {}
 #end## if
     properties: ${util.natives.formatProperties(3, $volumeTemplate.nodeTemplate.properties, $deployment.propertyMappings.get($volumeTemplate.nodeTemplate.type))}
 #if(${util.natives.hasPropertyValue($volumeTemplate.nodeTemplate.properties, "volume_id")})
       use_external_resource: true
 #end## if
-#set( $relationshipTemplates = $util.nonNative.getSourceRelationships($volumeTemplate) )
+#if(!${util.natives.hasPropertyValue($volumeTemplate.nodeTemplate.properties, "zone")})## use compute zone if none is provided
+      zone: "failed to retrieve zone please check in amazon"
+#end## if
 #if($util.collectionHasElement($relationshipTemplates))
     relationships:
 #foreach($relationship in $relationshipTemplates)
 #if(${relationship.indexedToscaElement.elementId}=="tosca.relationships.AttachTo")
       - target: $relationship.relationshipTemplate.target
-        type: cloudify.aws.relationships.volume_attached_to_instance
+        type: cloudify.aws.relationships.volume_connected_to_instance
 #end## if
 #end## foreach($relationship in $relationshipTemplates)
 #end## if $util.collectionHasElement($relationshipTemplates)
