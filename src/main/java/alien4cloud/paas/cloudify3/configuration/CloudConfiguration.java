@@ -2,14 +2,14 @@ package alien4cloud.paas.cloudify3.configuration;
 
 import javax.validation.constraints.NotNull;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
+import lombok.Getter;
+import lombok.Setter;
 import alien4cloud.exception.NotFoundException;
 import alien4cloud.ui.form.annotation.FormProperties;
 import alien4cloud.ui.form.annotation.FormPropertyConstraint;
-import lombok.Getter;
-import lombok.Setter;
 import alien4cloud.ui.form.annotation.FormPropertyDefinition;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Getter
 @Setter
@@ -23,7 +23,6 @@ public class CloudConfiguration {
     @NotNull
     private LocationConfigurations locations;
 
-    @NotNull
     private String userName;
 
     @FormPropertyDefinition(type = "string", isPassword = true, isRequired = false)
