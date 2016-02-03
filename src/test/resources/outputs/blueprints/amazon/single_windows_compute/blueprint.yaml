@@ -51,6 +51,7 @@ node_templates:
         wait_started_timeout: 3600
       image_id: ami-4b80bf3c
       instance_type: m3.medium
+      name: compute
     relationships:
       - type: cloudify.aws.relationships.instance_connected_to_keypair
         target: _a4c_key_pair_for_compute

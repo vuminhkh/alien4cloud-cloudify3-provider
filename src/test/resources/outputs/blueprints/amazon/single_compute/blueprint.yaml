@@ -46,6 +46,7 @@ node_templates:
     properties: 
       image_id: ami-47a23a30
       instance_type: t2.small
+      name: compute
     interfaces:
       cloudify.interfaces.monitoring_agent:
         install:

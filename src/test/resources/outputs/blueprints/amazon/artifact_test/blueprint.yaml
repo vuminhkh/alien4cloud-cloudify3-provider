@@ -64,6 +64,7 @@ node_templates:
     properties: 
       image_id: ami-47a23a30
       instance_type: t2.small
+      name: Server
     relationships:
       - target: _a4c_floating_ip_Server_on_NetPub
         type: cloudify.aws.relationships.instance_connected_to_elastic_ip

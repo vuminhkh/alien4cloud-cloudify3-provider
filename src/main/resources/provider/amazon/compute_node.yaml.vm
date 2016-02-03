@@ -4,6 +4,7 @@
   ${compute.id}:
     type: ${compute.nodeTemplate.type}
     properties: ${util.natives.formatProperties(3, $compute.nodeTemplate.properties, $deployment.propertyMappings.get($compute.nodeTemplate.type))}
+      name: ${compute.id}
 #if(${compute.scalingPolicy})
     instances:
 #if(${compute.scalingPolicy.initialInstances})

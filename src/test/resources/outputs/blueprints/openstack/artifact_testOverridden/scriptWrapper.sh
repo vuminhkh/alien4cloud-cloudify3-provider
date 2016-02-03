@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 # this bash script wraps another script by sourcing it and echos expected env variables known as EXPECTED_OUTPUTS
 # source the script passed as first arg, other args are also passed
 . $1 $@

@@ -181,8 +181,8 @@ public final class PropertyValueUtil {
                 // if there is a specified unit, convert the value to the expected unit.
                 if (targetMapping.getUnit() != null) {
                     // need the property type to IComparablePropertyType
-                    sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(), subMapping.getSourceMapping()
-                            .getPropertyDefinition());
+                    sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(), targetMapping.isCeil(), subMapping
+                            .getSourceMapping().getPropertyDefinition());
                 }
 
                 if (targetMapping.getPath() == null) {
@@ -259,8 +259,8 @@ public final class PropertyValueUtil {
                     // if there is a specified unit, convert the value to the expected unit.
                     if (targetMapping.getUnit() != null) {
                         // need the property type to IComparablePropertyType
-                        sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(), subMapping.getSourceMapping()
-                                .getPropertyDefinition());
+                        sourceValue = PropertyValueService.getValueInUnit(sourceValue, targetMapping.getUnit(), targetMapping.isCeil(), subMapping
+                                .getSourceMapping().getPropertyDefinition());
                     }
 
                     PropertyValue targetProperty = (PropertyValue) mappedProperties.get(targetMapping.getProperty());
