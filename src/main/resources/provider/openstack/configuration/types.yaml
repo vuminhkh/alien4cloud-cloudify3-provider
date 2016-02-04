@@ -411,7 +411,7 @@ node_types:
       _a4c_c3_derived_from: cloudify.openstack.nodes.Volume
       # Properties from parent type size, volume_id, snapshot_id will be mapped to valid cloudify properties
       _a4c_c3_prop_map: >
-        {"size": {"path": "volume.size", "unit": "GiB", "ceil": true}, "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id", "device": "device_name"}
+        {"size": [{"path": "volume.size", "unit": "GiB", "ceil": true}, {"path": "toto"} ], "volume_id": "resource_id", "snapshot_id": "volume.snapshot_id", "device": "device_name"}
 
   alien.cloudify.openstack.nodes.Volume:
     derived_from: alien.cloudify.openstack.nodes.DeletableVolume

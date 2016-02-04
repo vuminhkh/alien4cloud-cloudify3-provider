@@ -1,5 +1,8 @@
 package alien4cloud.paas.cloudify3;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections4.MapUtils;
@@ -7,10 +10,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import alien4cloud.model.common.Tag;
+import alien4cloud.model.components.IndexedNodeType;
+import alien4cloud.model.components.PropertyDefinition;
 import alien4cloud.paas.cloudify3.service.CloudifyDeploymentBuilderService;
 import alien4cloud.paas.cloudify3.service.model.HostWorkflow;
 import alien4cloud.paas.cloudify3.service.model.StandardWorkflow;
 import alien4cloud.paas.cloudify3.service.model.Workflows;
+import alien4cloud.paas.cloudify3.util.mapping.IPropertyMapping;
+import alien4cloud.paas.cloudify3.util.mapping.PropertiesMappingUtil;
 import alien4cloud.paas.wf.NodeActivityStep;
 import alien4cloud.paas.wf.Workflow;
 import alien4cloud.paas.wf.util.WorkflowUtils;
@@ -26,6 +34,24 @@ public class WorkflowsTest {
     public void before() {
         addWorkflow(true, Workflow.INSTALL_WF);
         addWorkflow(true, Workflow.UNINSTALL_WF);
+    }
+
+    @Test
+    public void testPropertyMapping() {
+        IndexedNodeType nodeType = new IndexedNodeType();
+        Map<String, PropertyDefinition> properties = new HashMap<>();
+        PropertyDefinition propertyDefinition = new PropertyDefinition();
+        propertyDefinition.setType("string");
+        properties.put("size", propertyDefinition);
+        nodeType.setProperties(properties);
+        List<Tag> tags = new ArrayList<>();
+        Tag tag = new Tag();
+        tag.setName(PropertiesMappingUtil.PROP_MAPPING_TAG_KEY);
+        tag.setValue("{\"size\": [{\"path\": \"volume.size\", \"unit\": \"GiB\", \"ceil\": true}, {\"path\": \"toto\"} ], \"volume_id\": \"resource_id\", \"snapshot_id\": \"volume.snapshot_id\", \"device\": \"device_name\"}");
+        tags.add(tag);
+        nodeType.setTags(tags);
+        Map<String, IPropertyMapping> mappings = PropertiesMappingUtil.loadPropertyMapping(PropertiesMappingUtil.PROP_MAPPING_TAG_KEY, nodeType);
+        Assert.assertEquals(5, mappings.size());
     }
 
     /**

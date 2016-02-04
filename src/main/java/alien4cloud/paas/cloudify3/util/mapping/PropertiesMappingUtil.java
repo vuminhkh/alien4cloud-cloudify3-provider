@@ -29,7 +29,7 @@ import com.google.common.collect.Maps;
 @Slf4j
 @Component
 public class PropertiesMappingUtil {
-    private static final String PROP_MAPPING_TAG_KEY = "_a4c_c3_prop_map";
+    public static final String PROP_MAPPING_TAG_KEY = "_a4c_c3_prop_map";
     private static ObjectMapper mapper = new ObjectMapper();
 
     /**
@@ -158,6 +158,15 @@ public class PropertiesMappingUtil {
                 String mappingString;
                 if (parsedMapping.getValue() instanceof String) {
                     mappingString = (String) parsedMapping.getValue();
+                } else if (parsedMapping.getValue() instanceof List) {
+                    // FIXME to be implemented
+                    List<Map<String, String>> listMappings = (List<Map<String, String>>) parsedMapping.getValue();
+                    Map<String, String> complexMapping = listMappings.get(0);
+                    mappingString = complexMapping.get("path");
+                    targetMapping.setUnit(complexMapping.get("unit"));
+                    if (complexMapping.containsKey("ceil")) {
+                        targetMapping.setCeil(true);
+                    }
                 } else {
                     Map<String, String> complexMapping = (Map<String, String>) parsedMapping.getValue();
                     mappingString = complexMapping.get("path");
